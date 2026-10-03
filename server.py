@@ -1,17 +1,15 @@
 import asyncio
-import http.server
 import json
-import socketserver
-import threading
+import os
 import websockets
 
-# Speicher für aktive Räume: {"RAUM1": {websocket1, websocket2}}
+# Speicher für aktive Räume
 ROOMS = {}
-CLIENT_ROOMS = {}  # Zuordnung: websocket -> room_id
+CLIENT_ROOMS = {}
 
 async def ws_handler(websocket):
-    client_ip = websocket.remote_address[0]
-    print(f"[WebSocket] Neuer Client verbunden: {client_ip}")
+    client_ip = websocket.remote_address[0] if websocket.remote_address else "Unknown"
+    print(f"[WebSocket] Verbindung aufgebaut: {client_ip}")
 
     try:
         async for message in websocket:
@@ -24,7 +22,7 @@ async def ws_handler(websocket):
             if data.get("type") == "join_room":
                 room_id = data.get("room", "DEFAULT").strip().upper()
                 
-                # Alten Raum verlassen, falls vorhanden
+                # Alten Raum verlassen
                 old_room = CLIENT_ROOMS.get(websocket)
                 if old_room and old_room in ROOMS:
                     ROOMS[old_room].discard(websocket)
@@ -35,10 +33,10 @@ async def ws_handler(websocket):
                     ROOMS[room_id] = set()
                 ROOMS[room_id].add(websocket)
                 
-                print(f"[WebSocket] Client {client_ip} ist Raum '{room_id}' beigetreten.")
+                print(f"[WebSocket] Client ist Raum '{room_id}' beigetreten.")
                 continue
 
-            # 2. Nachricht nur an Clients im SELBEN Raum weiterleiten
+            # 2. Nachricht an Clients im SELBEN Raum weiterleiten
             current_room = CLIENT_ROOMS.get(websocket)
             if current_room and current_room in ROOMS:
                 for client in ROOMS[current_room]:
@@ -48,31 +46,20 @@ async def ws_handler(websocket):
     except websockets.exceptions.ConnectionClosed:
         pass
     finally:
-        # Client beim Trennen aus dem Raum entfernen
         room_id = CLIENT_ROOMS.pop(websocket, None)
         if room_id and room_id in ROOMS:
             ROOMS[room_id].discard(websocket)
             if not ROOMS[room_id]:
                 del ROOMS[room_id]
-        print(f"[WebSocket] Client getrennt: {client_ip}")
-
-def run_http_server(port=8000):
-    Handler = http.server.SimpleHTTPRequestHandler
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", port), Handler) as httpd:
-        print(f"[HTTP] Webserver gestartet unter: http://localhost:{port}/")
-        httpd.serve_forever()
+        print(f"[WebSocket] Client getrennt.")
 
 async def main():
-    http_thread = threading.Thread(target=run_http_server, daemon=True)
-    http_thread.start()
-
-    async with websockets.serve(ws_handler, "0.0.0.0", 8765):
-        print("[WebSocket] Server läuft auf ws://0.0.0.0:8765 (Raum-Support aktiv)")
+    # Render weist automatisch einen Port über os.environ zu
+    port = int(os.environ.get("PORT", 8765))
+    
+    async with websockets.serve(ws_handler, "0.0.0.0", port):
+        print(f"[WebSocket] Server gestartet auf Port {port}")
         await asyncio.Future()
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\n[Server] Beendet durch Benutzer.")
+    asyncio.run(main())
