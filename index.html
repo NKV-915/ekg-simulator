@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EKG Simulator</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #111; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { background: #222; padding: 30px; border-radius: 12px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); width: 280px; }
+        input { width: 100%; padding: 12px; font-size: 18px; text-align: center; border-radius: 8px; border: 2px solid #444; background: #000; color: #fff; box-sizing: border-box; text-transform: uppercase; margin-bottom: 15px; }
+        button { width: 100%; padding: 14px; margin: 8px 0; font-size: 16px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; }
+        .btn-mon { background: #47d670; color: #000; }
+        .btn-ctrl { background: #007bff; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>EKG Simulator</h2>
+        <label style="display:block; margin-bottom: 6px; font-size: 14px; color: #aaa;">Raum-Code (z.B. SIM1):</label>
+        <input type="text" id="roomInput" value="SIM1" placeholder="RAUM CODE">
+        
+        <button class="btn-mon" onclick="startApp('monitor.html')">Monitor (Anzeige)</button>
+        <button class="btn-ctrl" onclick="startApp('control.html')">Controller (Steuerung)</button>
+    </div>
+
+    <script>
+        function startApp(page) {
+            const room = document.getElementById('roomInput').value.trim() || 'SIM1';
+            location.href = `${page}?room=${encodeURIComponent(room)}`;
+        }
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>

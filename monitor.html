@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <title>EKG Simulator</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <style>
+        body { 
+            background-color: #000; 
+            color: #fff; 
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+            margin: 0; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+        }
+        
+        /* Start-Bildschirm Overlay */
+        #startOverlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            background: rgba(0,0,0,0.95); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 9999; 
+            cursor: pointer; 
+        }
+        #startOverlay h1 { 
+            border: 2px solid #fff; 
+            padding: 20px 40px; 
+            border-radius: 10px; 
+            text-align: center;
+            font-size: 28px;
+        }
+
+        /* Schwebendes HUD-Overlay platziert sich direkt unter der Top-Bar */
+        #warning-area { 
+            position: fixed; 
+            top: 42px; 
+            left: 0; 
+            width: 100vw;
+            background-color: rgba(220, 53, 69, 0.95); 
+            color: #fff; 
+            text-align: center; 
+            padding: 10px 0; 
+            font-size: 20px; 
+            font-weight: bold; 
+            letter-spacing: 1px;
+            display: none; 
+            z-index: 6000; 
+            box-shadow: 0 4px 15px rgba(255,0,0,0.5);
+            animation: banner-blink 0.6s infinite alternate; 
+        }
+        @keyframes banner-blink { 
+            from { opacity: 1; } 
+            to { opacity: 0.4; } 
+        }
+
+        /* Lifepak 15 Top-Leiste */
+        #top-header {
+            height: 42px; 
+            background-color: #222; 
+            border-bottom: 2px solid #333;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            padding: 0 15px; 
+            box-sizing: border-box; 
+            z-index: 5500;
+        }
+        #top-clock { 
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 24px; 
+            font-weight: bold; 
+            color: #ffcc00; 
+            letter-spacing: 1px; 
+        }
+        
+        /* Lifepak Batterie- & Energie-Overlay */
+        .header-right { 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+        }
+        .bat-box { 
+            display: flex; 
+            align-items: center; 
+            border: 2px solid #000; 
+            border-radius: 4px; 
+            padding: 2px 6px; 
+            background: #cbd5e1; 
+            color: #000; 
+            font-family: sans-serif;
+            font-size: 16px; 
+            font-weight: bold; 
+            gap: 6px; 
+            height: 24px; 
+            box-sizing: border-box;
+        }
+        .bat-icon-frame {
+            width: 22px; 
+            height: 14px; 
+            border: 2px solid #000; 
+            background: #000; 
+            position: relative; 
+            display: flex; 
+            align-items: center; 
+            padding: 1px; 
+            box-sizing: border-box;
+        }
+        .bat-icon-frame::after {
+            content: ''; 
+            position: absolute; 
+            right: -4px; 
+            top: 3px; 
+            width: 2px; 
+            height: 4px; 
+            background: #000; 
+            border: 1px solid #000; 
+            border-left: none;
+        }
+        .bat-level { 
+            width: 100%; 
+            height: 100%; 
+            background-color: #24b34b; 
+        } 
+        
+        .energy-box { 
+            border: 2px solid #000; 
+            border-radius: 4px; 
+            padding: 2px 8px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            background: #cbd5e1; 
+            color: #000; 
+            display: flex; 
+            align-items: center; 
+            height: 24px; 
+            box-sizing: border-box;
+        }
+
+        /* Haupt-Monitor Grid-Verteilung */
+        #monitor { 
+            display: flex; 
+            flex-grow: 1; 
+            width: 100vw; 
+            height: calc(100vh - 42px); 
+        }
+        
+        /* Breite auf 410px fixiert fuer brachiale Ablesbarkeit */
+        #vitals { 
+            width: 410px; 
+            background-color: #0c0c0c; 
+            display: flex; 
+            flex-direction: column; 
+            padding: 8px; 
+            box-sizing: border-box; 
+            border-right: 2px solid #222; 
+        }
+        
+        /* Spalte 2 (MITTE): Kurvenfenster */
+        #waveforms { 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: flex-start; 
+            border-right: 2px solid #333; 
+            background-color: #000; 
+        }
+        
+        /* Spalte 3 (RECHTS): Steuerungstasten */
+        #aed-panel { 
+            width: 180px; 
+            background-color: #1a1a1a; 
+            display: flex; 
+            flex-direction: column; 
+            padding: 15px; 
+            align-items: center; 
+            justify-content: flex-start; 
+            gap: 15px; 
+            box-sizing: border-box; 
+        }
+        
+        /* Boxen-Styling */
+        .vital-box { 
+            background: #000; 
+            border: 1px solid #1c1c1c; 
+            padding: 6px 12px; 
+            border-radius: 6px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            flex-grow: 1; 
+            margin-bottom: 6px; 
+            box-sizing: border-box; 
+            overflow: hidden;
+        }
+        .vital-box:last-child { margin-bottom: 0; }
+        
+        /* Titelzeilen (34px) mit grauem Header-Balken */
+        .vital-title-row { 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 34px; 
+            font-weight: bold; 
+            background-color: #222; 
+            padding: 4px 12px;
+            margin: -6px -12px 4px -12px;
+            align-items: baseline;
+        }
+        
+        /* Hauptwerte (110px) */
+        .vital-value { 
+            font-size: 110px; 
+            font-weight: bold; 
+            line-height: 0.90; 
+            text-align: right; 
+            font-family: Arial, sans-serif; 
+            letter-spacing: -2px; 
+            margin-top: auto; 
+            margin-bottom: 2px;
+        }
+        
+        .ecg-color { color: #47d670; } 
+        .spo2-color { color: #38b6ff; } 
+        .co2-color { color: #ffaa00; }  
+        .white-color { color: #ffffff; } 
+        
+        .alarm-active { background-color: rgba(255, 0, 0, 0.4); color: white !important; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        canvas { width: 100%; height: 24.5vh; border-bottom: 1px dashed #222; }
+
+        .aed-btn { width: 100%; padding: 18px 10px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; cursor: pointer; transition: 0.3s; }
+        #btn-analyse { background-color: #ffcc00; color: #000; }
+        #btn-analyse:active { background-color: #e6b800; transform: scale(0.95); }
+        #btn-shock { background-color: #dc3545; color: #fff; opacity: 0.3; pointer-events: none; }
+        #btn-nibp-start { background-color: #ffaa00; color: #000; }
+        #btn-12lead { background-color: #7000ff; color: #fff; }
+        
+        .analyse-measuring { animation: analyse-blink 1s infinite alternate !important; }
+        @keyframes analyse-blink { from { background-color: #ffcc00; color: #000; } to { background-color: #997a00; color: #fff; } }
+        
+        .nibd-measuring { animation: nibd-blink 1s infinite alternate !important; }
+        @keyframes nibd-blink { from { background-color: #ffaa00; color: #000; } to { background-color: #885500; color: #fff; } }
+
+        .shock-ready { opacity: 1 !important; pointer-events: auto !important; }
+        #cpr-timer { display: none; font-size: 36px; font-weight: bold; color: #444; font-family: 'Courier New', Courier, monospace; text-align: center; letter-spacing: 1px; margin-bottom: 5px; }
+
+        /* 12-Kanal Ausdruck-Fenster Styles */
+        #print-overlay { 
+            position: fixed; top: 3vh; left: 3vw; width: 94vw; height: 94vh; 
+            background-color: #ffebd7; background-image: radial-gradient(#ffb6c1 1px, transparent 1px); background-size: 10px 10px;
+            border: 4px solid #fff; border-radius: 12px; box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            z-index: 7000; display: none; flex-direction: column; padding: 15px; box-sizing: border-box; color: #000;
+        }
+        .print-grid { 
+            display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); 
+            gap: 10px; flex-grow: 1; min-height: 0; box-sizing: border-box; margin-top: 10px;
+        }
+        .lead-box { border: 1px solid #caa; background: rgba(255,255,255,0.4); position: relative; border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; }
+        .lead-label { position: absolute; top: 4px; left: 6px; font-weight: bold; font-size: 16px; color: #555; font-family: monospace; z-index: 10; }
+        .lead-canvas { flex-grow: 1; width: 100%; height: 100%; display: block; }
+
+        #flash-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #fff; z-index: 9999; pointer-events: none; display: none; opacity: 0; transition: opacity 0.1s ease-out; }
+
+        /* Interaktives Defi-Overlay-System */
+        #defib-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.85); display: flex; justify-content: center;
+            align-items: center; z-index: 8500; display: none;
+        }
+        #defib-screen {
+            width: 550px; height: 350px; background-color: #000;
+            border: 5px solid #333; border-radius: 12px; display: flex; flex-direction: column;
+            overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.9);
+        }
+        
+        #announcement-state {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; flex-grow: 1; padding: 20px; text-align: center;
+        }
+        #announcement-text {
+            font-size: 38px; font-weight: bold; text-transform: uppercase;
+            font-family: Arial, sans-serif; letter-spacing: 1px; line-height: 1.3;
+        }
+
+        #loading-state { display: none; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; padding: 20px; }
+        #energy-display { font-size: 36px; font-weight: bold; margin-bottom: 25px; color: #fff; font-family: monospace; }
+        #progress-container { width: 85%; height: 26px; background-color: #111; border: 2px solid #555; border-radius: 14px; overflow: hidden; }
+        #progress-fill { height: 100%; width: 0%; background-color: #dc3545; }
+        #loading-text { margin-top: 15px; font-size: 16px; color: #aaa; font-weight: bold; letter-spacing: 1px; }
+        
+        #ready-state { display: none; flex-direction: column; flex-grow: 1; }
+        #ready-header { background-color: #222; color: #ffca28; text-align: center; padding: 10px; font-weight: bold; font-size: 24px; text-transform: uppercase; border-bottom: 2px solid #333; letter-spacing: 0.5px;}
+        #ready-info { background-color: #bdc3c7; color: #000; flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div id="startOverlay" onclick="initMonitor()">
+        <h1>Monitor einschalten</h1>
+    </div>
+
+    <div id="warning-area">⚠️ DISCONNECT</div>
+
+    <div id="flash-overlay"></div>
+
+    <div id="defib-overlay">
+        <div id="defib-screen">
+            
+            <div id="announcement-state">
+                <div id="announcement-text">EVALUIERE...</div>
+            </div>
+
+            <div id="loading-state">
+                <div id="energy-display">200 J</div>
+                <div id="progress-container"><div id="progress-fill"></div></div>
+                <div id="loading-text">LÄDT... BITTE WARTEN</div>
+            </div>
+
+            <div id="ready-state">
+                <div id="ready-header">Halbautomatischer Modus</div>
+                <div id="ready-info">
+                    <p style="font-size: 24px; font-weight: bold; margin: 2px 0;">200 J verfügbar</p>
+                    <p style="font-size: 26px; font-weight: bold; text-transform: uppercase; margin: 4px 0 0 0;">SCHOCK-Taste drücken!</p>
+                    <svg viewBox="0 0 100 100" style="width: 38px; height: 38px; margin: 8px 0;">
+                        <polygon points="50,100 100,40 0,40" fill="black"/>
+                    </svg>
+                    <svg viewBox="0 0 100 100" style="width: 85px; height: 85px; cursor: pointer;" onclick="deliverShock()">
+                        <circle cx="50" cy="50" r="48" fill="#c0392b" />
+                        <polygon points="55,15 35,45 50,45 45,85 65,55 50,55" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="top-header">
+        <div style="color: #888; font-weight: bold; font-size: 14px; letter-spacing: 1px;">EKG Simulator</div>
+        <div id="top-clock">--:--:--</div>
+        <div class="header-right">
+            <div class="bat-box"><span>1</span><div class="bat-icon-frame"><div class="bat-level"></div></div></div>
+            <div class="bat-box"><span>2</span><div class="bat-icon-frame"><div class="bat-level"></div></div></div>
+            <div class="energy-box">⚡ 200J</div>
+        </div>
+    </div>
+
+    <div id="print-overlay">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #555; padding-bottom: 6px;">
+            <span style="font-size: 26px; font-weight: bold; font-family: monospace; color: #000;">12-Kanal-EKG</span>
+            <button onclick="close12Lead()" style="padding: 8px 24px; background: #222; color:#fff; border:none; border-radius:6px; font-size: 16px; font-weight:bold; cursor:pointer; transition: 0.2s;">Schließen</button>
+        </div>
+        <div class="print-grid" id="leadGrid"></div>
+    </div>
+
+    <div id="monitor">
+        <div id="vitals">
+            <div class="vital-box ecg-color" id="box-hr">
+                <div class="vital-title-row"><span>HF</span><span style="font-size:20px;">/min</span></div>
+                <div class="vital-value" id="hrDisplay">--</div>
+            </div>
+            <div class="vital-box spo2-color" id="box-spo2">
+                <div class="vital-title-row"><span>SpO2</span><span style="font-size:20px;">%</span></div>
+                <div class="vital-value" id="spo2Display">--</div>
+            </div>
+            <div class="vital-box co2-color" id="box-co2">
+                <div class="vital-title-row"><span>CO2</span><span style="font-size:20px;">mmHg</span></div>
+                <div class="vital-value" id="co2Display" style="font-size: 95px; margin-top: -5px; margin-bottom: -5px;">--</div>
+                <div style="font-size: 24px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-top: 2px; padding: 0 4px;">
+                    <span>AF:</span><span id="afDisplay" style="color: #ffaa00; font-size: 36px; font-family: Arial, sans-serif;">--</span>
+                </div>
+            </div>
+            <div class="vital-box white-color" id="box-nibd">
+                <div class="vital-title-row"><span>NIBP</span><span style="font-size:20px;">mmHg</span></div>
+                <div class="vital-value" style="font-size: 65px; letter-spacing: -2px; margin-bottom: 2px; margin-top: auto;">
+                    <span id="sysDisplay">--</span>/<span id="diaDisplay">--</span>
+                </div>
+                <div style="font-size: 15px; font-weight: bold; color: #666; display: flex; justify-content: space-between; background-color: #222; margin: 4px -12px 4px -12px; padding: 4px 12px;">
+                    <span>MAP: <span id="mapDisplay" style="color:#fff; font-size:16px;">--</span></span>
+                    <span>HF: <span id="nibdPulseDisplay" style="color:#fff; font-size:16px;">--</span></span>
+                </div>
+                <div id="historyList" style="display: block; height: 95px; margin-top: 6px; font-family: monospace; overflow: hidden; box-sizing: border-box;"></div>
+            </div>
+        </div>
+
+        <div id="waveforms">
+            <canvas id="ecgCanvas"></canvas>
+            <canvas id="spo2Canvas"></canvas>
+            <canvas id="co2Canvas"></canvas>
+        </div>
+
+        <div id="aed-panel">
+            <button id="btn-mute" onclick="toggleMute()">🔕 SOUND AN</button>
+            <hr style="width:100%; border: 1px solid #444; margin: 10px 0;">
+            
+            <div id="cpr-timer">00:00</div>
+            
+            <button id="btn-analyse" class="aed-btn" onclick="startAnalysis()">ANALYSE</button>
+            <button id="btn-shock" class="aed-btn" onclick="deliverShock()">SCHOCK</button>
+            <button id="btn-nibp-start" class="aed-btn" onclick="startMonitorNibd()">NIBP</button>
+            <button id="btn-12lead" class="aed-btn" onclick="trigger12LeadPrint()">12-KANAL</button>
+        </div>
+    </div>
+
+    <script>
+        // Raum-Code aus der URL auslesen (Standard: SIM1)
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentRoom = urlParams.get('room') || 'SIM1';
+
+        // WebSocket Verbindung aufbauen (hier URL ggf. anpassen)
+        const ws = new WebSocket("wss://ekg-backend.onrender.com");
+        
+        const leads = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"];
+
+        let baseHR = 80; let baseSpO2 = 98; let baseEtco2 = 40; let baseAF = 12;     
+        let currentHR = 80; let currentSpO2Display = 98; let currentEtco2Display = 40; 
+        let standbySys = "120"; let standbyDia = "80"; let isNibdConnected = false; 
+        let currentRhythm = 'nsr'; 
+        
+        let isEcgConnected = false; let isSpO2Connected = false; let isCo2Connected = false; let isDefiConnected = false; 
+        let isHDMActive = false; let spo2Quality = 'good'; let nibdHistory = []; let isAlarming = false;
+        
+        let ecgWarningActive = false; let nibdWarningActive = false; let defiWarningActive = false;
+        let ecgTimeout = null; let nibdTimeout = null; let defiTimeout = null;
+        let isAudioMuted = true; 
+        
+        let audioCtx = null; let chargeOsc = null; let chargeGain = null; let quartIntervalTimer = null; let quartToggle = false;
+        let cprTimerInterval = null; let cprTimeLeft = 0; 
+        let isCurrentlyMeasuringNIBP = false;
+
+        const canvasECG = document.getElementById("ecgCanvas"); const ctxECG = canvasECG.getContext("2d"); 
+        const canvasSpO2 = document.getElementById("spo2Canvas"); const ctxSpO2 = canvasSpO2.getContext("2d"); 
+        const canvasCO2 = document.getElementById("co2Canvas"); const ctxCO2 = canvasCO2.getContext("2d");
+        
+        let x = 0; let ecgFrameCounter = 0; let ecgComplexIndex = 0; let isDrawingECG = false; let lastYECG = canvasECG.height / 2; 
+        let spo2FrameCounter = 10; let spo2ComplexIndex = 0; let isDrawingSpO2 = false; let lastYSpO2 = canvasSpO2.height / 2; 
+        let cprFrameCounter = 0; let cprComplexIndex = 0; let isDrawingCPR = false; let co2FrameCounter = 0; let lastYCO2 = canvasCO2.height / 1.2;
+
+        const cprArtifactData = [0, 8, 22, 35, 18, -3, -15, -28, -12, 0];
+        const co2WaveForm = [0,0,0,0,0,0,0,0,0,0,0,0,2,9,19,22.5,23.0,23.3,23.6,23.9,24.1,24.4,24.6,24.8,25.0,25.2,25.4,25.7,26.0,12,1.5,0]; 
+        const ecgData = [0,0,2,4,2,0,0,-3,25,-8,0,0,3,6,7,5,2,0,0]; const stemiData = [0,0,2,4,2,0,0,-3,25,18,17,16,15,13,10,7,4,2,0]; 
+        const spo2Waves = { 'good': [0,2,5,10,12,10,6,5,6,4,2,1,0,0], 'medium': [0,1,3,5,6,5,3,2,3,2,1,0,0,0], 'poor': [0,0,1,0,-1,0,1,0,-1,0,0,0,0,0] };
+
+        function resize() { canvasECG.width = canvasECG.clientWidth; canvasECG.height = canvasECG.clientHeight; canvasSpO2.width = canvasSpO2.clientWidth; canvasSpO2.height = canvasSpO2.clientHeight; canvasCO2.width = canvasCO2.clientWidth; canvasCO2.height = canvasCO2.clientHeight; }
+        resize();
+
+        function initMonitor() {
+            document.getElementById("startOverlay").style.display = "none";
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+            setTimeout(function() { if (ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "monitor_initialized" })); } }, 500);
+        }
+
+        function updateTopClock() {
+            const now = new Date();
+            // Anpassung: 24-Stunden Format (de-DE, hour12: false)
+            document.getElementById("top-clock").innerText = now.toLocaleTimeString('de-DE', {
+                hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false
+            });
+        }
+        updateTopClock();
+        setInterval(updateTopClock, 1000);
+
+        function updateWarningBanner() {
+            const banner = document.getElementById("warning-area");
+            let activeWarnings = [];
+            if (ecgWarningActive) activeWarnings.push("EKG-Kabel pruefen");
+            if (nibdWarningActive) activeWarnings.push("RR-Manschette pruefen");
+            if (defiWarningActive) activeWarnings.push("Defi-Elektroden pruefen");
+            if (activeWarnings.length > 0) { banner.style.display = "block"; banner.innerText = "⚠️ " + activeWarnings.join("  |  ").toUpperCase(); } 
+            else { banner.style.display = "none"; }
+        }
+
+        function updateTimerDisplay() {
+            const timerDiv = document.getElementById("cpr-timer");
+            if (cprTimeLeft <= 0) { timerDiv.innerText = "00:00"; timerDiv.style.display = "none"; return; }
+            timerDiv.style.display = "block"; 
+            const mins = Math.floor(cprTimeLeft / 60).toString().padStart(2, '0'); const secs = (cprTimeLeft % 60).toString().padStart(2, '0');
+            timerDiv.innerText = `${mins}:${secs}`;
+            if (cprTimeLeft <= 15) { timerDiv.style.color = "#dc3545"; } else { timerDiv.style.color = "#00ff00"; }
+        }
+
+        function startCprTimer() { clearInterval(cprTimerInterval); cprTimeLeft = 120; updateTimerDisplay(); sendTimerToTrainer(); cprTimerInterval = setInterval(function() { cprTimeLeft--; updateTimerDisplay(); sendTimerToTrainer(); if (cprTimeLeft <= 0) { clearInterval(cprTimerInterval); sendTimerToTrainer(); startAnalysis(); } }, 1000); }
+        function forceStopCprTimer() { clearInterval(cprTimerInterval); cprTimeLeft = 0; updateTimerDisplay(); sendTimerToTrainer(); }
+        function sendTimerToTrainer() { if (ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "cpr_timer_update", timeLeft: cprTimeLeft })); } }
+
+        function updateHistoryDisplay() {
+            const listDiv = document.getElementById("historyList");
+            if (nibdHistory.length > 3) { nibdHistory = nibdHistory.slice(0, 3); }
+            if (nibdHistory.length === 0) { listDiv.innerHTML = ""; } 
+            else { listDiv.innerHTML = nibdHistory.map(function(entry) { return '<div style="display:flex; justify-content:space-between; color:#bbb; font-size: 20px; font-weight: bold; padding: 3px 4px; border-bottom: 1px dashed #1c1c1c;">' + entry + '</div>'; }).join(""); }
+        }
+
+        function startMonitorNibd() {
+            if (isCurrentlyMeasuringNIBP) return; 
+            if (!isNibdConnected) { nibdWarningActive = true; updateWarningBanner(); clearTimeout(nibdTimeout); nibdTimeout = setTimeout(function() { nibdWarningActive = false; updateWarningBanner(); }, 5000); return; }
+            nibdWarningActive = false; updateWarningBanner(); isCurrentlyMeasuringNIBP = true;
+            const btn = document.getElementById("btn-nibp-start"); btn.classList.add("nibd-measuring"); btn.innerText = "MESSUNG..."; btn.style.pointerEvents = "none";
+            document.getElementById("sysDisplay").innerText = "---"; document.getElementById("diaDisplay").innerText = "---";
+            setTimeout(function() {
+                const sys = parseInt(standbySys); const dia = parseInt(standbyDia); const map = Math.round((sys + 2 * dia) / 3); const pulse = (currentRhythm === 'vfib' || currentRhythm === 'asystole') ? '--' : currentHR; const now = new Date(); 
+                const timestamp = now.toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', hour12: false});
+                nibdHistory.unshift('<span>' + sys + '/' + dia + '</span><span>MAP:' + map + '</span><span>' + timestamp + '</span>');
+                document.getElementById("sysDisplay").innerText = sys; document.getElementById("diaDisplay").innerText = dia; document.getElementById("mapDisplay").innerText = map; document.getElementById("nibdPulseDisplay").innerText = pulse;
+                updateHistoryDisplay(); btn.classList.remove("nibd-measuring"); btn.innerText = "NIBP"; btn.style.pointerEvents = "auto"; isCurrentlyMeasuringNIBP = false;
+                if (ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "nibd_finished", val: sys + '/' + dia })); }
+            }, 30000); 
+        }
+
+        function toggleMute() { isAudioMuted = !isAudioMuted; const btn = document.getElementById("btn-mute"); if (isAudioMuted) { btn.style.background = "#dc3545"; btn.innerText = "🔊 SOUND AUS"; } else { btn.style.background = "#444"; btn.innerText = "🔕 SOUND AN"; } }
+        function playChargingTone(duration) { if (!audioCtx) return; chargeOsc = audioCtx.createOscillator(); chargeGain = audioCtx.createGain(); chargeOsc.type = 'sine'; chargeOsc.frequency.setValueAtTime(440, audioCtx.currentTime); chargeOsc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + duration); chargeOsc.connect(chargeGain); chargeGain.connect(audioCtx.destination); chargeGain.gain.setValueAtTime(0.2, audioCtx.currentTime); chargeOsc.start(audioCtx.currentTime); }
+        function playFinalBeep() { if (!audioCtx) return; const beepOsc = audioCtx.createOscillator(); const beepGain = audioCtx.createGain(); beepOsc.type = 'sine'; beepOsc.frequency.setValueAtTime(880, audioCtx.currentTime); beepGain.gain.setValueAtTime(0.4, audioCtx.currentTime); beepGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15); beepOsc.connect(beepGain); beepGain.connect(audioCtx.destination); beepOsc.start(); beepOsc.stop(audioCtx.currentTime + 0.15); }
+
+        function trigger12LeadPrint() {
+            if (!isEcgConnected) { ecgWarningActive = true; updateWarningBanner(); clearTimeout(ecgTimeout); ecgTimeout = setTimeout(function() { ecgWarningActive = false; updateWarningBanner(); }, 5000); return; }
+            ecgWarningActive = false; updateWarningBanner();
+            if (audioCtx && !isAudioMuted) { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sawtooth'; osc.frequency.value = 120; osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.setValueAtTime(0.1, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 1.5); }
+            if (ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "ekg_12_printed" })); }
+            const grid = document.getElementById("leadGrid"); grid.innerHTML = ""; document.getElementById("print-overlay").style.display = "flex";
+            leads.forEach(function(leadName) { const box = document.createElement("div"); box.className = "lead-box"; box.innerHTML = '<div class="lead-label">' + leadName + '</div><canvas id="canvas-' + leadName + '" class="lead-canvas"></canvas>'; grid.appendChild(box); setTimeout(function() { const c = document.getElementById('canvas-' + leadName); c.width = c.clientWidth; c.height = c.clientHeight; drawStaticLead(c.getContext("2d"), c.width, c.height, leadName); }, 50); });
+        }
+
+        function drawStaticLead(ctx, w, h, name) { ctx.beginPath(); ctx.strokeStyle = "#900"; ctx.lineWidth = 1.5; const mid = h / 2; ctx.moveTo(0, mid); for (let t = 0; t < w; t += 2) { let y = mid; if (currentRhythm === 'asystole') { y += (Math.random() * 1 - 0.5); } else if (currentRhythm === 'vfib') { y -= (Math.sin(t * 0.15) * 10 + Math.sin(t * 0.07) * 6 + (Math.random() * 4 - 2)); } else { let beatInterval = 60; let step = t % beatInterval; if (step > 15 && step < 30) { let idx = step - 15; const normalData = [0,-3,25,-8,0,0,3,6,7,5,2,0,0,0,0]; const stemiData = [0,-3,25,18,17,16,15,13,10,7,4,2,0,0,0]; let useData = (currentRhythm === 'stemi' && (name === 'V2' || name === 'V3' || name === 'V4')) ? stemiData : normalData; if (idx < useData.length) y -= (useData[idx] * (h / 60)); } } ctx.lineTo(t, y); } ctx.stroke(); }
+        function close12Lead() { document.getElementById("print-overlay").style.display = "none"; }
+        function startQuartAlert() { if (!audioCtx) return; quartIntervalTimer = setInterval(function() { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sine'; osc.frequency.value = quartToggle ? 440 : 587.33; quartToggle = !quartToggle; osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.setValueAtTime(0.4, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.22); osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.22); }, 250); }
+        function stopChargingAndAlerts() { if (chargeOsc) { try { chargeOsc.stop(); } catch(e) {} chargeOsc = null; } if (quartIntervalTimer) { clearInterval(quartIntervalTimer); quartIntervalTimer = null; } }
+        function playShockSound() { if (!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sawtooth'; osc.frequency.value = 150; osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.4); osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.setValueAtTime(1, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4); osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.4); }
+
+        function startAnalysis() {
+            const btnAnalyse = document.getElementById("btn-analyse");
+            if (!isDefiConnected) { 
+                defiWarningActive = true; updateWarningBanner(); clearTimeout(defiTimeout); 
+                defiTimeout = setTimeout(function() { defiWarningActive = false; updateWarningBanner(); }, 5000); 
+                return; 
+            }
+            defiWarningActive = false; updateWarningBanner(); forceStopCprTimer();
+            if (ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "analysis_started" })); }
+            
+            btnAnalyse.classList.add("analyse-measuring"); btnAnalyse.innerText = "ANALYSE..."; btnAnalyse.style.pointerEvents = "none";
+            
+            setTimeout(function() {
+                btnAnalyse.classList.remove("analyse-measuring");
+                
+                const overlay = document.getElementById("defib-overlay");
+                const announceState = document.getElementById("announcement-state");
+                const announceText = document.getElementById("announcement-text");
+                const loadState = document.getElementById("loading-state");
+                const rdyState = document.getElementById("ready-state");
+                const fill = document.getElementById("progress-fill");
+                
+                overlay.style.display = "flex";
+                announceState.style.display = "flex";
+                loadState.style.display = "none";
+                rdyState.style.display = "none";
+                
+                if (currentRhythm === 'vfib') {
+                    btnAnalyse.style.background = "#6c757d"; btnAnalyse.style.color = "#fff"; btnAnalyse.innerText = "LADEN...";
+                    
+                    announceText.innerText = "Schock empfohlen";
+                    announceText.style.color = "#dc3545"; 
+                    
+                    setTimeout(function() {
+                        announceState.style.display = "none";
+                        loadState.style.display = "flex";
+                        fill.style.width = "0%";
+                        
+                        playChargingTone(3); 
+                        
+                        let elapsed = 0;
+                        const duration = 3000;
+                        const intervalTime = 50;
+                        
+                        const chargeInterval = setInterval(function() {
+                            elapsed += intervalTime;
+                            let pct = (elapsed / duration) * 100;
+                            fill.style.width = pct + "%";
+                            
+                            if (elapsed >= duration) {
+                                clearInterval(chargeInterval);
+                                stopChargingAndAlerts();
+                                playFinalBeep();
+                                
+                                loadState.style.display = "none";
+                                rdyState.style.display = "flex";
+                                
+                                btnAnalyse.innerText = "BEREIT";
+                                document.getElementById('btn-shock').classList.add('shock-ready'); 
+                                startQuartAlert();
+                            }
+                        }, intervalTime);
+                    }, 2000);
+                    
+                } else {
+                    btnAnalyse.style.background = "#28a745"; btnAnalyse.style.color = "#fff"; btnAnalyse.innerText = "KEIN SCHOCK";
+                    
+                    announceText.innerText = "Kein Schock empfohlen";
+                    announceText.style.color = "#28a745"; 
+                    
+                    setTimeout(function() {
+                        resetAED(); 
+                        startCprTimer(); 
+                    }, 4000);
+                }
+            }, 4000);
+        }
+
+        function deliverShock() {
+            stopChargingAndAlerts(); document.getElementById('btn-shock').classList.remove('shock-ready');
+            document.getElementById("defib-overlay").style.display = "none"; 
+            playShockSound();
+            const flash = document.getElementById('flash-overlay'); flash.style.display = 'block'; flash.style.opacity = '1';
+            setTimeout(function() { flash.style.opacity = '0'; setTimeout(() => { flash.style.display = 'none'; }, 200); }, 100);
+            if (ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "shock_delivered" })); }
+            setTimeout(function() { resetAED(); startCprTimer(); }, 3000);
+        }
+
+        function resetAED() {
+            stopChargingAndAlerts(); 
+            document.getElementById("defib-overlay").style.display = "none";
+            document.getElementById('btn-shock').classList.remove('shock-ready'); 
+            const btnAnalyse = document.getElementById("btn-analyse");
+            btnAnalyse.style.background = "#ffcc00"; btnAnalyse.style.color = "#000"; btnAnalyse.innerText = "ANALYSE"; btnAnalyse.style.pointerEvents = "auto"; btnAnalyse.style.opacity = "1";
+        }
+
+        function playHeartbeatTone() { if (!audioCtx || isAudioMuted) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sine'; osc.frequency.value = 600; osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.setValueAtTime(0.5, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1); osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.1); }
+        function playAlarmTone() { if (!audioCtx || !isAlarming || isAudioMuted) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'square'; osc.frequency.value = 800; osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.setValueAtTime(0.8, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.4); osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.4); }
+
+        function checkAlarms(hr, spo2) {
+            let alarm = false; if ((isEcgConnected || isDefiConnected || isSpO2Connected) && (currentRhythm === 'vfib' || currentRhythm === 'asystole' || hr < 50 || hr > 130)) { document.getElementById("box-hr").classList.add("alarm-active"); alarm = true; } else { document.getElementById("box-hr").classList.remove("alarm-active"); }
+            if (isSpO2Connected && (currentRhythm === 'vfib' || currentRhythm === 'asystole' || spo2 < 90)) { document.getElementById("box-spo2").classList.add("alarm-active"); alarm = true; } else { document.getElementById("box-spo2").classList.remove("alarm-active"); }
+            isAlarming = alarm;
+        }
+
+        function fluctuateVitals() {
+            if (currentRhythm === 'vfib') { currentHR = Math.floor(Math.random() * (260 - 150 + 1)) + 150; } else if (baseHR > 0) { currentHR = baseHR + Math.floor(Math.random() * 5) - 2; } else { currentHR = 0; }
+            if (baseSpO2 > 0) { currentSpO2Display = baseSpO2 + Math.floor(Math.random() * 3) - 1; if (currentSpO2Display > 100) currentSpO2Display = 100; } else { currentSpO2Display = 0; }
+            if (currentRhythm === 'vfib' || currentRhythm === 'asystole') { if (isHDMActive) { currentEtco2Display = 18 + Math.floor(Math.random() * 3) - 1; } else { currentEtco2Display = 4 + Math.floor(Math.random() * 2); } } else { currentEtco2Display = baseEtco2 + Math.floor(Math.random() * 3) - 1; }
+            updateUI();
+        }
+
+        function updateUI() {
+            if (!canvasECG) return;
+            const hrBox = document.getElementById("box-hr"); const hrValue = document.getElementById("hrDisplay"); const spo2Value = document.getElementById("spo2Display"); hrBox.classList.remove("ecg-color", "spo2-color");
+            if (isEcgConnected || isDefiConnected) { if (currentRhythm === 'asystole') hrValue.innerText = "ASY"; else hrValue.innerText = currentHR; hrBox.classList.add("ecg-color"); } else if (isSpO2Connected) { if (currentRhythm === 'vfib' || currentRhythm === 'asystole') hrValue.innerText = "--"; else hrValue.innerText = currentHR; hrBox.classList.add("spo2-color"); } else { hrValue.innerText = "--"; hrBox.classList.add("ecg-color"); }
+            if (isSpO2Connected) { spo2Value.innerText = (currentRhythm === 'nsr' || currentRhythm === 'stemi') ? currentSpO2Display : "--"; } else { spo2Value.innerText = "--"; }
+            if (isCo2Connected) { document.getElementById("co2Display").innerText = currentEtco2Display; document.getElementById("afDisplay").innerText = baseAF; } else { document.getElementById("co2Display").innerText = "--"; document.getElementById("afDisplay").innerText = "--"; }
+            updateWarningBanner(); checkAlarms(currentHR, currentSpO2Display);
+        }
+
+        ws.onopen = () => { 
+            // Beim Startraum beitreten
+            ws.send(JSON.stringify({ type: "join_room", room: currentRoom }));
+        };
+
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data); if (data.type === "audio_control") { if (data.action === "alarms_on") isAudioMuted = false; if (data.action === "alarms_off") isAudioMuted = true; } else if (data.type === "command" && data.action === "clear_nibd") { document.getElementById("sysDisplay").innerText = "--"; document.getElementById("diaDisplay").innerText = "--"; document.getElementById("mapDisplay").innerText = "--"; document.getElementById("nibdPulseDisplay").innerText = "--"; nibdHistory = []; updateHistoryDisplay(); } 
+            else if (data.type === "vital_update") {
+                baseHR = parseInt(data.heartRate); baseSpO2 = parseInt(data.spo2); baseEtco2 = parseInt(data.etco2); baseAF = parseInt(data.af); standbySys = data.sys; standbyDia = data.dia; isNibdConnected = data.sensors.nibd; isHDMActive = data.isHDMActive; isEcgConnected = data.sensors.ecg; isSpO2Connected = data.sensors.spo2; isCo2Connected = data.sensors.co2; isDefiConnected = data.sensors.defi; 
+                if (isEcgConnected) { ecgWarningActive = false; clearTimeout(ecgTimeout); } if (isNibdConnected) { nibdWarningActive = false; clearTimeout(nibdTimeout); } if (isDefiConnected) { defiWarningActive = false; clearTimeout(defiTimeout); }
+                if (!isNibdConnected && !isCurrentlyMeasuringNIBP) { document.getElementById("sysDisplay").innerText = "--"; document.getElementById("diaDisplay").innerText = "--"; document.getElementById("mapDisplay").innerText = "--"; document.getElementById("nibdPulseDisplay").innerText = "--"; }
+                if (data.rhythm === 'nsr' || data.rhythm === 'stemi') { forceStopCprTimer(); resetAED(); } currentRhythm = data.rhythm || 'nsr'; spo2Quality = data.spo2Quality; fluctuateVitals(); 
+            }
+        };
+
+        function drawWaveforms() {
+            if (!canvasECG) return;
+            const safeHR = currentHR > 0 ? currentHR : 60; const framesPerBeat = (60 / safeHR) * 60; const baseECG = canvasECG.height / 2; const baseSpO2 = canvasSpO2.height / 2; const baseCO2 = canvasCO2.height / 1.2;
+            ctxECG.clearRect(x, 0, 25, canvasECG.height); ctxSpO2.clearRect(x, 0, 25, canvasSpO2.height); ctxCO2.clearRect(x, 0, 25, canvasCO2.height); let yECG = baseECG; let ySpO2 = baseSpO2; let yCO2 = baseCO2;
+            if (currentRhythm === 'vfib') { yECG = baseECG - (Math.sin(x * 0.1) * 12 + Math.sin(x * 0.05) * 8 + (Math.random() * 6 - 3)); } else if (currentRhythm === 'asystole') { yECG = baseECG; } else { ecgFrameCounter++; if (currentHR > 0 && ecgFrameCounter >= framesPerBeat && !isDrawingECG) { isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0; if ((isEcgConnected || isDefiConnected || isSpO2Connected) && !isAudioMuted) { playHeartbeatTone(); } } if (isDrawingECG) { let activeEcgArray = (currentRhythm === 'stemi') ? stemiData : ecgData; if (ecgComplexIndex < activeEcgArray.length) { yECG = baseECG - (activeEcgArray[ecgComplexIndex] * 3); } ecgComplexIndex++; if (ecgComplexIndex >= activeEcgArray.length) isDrawingECG = false; } }
+            if (isHDMActive && (currentRhythm === 'vfib' || currentRhythm === 'asystole')) { const cprFramesPerBeat = (60 / 105) * 60; cprFrameCounter++; if (cprFrameCounter >= cprFramesPerBeat && !isDrawingCPR) { isDrawingCPR = true; cprComplexIndex = 0; cprFrameCounter = 0; } if (isDrawingCPR) { if (cprComplexIndex < cprArtifactData.length) { yECG -= (cprArtifactData[cprComplexIndex] * 1.6); } cprComplexIndex++; if (cprComplexIndex >= cprArtifactData.length) isDrawingCPR = false; } }
+            if (currentRhythm !== 'nsr' && currentRhythm !== 'stemi') { ySpO2 = baseSpO2 + (Math.random() * 2 - 1); } else { spo2FrameCounter++; if (currentHR > 0 && spo2FrameCounter >= framesPerBeat && !isDrawingSpO2) { isDrawingSpO2 = true; spo2ComplexIndex = 0; spo2FrameCounter = 0; } if (isDrawingSpO2) { let currentSpo2Wave = spo2Waves[spo2Quality]; if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2ComplexIndex] * 4); } spo2ComplexIndex++; if (spo2ComplexIndex >= currentSpo2Wave.length) isDrawingSpO2 = false; } }
+            const safeAF = baseAF > 0 ? baseAF : 12; const framesPerBreath = (60 / safeAF) * 60; co2FrameCounter++; if (co2FrameCounter >= framesPerBreath) { co2FrameCounter = 0; }
+            let progress = co2FrameCounter / framesPerBreath; let co2Value = 0; if (progress < 0.06) { co2Value = (progress / 0.06) * 23; } else if (progress >= 0.06 && progress < 0.55) { let plateauProgress = (progress - 0.06) / 0.49; co2Value = 23 + (plateauProgress * 3); } else if (progress >= 0.55 && progress < 0.59) { let dropProgress = (progress - 0.55) / 0.04; co2Value = 26 * (1 - dropProgress); } else { co2Value = 0; }
+            yCO2 = baseCO2 - (co2Value * (currentEtco2Display / 26) * (canvasCO2.height / 55));
+            if (isEcgConnected || isDefiConnected) { ctxECG.beginPath(); ctxECG.moveTo(x, lastYECG); ctxECG.lineTo(x + 2, yECG); ctxECG.strokeStyle = '#47d670'; ctxECG.lineWidth = 2.5; ctxECG.stroke(); }
+            if (isSpO2Connected) { ctxSpO2.beginPath(); ctxSpO2.moveTo(x, lastYSpO2); ctxSpO2.lineTo(x + 2, ySpO2); ctxSpO2.strokeStyle = '#38b6ff'; ctxSpO2.lineWidth = 2.5; ctxSpO2.stroke(); }
+            if (isCo2Connected) { ctxCO2.beginPath(); ctxCO2.moveTo(x, lastYCO2); ctxCO2.lineTo(x + 2, yCO2); ctxCO2.strokeStyle = '#ffaa00'; ctxCO2.lineWidth = 2.5; ctxCO2.stroke(); }
+            lastYECG = yECG; lastYSpO2 = ySpO2; lastYCO2 = yCO2; x += 2; if (x >= canvasECG.width) { x = 0; lastYECG = yECG; lastYSpO2 = ySpO2; lastYCO2 = yCO2; }
+            requestAnimationFrame(drawWaveforms);
+        }
+        drawWaveforms();
+    </script>
+</body>
+</html>
