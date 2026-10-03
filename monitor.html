@@ -542,7 +542,7 @@
         function forceStopCprTimer() { clearInterval(cprTimerInterval); cprTimeLeft = 0; updateTimerDisplay(); sendTimerToTrainer(); }
         function sendTimerToTrainer() { if (ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "cpr_timer_update", timeLeft: cprTimeLeft })); } }
 
-        /* Mess-Verlauf mit vergrößerter Schrift */
+        /* Mess-Verlauf */
         function updateHistoryDisplay() {
             const listDiv = document.getElementById("historyList");
             if (nibdHistory.length > 5) { nibdHistory = nibdHistory.slice(0, 5); }
@@ -696,12 +696,42 @@
             isAlarming = alarm;
         }
 
+        /* Automatisches leichtes Schwanken aller Vitalwerte (alle 2,5 Sekunden) */
         function fluctuateVitals() {
-            if (currentRhythm === 'vfib') { currentHR = Math.floor(Math.random() * (260 - 150 + 1)) + 150; } else if (baseHR > 0) { currentHR = baseHR + Math.floor(Math.random() * 5) - 2; } else { currentHR = 0; }
-            if (baseSpO2 > 0) { currentSpO2Display = baseSpO2 + Math.floor(Math.random() * 3) - 1; if (currentSpO2Display > 100) currentSpO2Display = 100; } else { currentSpO2Display = 0; }
-            if (currentRhythm === 'vfib' || currentRhythm === 'asystole') { if (isHDMActive) { currentEtco2Display = 18 + Math.floor(Math.random() * 3) - 1; } else { currentEtco2Display = 4 + Math.floor(Math.random() * 2); } } else { currentEtco2Display = baseEtco2 + Math.floor(Math.random() * 3) - 1; }
+            // HF
+            if (currentRhythm === 'vfib') { 
+                currentHR = Math.floor(Math.random() * (260 - 150 + 1)) + 150; 
+            } else if (baseHR > 0) { 
+                currentHR = baseHR + Math.floor(Math.random() * 5) - 2; 
+            } else { 
+                currentHR = 0; 
+            }
+
+            // SpO2
+            if (baseSpO2 > 0 && (currentRhythm === 'nsr' || currentRhythm === 'stemi')) { 
+                currentSpO2Display = Math.min(100, Math.max(0, baseSpO2 + Math.floor(Math.random() * 3) - 1)); 
+            } else { 
+                currentSpO2Display = 0; 
+            }
+
+            // etCO2
+            if (currentRhythm === 'vfib' || currentRhythm === 'asystole') { 
+                if (isHDMActive) { 
+                    currentEtco2Display = 18 + Math.floor(Math.random() * 3) - 1; 
+                } else { 
+                    currentEtco2Display = 4 + Math.floor(Math.random() * 2); 
+                } 
+            } else if (baseEtco2 > 0) { 
+                currentEtco2Display = Math.max(0, baseEtco2 + Math.floor(Math.random() * 3) - 1); 
+            } else {
+                currentEtco2Display = 0;
+            }
+
             updateUI();
         }
+
+        // Starte die automatische Schwankung im Hintergrund
+        setInterval(fluctuateVitals, 2500);
 
         function updateUI() {
             if (!canvasECG) return;

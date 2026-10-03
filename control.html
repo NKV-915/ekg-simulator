@@ -126,9 +126,23 @@
         .active-quality { background: var(--info); color: #000; border-color: var(--info); }
 
         .top-alert { display: none; padding: 12px; font-weight: bold; border-radius: 8px; text-align: center; margin-bottom: 5px; }
-        #shock-alert { background: var(--danger); color: #fff; animation: pulse 0.5s infinite alternate; }
         #nibd-alert { background: var(--warning); color: #000; animation: pulse 1s infinite alternate; }
-        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.02); } }
+        
+        /* Schock-Auswahl-Karte */
+        #shock-prompt-card { 
+            display: none; 
+            background: #111; 
+            border: 3px solid var(--danger); 
+            padding: 15px; 
+            border-radius: 12px; 
+            text-align: center; 
+            box-shadow: 0 0 20px rgba(220, 53, 69, 0.6);
+            animation: pulse-border 1s infinite alternate;
+        }
+        @keyframes pulse-border {
+            from { border-color: #dc3545; }
+            to { border-color: #ffaa00; }
+        }
 
         .log-container { text-align: left !important; font-family: monospace; background: #222 !important; color: #fff !important; }
         .log-list { max-height: 150px; overflow-y: auto; font-size: 13px; line-height: 1.5; border-top: 1px solid #444; padding-top: 8px; margin-top: 8px; width: 100%; }
@@ -138,7 +152,18 @@
 <body>
     
     <div class="dashboard">
-        <div id="shock-alert" class="top-alert full-width">⚡ SCHOCK ABGEGEBEN! Rhythmus anpassen!</div>
+        <!-- Interaktives Schock-Auswahlfenster nach Schockabgabe -->
+        <div id="shock-prompt-card" class="full-width">
+            <div style="color: #ff4d4d; font-size: 18px; font-weight: bold; margin-bottom: 10px;">
+                ⚡ SCHOCK ABGEGEBEN! Welcher Rhythmus folgt?
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                <button style="background: var(--success);" onclick="selectShockRhythm('nsr')">Sinus</button>
+                <button style="background: #ff5500;" onclick="selectShockRhythm('vfib')">Flimmern</button>
+                <button style="background: #333; border: 1px solid #666;" onclick="selectShockRhythm('asystole')">Asystolie</button>
+            </div>
+        </div>
+
         <div id="nibd-alert" class="top-alert full-width">⚠️ WERT FUER NAECHSTE RR-MESSUNG AENDERN!</div>
 
         <div id="timer-panel" class="control-panel border-timer full-width" style="display: none;">
@@ -146,11 +171,12 @@
             <div id="trainer-cpr-timer" style="font-size: 36px; font-weight: bold; font-family: monospace; color: #444; letter-spacing: 1px;">00:00</div>
         </div>
 
+        <!-- Geänderte Buttons: Töne EIN / Töne AUS -->
         <div class="control-panel border-audio full-width">
-            <h3>Monitor Sounds &amp; Alarme</h3>
+            <h3>Monitor Sounds &amp; Töne</h3>
             <div class="grid-3" style="grid-template-columns: 1fr 1fr;">
-                <button id="btn-sound-on" style="background: var(--success);" onclick="sendAudioCommand('alarms_on')">🔊 Alarme EIN</button>
-                <button id="btn-sound-off" style="background: var(--secondary);" onclick="sendAudioCommand('alarms_off')">🔕 Alarme STUMM</button>
+                <button id="btn-sound-on" style="background: var(--success);" onclick="sendAudioCommand('alarms_on')">🔊 Töne EIN</button>
+                <button id="btn-sound-off" style="background: var(--secondary);" onclick="sendAudioCommand('alarms_off')">🔕 Töne AUS</button>
             </div>
         </div>
 
@@ -234,7 +260,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const currentRoom = urlParams.get('room') || 'SIM1';
 
-        // WebSocket Verbindung aufbauen (hier URL ggf. anpassen)
+        // Server-Adresse
         const ws = new WebSocket("wss://ekg-simulator.onrender.com");
         
         let sensors = { ecg: false, spo2: false, nibd: false, co2: false, defi: false };
@@ -245,7 +271,6 @@
 
         ws.onopen = () => { 
             console.log("Verbunden!"); 
-            // Dem ausgewählten Raum beim Verbinden beitreten
             ws.send(JSON.stringify({ type: "join_room", room: currentRoom }));
         };
 
@@ -269,9 +294,8 @@
                 addLogEntry(`[${time}] - 🔍 AED Analyse gestartet`);
             }
             else if (data.type === "shock_delivered") {
-                const alertBox = document.getElementById("shock-alert");
-                alertBox.style.display = "block";
-                setTimeout(() => { alertBox.style.display = "none"; }, 5000);
+                // Zeige das interaktive Schock-Auswahlfenster an
+                document.getElementById("shock-prompt-card").style.display = "block";
                 addLogEntry(`[${time}] - ⚡ Schock abgegeben`);
             }
             else if (data.type === "nibd_finished") {
@@ -284,6 +308,12 @@
                 addLogEntry(`[${time}] - 🩻 12-Kanal-EKG ausgedruckt`);
             }
         };
+
+        // Rhythmus-Auswahl nach Schock
+        function selectShockRhythm(rhythm) {
+            document.getElementById("shock-prompt-card").style.display = "none";
+            setRhythm(rhythm);
+        }
 
         function toggleHDM() {
             isHDMActive = !isHDMActive;
