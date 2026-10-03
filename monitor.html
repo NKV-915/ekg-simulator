@@ -92,62 +92,6 @@
             align-items: center; 
             gap: 6px; 
         }
-        .bat-box { 
-            display: flex; 
-            align-items: center; 
-            border: 1px solid #000; 
-            border-radius: 4px; 
-            padding: 1px 5px; 
-            background: #cbd5e1; 
-            color: #000; 
-            font-family: sans-serif;
-            font-size: 13px; 
-            font-weight: bold; 
-            gap: 4px; 
-            height: 22px; 
-            box-sizing: border-box;
-        }
-        .bat-icon-frame {
-            width: 18px; 
-            height: 12px; 
-            border: 1px solid #000; 
-            background: #000; 
-            position: relative; 
-            display: flex; 
-            align-items: center; 
-            padding: 1px; 
-            box-sizing: border-box;
-        }
-        .bat-icon-frame::after {
-            content: ''; 
-            position: absolute; 
-            right: -3px; 
-            top: 2px; 
-            width: 2px; 
-            height: 4px; 
-            background: #000; 
-            border: 1px solid #000; 
-            border-left: none;
-        }
-        .bat-level { 
-            width: 100%; 
-            height: 100%; 
-            background-color: #24b34b; 
-        } 
-        
-        .energy-box { 
-            border: 1px solid #000; 
-            border-radius: 4px; 
-            padding: 1px 6px; 
-            font-size: 13px; 
-            font-weight: bold; 
-            background: #cbd5e1; 
-            color: #000; 
-            display: flex; 
-            align-items: center; 
-            height: 22px; 
-            box-sizing: border-box;
-        }
 
         /* Haupt-Layout */
         #monitor { 
@@ -237,7 +181,7 @@
         .alarm-active { background-color: rgba(255, 0, 0, 0.4); color: white !important; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
 
-        /* Kurven-Höhe: jeweils 33% */
+        /* Kurven-Höhe */
         canvas { 
             flex: 1; 
             width: 100%; 
@@ -247,7 +191,7 @@
             border-bottom: 1px dashed #222; 
         }
 
-        /* NIBP Grossfeld unten im mittleren Bereich */
+        /* NIBP Grossfeld unten */
         #nibp-center-area {
             flex: 1;
             background: #050505;
@@ -303,8 +247,8 @@
         }
 
         .nibp-history-container {
-            width: 45%;
-            max-width: 380px;
+            width: 48%;
+            max-width: 420px;
             height: 100%;
             border-left: 1px solid #333;
             padding-left: 15px;
@@ -315,13 +259,13 @@
         }
 
         .history-header {
-            font-size: 13px;
+            font-size: 16px;
             font-weight: bold;
             color: #ffaa00;
             letter-spacing: 0.5px;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             border-bottom: 1px solid #222;
-            padding-bottom: 2px;
+            padding-bottom: 3px;
         }
 
         /* Buttons */
@@ -441,11 +385,7 @@
     <div id="top-header">
         <div style="color: #888; font-weight: bold; font-size: 13px; letter-spacing: 1px;">EKG Simulator</div>
         <div id="top-clock">--:--:--</div>
-        <div class="header-right">
-            <div class="bat-box"><span>1</span><div class="bat-icon-frame"><div class="bat-level"></div></div></div>
-            <div class="bat-box"><span>2</span><div class="bat-icon-frame"><div class="bat-level"></div></div></div>
-            <div class="energy-box">⚡ 200J</div>
-        </div>
+        <div class="header-right"></div>
     </div>
 
     <div id="print-overlay">
@@ -484,7 +424,7 @@
             <!-- Grosses NIBP Feld im unteren Drittel -->
             <div id="nibp-center-area">
                 <div class="nibp-header-bar">
-                    <span>NIBP (BLUTDRUCK)</span>
+                    <span>NIBP</span>
                     <span style="font-size: 13px; color: #aaa;">mmHg</span>
                 </div>
                 <div class="nibp-body">
@@ -602,15 +542,15 @@
         function forceStopCprTimer() { clearInterval(cprTimerInterval); cprTimeLeft = 0; updateTimerDisplay(); sendTimerToTrainer(); }
         function sendTimerToTrainer() { if (ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "cpr_timer_update", timeLeft: cprTimeLeft })); } }
 
-        /* Mess-Verlauf im grossen Feld darstellen (bis zu 5 Messungen) */
+        /* Mess-Verlauf mit vergrößerter Schrift */
         function updateHistoryDisplay() {
             const listDiv = document.getElementById("historyList");
             if (nibdHistory.length > 5) { nibdHistory = nibdHistory.slice(0, 5); }
             if (nibdHistory.length === 0) { 
-                listDiv.innerHTML = "<div style='color:#555; font-size:13px; padding-top:6px;'>Keine Messungen</div>"; 
+                listDiv.innerHTML = "<div style='color:#555; font-size:15px; padding-top:6px;'>Keine Messungen</div>"; 
             } else { 
                 listDiv.innerHTML = nibdHistory.map(function(entry) { 
-                    return '<div style="display:flex; justify-content:space-between; color:#47d670; font-size: 15px; font-weight: bold; padding: 3px 0; border-bottom: 1px solid #1a1a1a;">' + entry + '</div>'; 
+                    return '<div style="display:flex; justify-content:space-between; color:#47d670; font-size: 19px; font-weight: bold; padding: 4px 0; border-bottom: 1px solid #1a1a1a;">' + entry + '</div>'; 
                 }).join(""); 
             }
         }
@@ -625,7 +565,7 @@
                 const sys = parseInt(standbySys); const dia = parseInt(standbyDia); const map = Math.round((sys + 2 * dia) / 3); const pulse = (currentRhythm === 'vfib' || currentRhythm === 'asystole') ? '--' : currentHR; const now = new Date(); 
                 const timestamp = now.toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', hour12: false});
                 
-                nibdHistory.unshift('<span>' + timestamp + '</span><span style="color:#fff;">' + sys + '/' + dia + '</span><span style="color:#aaa; font-size:13px;">(' + map + ')</span>');
+                nibdHistory.unshift('<span>' + timestamp + '</span><span style="color:#fff;">' + sys + '/' + dia + '</span><span style="color:#aaa; font-size:16px;">(' + map + ')</span>');
                 document.getElementById("sysDisplay").innerText = sys; document.getElementById("diaDisplay").innerText = dia; document.getElementById("mapDisplay").innerText = map; document.getElementById("nibdPulseDisplay").innerText = pulse;
                 updateHistoryDisplay(); btn.classList.remove("nibd-measuring"); btn.innerText = "NIBP"; btn.style.pointerEvents = "auto"; isCurrentlyMeasuringNIBP = false;
                 if (ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "nibd_finished", val: sys + '/' + dia })); }
