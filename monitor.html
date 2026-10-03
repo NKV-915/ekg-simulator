@@ -149,7 +149,7 @@
             box-sizing: border-box;
         }
 
-        /* Haupt-Monitor Layout */
+        /* Haupt-Layout */
         #monitor { 
             display: flex; 
             flex-grow: 1; 
@@ -157,11 +157,11 @@
             height: calc(100vh - 36px); 
         } 
         
-        /* Vitalwerte Linke Spalte */
+        /* Links: 3 Kacheln (HF, SpO2, etCO2) */
         #vitals { 
-            width: 32vw; 
-            min-width: 260px;
-            max-width: 380px;
+            width: 25vw; 
+            min-width: 200px;
+            max-width: 280px;
             background-color: #0c0c0c; 
             display: flex; 
             flex-direction: column; 
@@ -170,17 +170,16 @@
             border-right: 2px solid #222; 
         }
         
-        /* Kurven-Fenster Mitte */
-        #waveforms { 
+        /* Mitte: Kurven + Grosses NIBP Feld unten */
+        #center-content { 
             flex-grow: 1; 
             display: flex; 
             flex-direction: column; 
-            justify-content: flex-start; 
             border-right: 2px solid #333; 
             background-color: #000; 
         }
         
-        /* AED-Panel Rechts */
+        /* Rechts: AED Steuerung */
         #aed-panel { 
             width: 150px; 
             background-color: #1a1a1a; 
@@ -196,7 +195,7 @@
         .vital-box { 
             background: #000; 
             border: 1px solid #1c1c1c; 
-            padding: 4px 8px; 
+            padding: 6px 10px; 
             border-radius: 6px; 
             display: flex; 
             flex-direction: column; 
@@ -211,16 +210,16 @@
         .vital-title-row { 
             display: flex; 
             justify-content: space-between; 
-            font-size: clamp(15px, 2vw, 22px); 
+            font-size: clamp(16px, 2.2vw, 24px); 
             font-weight: bold; 
             background-color: #222; 
-            padding: 2px 8px;
-            margin: -4px -8px 2px -8px;
+            padding: 3px 8px;
+            margin: -6px -10px 4px -10px;
             align-items: baseline;
         }
         
         .vital-value { 
-            font-size: clamp(60px, 7vw, 95px); 
+            font-size: clamp(70px, 8.5vw, 110px); 
             font-weight: bold; 
             line-height: 0.88; 
             text-align: right; 
@@ -238,7 +237,7 @@
         .alarm-active { background-color: rgba(255, 0, 0, 0.4); color: white !important; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
 
-        /* Jede Kurvenreihe nimmt 1/3 der Resthöhe ein */
+        /* Kurven-Höhe: jeweils 33% */
         canvas { 
             flex: 1; 
             width: 100%; 
@@ -246,6 +245,83 @@
             min-height: 0; 
             display: block; 
             border-bottom: 1px dashed #222; 
+        }
+
+        /* NIBP Grossfeld unten im mittleren Bereich */
+        #nibp-center-area {
+            flex: 1;
+            background: #050505;
+            border-top: 2px solid #222;
+            display: flex;
+            flex-direction: column;
+            padding: 8px 15px;
+            box-sizing: border-box;
+        }
+
+        .nibp-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1c1c1c;
+            padding: 4px 12px;
+            margin: -8px -15px 8px -15px;
+            font-weight: bold;
+            font-size: 16px;
+            color: #fff;
+        }
+
+        .nibp-body {
+            display: flex;
+            flex-grow: 1;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .nibp-value-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex: 1;
+        }
+
+        .nibp-main-val {
+            font-size: clamp(55px, 6vw, 90px);
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+            color: #ffffff;
+            line-height: 0.9;
+        }
+
+        .nibp-sub-vals {
+            display: flex;
+            gap: 20px;
+            font-size: clamp(16px, 1.8vw, 22px);
+            font-weight: bold;
+            color: #888;
+            margin-top: 8px;
+        }
+
+        .nibp-history-container {
+            width: 45%;
+            max-width: 380px;
+            height: 100%;
+            border-left: 1px solid #333;
+            padding-left: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            box-sizing: border-box;
+        }
+
+        .history-header {
+            font-size: 13px;
+            font-weight: bold;
+            color: #ffaa00;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            border-bottom: 1px solid #222;
+            padding-bottom: 2px;
         }
 
         /* Buttons */
@@ -381,7 +457,7 @@
     </div>
 
     <div id="monitor">
-        <!-- Links: Vitalwerte -->
+        <!-- Links: Vitalwerte HF, SpO2, etCO2 -->
         <div id="vitals">
             <div class="vital-box ecg-color" id="box-hr">
                 <div class="vital-title-row"><span>HF</span><span style="font-size:12px;">/min</span></div>
@@ -391,36 +467,43 @@
                 <div class="vital-title-row"><span>SpO2</span><span style="font-size:12px;">%</span></div>
                 <div class="vital-value" id="spo2Display">--</div>
             </div>
-            
-            <!-- Reihe 3: etCO2 und NIBP nebeneinander -->
-            <div style="display: flex; gap: 4px; flex: 1;">
-                <div class="vital-box co2-color" id="box-co2" style="margin-bottom: 0;">
-                    <div class="vital-title-row"><span>etCO2</span><span style="font-size:11px;">mmHg</span></div>
-                    <div class="vital-value" id="co2Display" style="font-size: clamp(34px, 4vw, 52px); margin-top: auto; margin-bottom: 0;">--</div>
-                    <div style="font-size: 13px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-top: 2px; padding: 0 2px;">
-                        <span>AF:</span><span id="afDisplay" style="color: #ffaa00; font-size: 18px; font-family: Arial, sans-serif;">--</span>
-                    </div>
-                </div>
-                
-                <div class="vital-box white-color" id="box-nibd" style="margin-bottom: 0;">
-                    <div class="vital-title-row"><span>NIBP</span><span style="font-size:11px;">mmHg</span></div>
-                    <div class="vital-value" style="font-size: clamp(24px, 3.2vw, 40px); letter-spacing: -1px; margin-bottom: 2px; margin-top: auto;">
-                        <span id="sysDisplay">--</span>/<span id="diaDisplay">--</span>
-                    </div>
-                    <div style="font-size: 11px; font-weight: bold; color: #666; display: flex; justify-content: space-between; background-color: #222; margin: 2px -8px 2px -8px; padding: 2px 4px;">
-                        <span>MAP: <span id="mapDisplay" style="color:#fff; font-size:11px;">--</span></span>
-                        <span>HF: <span id="nibdPulseDisplay" style="color:#fff; font-size:11px;">--</span></span>
-                    </div>
-                    <div id="historyList" style="display: block; height: 50px; margin-top: 2px; font-family: monospace; overflow: hidden; box-sizing: border-box;"></div>
+            <div class="vital-box co2-color" id="box-co2">
+                <div class="vital-title-row"><span>etCO2</span><span style="font-size:12px;">mmHg</span></div>
+                <div class="vital-value" id="co2Display" style="margin-top: 0; margin-bottom: 0;">--</div>
+                <div style="font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-top: 2px; padding: 0 4px;">
+                    <span>AF:</span><span id="afDisplay" style="color: #ffaa00; font-size: 28px; font-family: Arial, sans-serif;">--</span>
                 </div>
             </div>
         </div>
 
-        <!-- Mitte: Waveforms (Nur noch EKG und SpO2) -->
-        <div id="waveforms">
+        <!-- Mitte: Waveforms + NIBP Grossfeld -->
+        <div id="center-content">
             <canvas id="ecgCanvas"></canvas>
             <canvas id="spo2Canvas"></canvas>
-            <div style="flex: 1; border-bottom: 1px dashed #222; background-color: #000;"></div>
+            
+            <!-- Grosses NIBP Feld im unteren Drittel -->
+            <div id="nibp-center-area">
+                <div class="nibp-header-bar">
+                    <span>NIBP (BLUTDRUCK)</span>
+                    <span style="font-size: 13px; color: #aaa;">mmHg</span>
+                </div>
+                <div class="nibp-body">
+                    <div class="nibp-value-container">
+                        <div class="nibp-main-val">
+                            <span id="sysDisplay">--</span>/<span id="diaDisplay">--</span>
+                        </div>
+                        <div class="nibp-sub-vals">
+                            <span>MAP: <strong id="mapDisplay" style="color:#fff;">--</strong></span>
+                            <span>PULS: <strong id="nibdPulseDisplay" style="color:#fff;">--</strong></span>
+                        </div>
+                    </div>
+                    
+                    <div class="nibp-history-container">
+                        <div class="history-header">MESS-VERLAUF</div>
+                        <div id="historyList" style="overflow-y: auto; flex-grow: 1;"></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Rechts: Bedienelemente -->
@@ -519,11 +602,17 @@
         function forceStopCprTimer() { clearInterval(cprTimerInterval); cprTimeLeft = 0; updateTimerDisplay(); sendTimerToTrainer(); }
         function sendTimerToTrainer() { if (ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "cpr_timer_update", timeLeft: cprTimeLeft })); } }
 
+        /* Mess-Verlauf im grossen Feld darstellen (bis zu 5 Messungen) */
         function updateHistoryDisplay() {
             const listDiv = document.getElementById("historyList");
-            if (nibdHistory.length > 3) { nibdHistory = nibdHistory.slice(0, 3); }
-            if (nibdHistory.length === 0) { listDiv.innerHTML = ""; } 
-            else { listDiv.innerHTML = nibdHistory.map(function(entry) { return '<div style="display:flex; justify-content:space-between; color:#bbb; font-size: 11px; font-weight: bold; padding: 1px 2px; border-bottom: 1px dashed #1c1c1c;">' + entry + '</div>'; }).join(""); }
+            if (nibdHistory.length > 5) { nibdHistory = nibdHistory.slice(0, 5); }
+            if (nibdHistory.length === 0) { 
+                listDiv.innerHTML = "<div style='color:#555; font-size:13px; padding-top:6px;'>Keine Messungen</div>"; 
+            } else { 
+                listDiv.innerHTML = nibdHistory.map(function(entry) { 
+                    return '<div style="display:flex; justify-content:space-between; color:#47d670; font-size: 15px; font-weight: bold; padding: 3px 0; border-bottom: 1px solid #1a1a1a;">' + entry + '</div>'; 
+                }).join(""); 
+            }
         }
 
         function startMonitorNibd() {
@@ -535,7 +624,8 @@
             setTimeout(function() {
                 const sys = parseInt(standbySys); const dia = parseInt(standbyDia); const map = Math.round((sys + 2 * dia) / 3); const pulse = (currentRhythm === 'vfib' || currentRhythm === 'asystole') ? '--' : currentHR; const now = new Date(); 
                 const timestamp = now.toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', hour12: false});
-                nibdHistory.unshift('<span>' + sys + '/' + dia + '</span><span>MAP:' + map + '</span><span>' + timestamp + '</span>');
+                
+                nibdHistory.unshift('<span>' + timestamp + '</span><span style="color:#fff;">' + sys + '/' + dia + '</span><span style="color:#aaa; font-size:13px;">(' + map + ')</span>');
                 document.getElementById("sysDisplay").innerText = sys; document.getElementById("diaDisplay").innerText = dia; document.getElementById("mapDisplay").innerText = map; document.getElementById("nibdPulseDisplay").innerText = pulse;
                 updateHistoryDisplay(); btn.classList.remove("nibd-measuring"); btn.innerText = "NIBP"; btn.style.pointerEvents = "auto"; isCurrentlyMeasuringNIBP = false;
                 if (ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "nibd_finished", val: sys + '/' + dia })); }
