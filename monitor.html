@@ -47,14 +47,14 @@
         /* Schwebendes HUD-Overlay platziert sich direkt unter der Top-Bar */
         #warning-area { 
             position: fixed; 
-            top: 42px; 
+            top: 36px; 
             left: 0; 
             width: 100vw;
             background-color: rgba(220, 53, 69, 0.95); 
             color: #fff; 
             text-align: center; 
-            padding: 10px 0; 
-            font-size: 20px; 
+            padding: 8px 0; 
+            font-size: 18px; 
             font-weight: bold; 
             letter-spacing: 1px;
             display: none; 
@@ -69,19 +69,19 @@
 
         /* Lifepak 15 Top-Leiste */
         #top-header {
-            height: 42px; 
+            height: 36px; 
             background-color: #222; 
             border-bottom: 2px solid #333;
             display: flex; 
             justify-content: space-between; 
             align-items: center;
-            padding: 0 15px; 
+            padding: 0 12px; 
             box-sizing: border-box; 
             z-index: 5500;
         }
         #top-clock { 
             font-family: 'Courier New', Courier, monospace; 
-            font-size: 24px; 
+            font-size: 20px; 
             font-weight: bold; 
             color: #ffcc00; 
             letter-spacing: 1px; 
@@ -96,22 +96,22 @@
         .bat-box { 
             display: flex; 
             align-items: center; 
-            border: 2px solid #000; 
+            border: 1px solid #000; 
             border-radius: 4px; 
-            padding: 2px 6px; 
+            padding: 1px 5px; 
             background: #cbd5e1; 
             color: #000; 
             font-family: sans-serif;
-            font-size: 16px; 
+            font-size: 13px; 
             font-weight: bold; 
-            gap: 6px; 
-            height: 24px; 
+            gap: 4px; 
+            height: 22px; 
             box-sizing: border-box;
         }
         .bat-icon-frame {
-            width: 22px; 
-            height: 14px; 
-            border: 2px solid #000; 
+            width: 18px; 
+            height: 12px; 
+            border: 1px solid #000; 
             background: #000; 
             position: relative; 
             display: flex; 
@@ -122,8 +122,8 @@
         .bat-icon-frame::after {
             content: ''; 
             position: absolute; 
-            right: -4px; 
-            top: 3px; 
+            right: -3px; 
+            top: 2px; 
             width: 2px; 
             height: 4px; 
             background: #000; 
@@ -137,16 +137,16 @@
         } 
         
         .energy-box { 
-            border: 2px solid #000; 
+            border: 1px solid #000; 
             border-radius: 4px; 
-            padding: 2px 8px; 
-            font-size: 16px; 
+            padding: 1px 6px; 
+            font-size: 13px; 
             font-weight: bold; 
             background: #cbd5e1; 
             color: #000; 
             display: flex; 
             align-items: center; 
-            height: 24px; 
+            height: 22px; 
             box-sizing: border-box;
         }
 
@@ -155,21 +155,21 @@
             display: flex; 
             flex-grow: 1; 
             width: 100vw; 
-            height: calc(100vh - 42px); 
+            height: calc(100vh - 36px); 
         }
         
-        /* Breite auf 410px fixiert fuer brachiale Ablesbarkeit */
+        /* Breite optimiert von 410px auf 250px für maximale Kurvenbreite */
         #vitals { 
-            width: 410px; 
+            width: 250px; 
             background-color: #0c0c0c; 
             display: flex; 
             flex-direction: column; 
-            padding: 8px; 
+            padding: 6px; 
             box-sizing: border-box; 
             border-right: 2px solid #222; 
         }
         
-        /* Spalte 2 (MITTE): Kurvenfenster */
+        /* Spalte 2 (MITTE): Kurvenfenster kriegt den restlichen Platz */
         #waveforms { 
             flex-grow: 1; 
             display: flex; 
@@ -179,16 +179,16 @@
             background-color: #000; 
         }
         
-        /* Spalte 3 (RECHTS): Steuerungstasten */
+        /* Spalte 3 (RECHTS): Steuerungstasten leicht schmaler (140px) */
         #aed-panel { 
-            width: 180px; 
+            width: 140px; 
             background-color: #1a1a1a; 
             display: flex; 
             flex-direction: column; 
-            padding: 15px; 
+            padding: 10px; 
             align-items: center; 
             justify-content: flex-start; 
-            gap: 15px; 
+            gap: 10px; 
             box-sizing: border-box; 
         }
         
@@ -196,38 +196,38 @@
         .vital-box { 
             background: #000; 
             border: 1px solid #1c1c1c; 
-            padding: 6px 12px; 
+            padding: 4px 8px; 
             border-radius: 6px; 
             display: flex; 
             flex-direction: column; 
             justify-content: space-between; 
             flex-grow: 1; 
-            margin-bottom: 6px; 
+            margin-bottom: 5px; 
             box-sizing: border-box; 
             overflow: hidden;
         }
         .vital-box:last-child { margin-bottom: 0; }
         
-        /* Titelzeilen (34px) mit grauem Header-Balken */
+        /* Titelzeilen angepasst */
         .vital-title-row { 
             display: flex; 
             justify-content: space-between; 
-            font-size: 34px; 
+            font-size: 20px; 
             font-weight: bold; 
             background-color: #222; 
-            padding: 4px 12px;
-            margin: -6px -12px 4px -12px;
+            padding: 2px 8px;
+            margin: -4px -8px 2px -8px;
             align-items: baseline;
         }
         
-        /* Hauptwerte (110px) */
+        /* Hauptwerte optimiert */
         .vital-value { 
-            font-size: 110px; 
+            font-size: 65px; 
             font-weight: bold; 
             line-height: 0.90; 
             text-align: right; 
             font-family: Arial, sans-serif; 
-            letter-spacing: -2px; 
+            letter-spacing: -1px; 
             margin-top: auto; 
             margin-bottom: 2px;
         }
@@ -242,7 +242,7 @@
 
         canvas { width: 100%; height: 24.5vh; border-bottom: 1px dashed #222; }
 
-        .aed-btn { width: 100%; padding: 18px 10px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; cursor: pointer; transition: 0.3s; }
+        .aed-btn { width: 100%; padding: 12px 6px; font-size: 14px; font-weight: bold; border-radius: 50px; border: none; cursor: pointer; transition: 0.3s; }
         #btn-analyse { background-color: #ffcc00; color: #000; }
         #btn-analyse:active { background-color: #e6b800; transform: scale(0.95); }
         #btn-shock { background-color: #dc3545; color: #fff; opacity: 0.3; pointer-events: none; }
@@ -256,7 +256,7 @@
         @keyframes nibd-blink { from { background-color: #ffaa00; color: #000; } to { background-color: #885500; color: #fff; } }
 
         .shock-ready { opacity: 1 !important; pointer-events: auto !important; }
-        #cpr-timer { display: none; font-size: 36px; font-weight: bold; color: #444; font-family: 'Courier New', Courier, monospace; text-align: center; letter-spacing: 1px; margin-bottom: 5px; }
+        #cpr-timer { display: none; font-size: 28px; font-weight: bold; color: #444; font-family: 'Courier New', Courier, monospace; text-align: center; letter-spacing: 1px; margin-bottom: 2px; }
 
         /* 12-Kanal Ausdruck-Fenster Styles */
         #print-overlay { 
@@ -282,7 +282,7 @@
             align-items: center; z-index: 8500; display: none;
         }
         #defib-screen {
-            width: 550px; height: 350px; background-color: #000;
+            width: 500px; height: 320px; background-color: #000;
             border: 5px solid #333; border-radius: 12px; display: flex; flex-direction: column;
             overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.9);
         }
@@ -292,19 +292,19 @@
             justify-content: center; flex-grow: 1; padding: 20px; text-align: center;
         }
         #announcement-text {
-            font-size: 38px; font-weight: bold; text-transform: uppercase;
+            font-size: 32px; font-weight: bold; text-transform: uppercase;
             font-family: Arial, sans-serif; letter-spacing: 1px; line-height: 1.3;
         }
 
         #loading-state { display: none; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; padding: 20px; }
-        #energy-display { font-size: 36px; font-weight: bold; margin-bottom: 25px; color: #fff; font-family: monospace; }
-        #progress-container { width: 85%; height: 26px; background-color: #111; border: 2px solid #555; border-radius: 14px; overflow: hidden; }
+        #energy-display { font-size: 32px; font-weight: bold; margin-bottom: 20px; color: #fff; font-family: monospace; }
+        #progress-container { width: 85%; height: 22px; background-color: #111; border: 2px solid #555; border-radius: 14px; overflow: hidden; }
         #progress-fill { height: 100%; width: 0%; background-color: #dc3545; }
-        #loading-text { margin-top: 15px; font-size: 16px; color: #aaa; font-weight: bold; letter-spacing: 1px; }
+        #loading-text { margin-top: 12px; font-size: 14px; color: #aaa; font-weight: bold; letter-spacing: 1px; }
         
         #ready-state { display: none; flex-direction: column; flex-grow: 1; }
-        #ready-header { background-color: #222; color: #ffca28; text-align: center; padding: 10px; font-weight: bold; font-size: 24px; text-transform: uppercase; border-bottom: 2px solid #333; letter-spacing: 0.5px;}
-        #ready-info { background-color: #bdc3c7; color: #000; flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; text-align: center; }
+        #ready-header { background-color: #222; color: #ffca28; text-align: center; padding: 8px; font-weight: bold; font-size: 20px; text-transform: uppercase; border-bottom: 2px solid #333; letter-spacing: 0.5px;}
+        #ready-info { background-color: #bdc3c7; color: #000; flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; text-align: center; }
     </style>
 </head>
 <body>
@@ -333,12 +333,12 @@
             <div id="ready-state">
                 <div id="ready-header">Halbautomatischer Modus</div>
                 <div id="ready-info">
-                    <p style="font-size: 24px; font-weight: bold; margin: 2px 0;">200 J verfügbar</p>
-                    <p style="font-size: 26px; font-weight: bold; text-transform: uppercase; margin: 4px 0 0 0;">SCHOCK-Taste drücken!</p>
-                    <svg viewBox="0 0 100 100" style="width: 38px; height: 38px; margin: 8px 0;">
+                    <p style="font-size: 20px; font-weight: bold; margin: 2px 0;">200 J verfügbar</p>
+                    <p style="font-size: 22px; font-weight: bold; text-transform: uppercase; margin: 2px 0 0 0;">SCHOCK-Taste drücken!</p>
+                    <svg viewBox="0 0 100 100" style="width: 30px; height: 30px; margin: 6px 0;">
                         <polygon points="50,100 100,40 0,40" fill="black"/>
                     </svg>
-                    <svg viewBox="0 0 100 100" style="width: 85px; height: 85px; cursor: pointer;" onclick="deliverShock()">
+                    <svg viewBox="0 0 100 100" style="width: 70px; height: 70px; cursor: pointer;" onclick="deliverShock()">
                         <circle cx="50" cy="50" r="48" fill="#c0392b" />
                         <polygon points="55,15 35,45 50,45 45,85 65,55 50,55" fill="white"/>
                     </svg>
@@ -349,7 +349,7 @@
     </div>
 
     <div id="top-header">
-        <div style="color: #888; font-weight: bold; font-size: 14px; letter-spacing: 1px;">EKG Simulator</div>
+        <div style="color: #888; font-weight: bold; font-size: 13px; letter-spacing: 1px;">EKG Simulator</div>
         <div id="top-clock">--:--:--</div>
         <div class="header-right">
             <div class="bat-box"><span>1</span><div class="bat-icon-frame"><div class="bat-level"></div></div></div>
@@ -360,8 +360,8 @@
 
     <div id="print-overlay">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #555; padding-bottom: 6px;">
-            <span style="font-size: 26px; font-weight: bold; font-family: monospace; color: #000;">12-Kanal-EKG</span>
-            <button onclick="close12Lead()" style="padding: 8px 24px; background: #222; color:#fff; border:none; border-radius:6px; font-size: 16px; font-weight:bold; cursor:pointer; transition: 0.2s;">Schließen</button>
+            <span style="font-size: 24px; font-weight: bold; font-family: monospace; color: #000;">12-Kanal-EKG</span>
+            <button onclick="close12Lead()" style="padding: 6px 18px; background: #222; color:#fff; border:none; border-radius:6px; font-size: 14px; font-weight:bold; cursor:pointer; transition: 0.2s;">Schließen</button>
         </div>
         <div class="print-grid" id="leadGrid"></div>
     </div>
@@ -369,30 +369,30 @@
     <div id="monitor">
         <div id="vitals">
             <div class="vital-box ecg-color" id="box-hr">
-                <div class="vital-title-row"><span>HF</span><span style="font-size:20px;">/min</span></div>
+                <div class="vital-title-row"><span>HF</span><span style="font-size:14px;">/min</span></div>
                 <div class="vital-value" id="hrDisplay">--</div>
             </div>
             <div class="vital-box spo2-color" id="box-spo2">
-                <div class="vital-title-row"><span>SpO2</span><span style="font-size:20px;">%</span></div>
+                <div class="vital-title-row"><span>SpO2</span><span style="font-size:14px;">%</span></div>
                 <div class="vital-value" id="spo2Display">--</div>
             </div>
             <div class="vital-box co2-color" id="box-co2">
-                <div class="vital-title-row"><span>CO2</span><span style="font-size:20px;">mmHg</span></div>
-                <div class="vital-value" id="co2Display" style="font-size: 95px; margin-top: -5px; margin-bottom: -5px;">--</div>
-                <div style="font-size: 24px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-top: 2px; padding: 0 4px;">
-                    <span>AF:</span><span id="afDisplay" style="color: #ffaa00; font-size: 36px; font-family: Arial, sans-serif;">--</span>
+                <div class="vital-title-row"><span>CO2</span><span style="font-size:14px;">mmHg</span></div>
+                <div class="vital-value" id="co2Display" style="font-size: 60px; margin-top: 0; margin-bottom: 0;">--</div>
+                <div style="font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-top: 2px; padding: 0 4px;">
+                    <span>AF:</span><span id="afDisplay" style="color: #ffaa00; font-size: 24px; font-family: Arial, sans-serif;">--</span>
                 </div>
             </div>
             <div class="vital-box white-color" id="box-nibd">
-                <div class="vital-title-row"><span>NIBP</span><span style="font-size:20px;">mmHg</span></div>
-                <div class="vital-value" style="font-size: 65px; letter-spacing: -2px; margin-bottom: 2px; margin-top: auto;">
+                <div class="vital-title-row"><span>NIBP</span><span style="font-size:14px;">mmHg</span></div>
+                <div class="vital-value" style="font-size: 42px; letter-spacing: -1px; margin-bottom: 2px; margin-top: auto;">
                     <span id="sysDisplay">--</span>/<span id="diaDisplay">--</span>
                 </div>
-                <div style="font-size: 15px; font-weight: bold; color: #666; display: flex; justify-content: space-between; background-color: #222; margin: 4px -12px 4px -12px; padding: 4px 12px;">
-                    <span>MAP: <span id="mapDisplay" style="color:#fff; font-size:16px;">--</span></span>
-                    <span>HF: <span id="nibdPulseDisplay" style="color:#fff; font-size:16px;">--</span></span>
+                <div style="font-size: 12px; font-weight: bold; color: #666; display: flex; justify-content: space-between; background-color: #222; margin: 4px -8px 4px -8px; padding: 2px 8px;">
+                    <span>MAP: <span id="mapDisplay" style="color:#fff; font-size:13px;">--</span></span>
+                    <span>HF: <span id="nibdPulseDisplay" style="color:#fff; font-size:13px;">--</span></span>
                 </div>
-                <div id="historyList" style="display: block; height: 95px; margin-top: 6px; font-family: monospace; overflow: hidden; box-sizing: border-box;"></div>
+                <div id="historyList" style="display: block; height: 75px; margin-top: 4px; font-family: monospace; overflow: hidden; box-sizing: border-box;"></div>
             </div>
         </div>
 
@@ -403,8 +403,8 @@
         </div>
 
         <div id="aed-panel">
-            <button id="btn-mute" onclick="toggleMute()">🔕 SOUND AN</button>
-            <hr style="width:100%; border: 1px solid #444; margin: 10px 0;">
+            <button id="btn-mute" onclick="toggleMute()" style="padding: 10px 4px; font-size: 13px; font-weight: bold; border-radius: 20px; border: none; cursor: pointer; width: 100%;">🔕 SOUND AN</button>
+            <hr style="width:100%; border: 1px solid #444; margin: 5px 0;">
             
             <div id="cpr-timer">00:00</div>
             
@@ -421,7 +421,7 @@
         const currentRoom = urlParams.get('room') || 'SIM1';
 
         // WebSocket Verbindung aufbauen (hier URL ggf. anpassen)
-        const ws = new WebSocket("wss://ekg-simulator.onrender.com");
+        const ws = new WebSocket("wss://ekg-backend.onrender.com");
         
         const leads = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"];
 
@@ -456,6 +456,7 @@
 
         function resize() { canvasECG.width = canvasECG.clientWidth; canvasECG.height = canvasECG.clientHeight; canvasSpO2.width = canvasSpO2.clientWidth; canvasSpO2.height = canvasSpO2.clientHeight; canvasCO2.width = canvasCO2.clientWidth; canvasCO2.height = canvasCO2.clientHeight; }
         resize();
+        window.addEventListener('resize', resize);
 
         function initMonitor() {
             document.getElementById("startOverlay").style.display = "none";
@@ -466,7 +467,6 @@
 
         function updateTopClock() {
             const now = new Date();
-            // Anpassung: 24-Stunden Format (de-DE, hour12: false)
             document.getElementById("top-clock").innerText = now.toLocaleTimeString('de-DE', {
                 hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false
             });
@@ -501,7 +501,7 @@
             const listDiv = document.getElementById("historyList");
             if (nibdHistory.length > 3) { nibdHistory = nibdHistory.slice(0, 3); }
             if (nibdHistory.length === 0) { listDiv.innerHTML = ""; } 
-            else { listDiv.innerHTML = nibdHistory.map(function(entry) { return '<div style="display:flex; justify-content:space-between; color:#bbb; font-size: 20px; font-weight: bold; padding: 3px 4px; border-bottom: 1px dashed #1c1c1c;">' + entry + '</div>'; }).join(""); }
+            else { listDiv.innerHTML = nibdHistory.map(function(entry) { return '<div style="display:flex; justify-content:space-between; color:#bbb; font-size: 14px; font-weight: bold; padding: 2px 4px; border-bottom: 1px dashed #1c1c1c;">' + entry + '</div>'; }).join(""); }
         }
 
         function startMonitorNibd() {
@@ -661,7 +661,6 @@
         }
 
         ws.onopen = () => { 
-            // Beim Startraum beitreten
             ws.send(JSON.stringify({ type: "join_room", room: currentRoom }));
         };
 
