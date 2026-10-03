@@ -3,7 +3,6 @@ import json
 import os
 import websockets
 
-# Speicher für aktive Räume
 ROOMS = {}
 CLIENT_ROOMS = {}
 
@@ -18,11 +17,18 @@ async def ws_handler(websocket):
             except json.JSONDecodeError:
                 continue
 
+            msg_type = data.get("type")
+
+            # Heartbeat ping/pong zur Aufrechterhaltung der Verbindung auf Render
+            if msg_type == "ping":
+                await websocket.send(json.dumps({"type": "pong"}))
+                continue
+
             # 1. Raum beitreten
-            if data.get("type") == "join_room":
+            if msg_type == "join_room":
                 room_id = data.get("room", "DEFAULT").strip().upper()
                 
-                # Alten Raum verlassen
+                # Alten Raum verlassen, falls vorhanden
                 old_room = CLIENT_ROOMS.get(websocket)
                 if old_room and old_room in ROOMS:
                     ROOMS[old_room].discard(websocket)
@@ -33,15 +39,18 @@ async def ws_handler(websocket):
                     ROOMS[room_id] = set()
                 ROOMS[room_id].add(websocket)
                 
-                print(f"[WebSocket] Client ist Raum '{room_id}' beigetreten.")
+                print(f"[WebSocket] Client {client_ip} ist Raum '{room_id}' beigetreten. (Aktive Geräte in '{room_id}': {len(ROOMS[room_id])})")
                 continue
 
-            # 2. Nachricht an Clients im SELBEN Raum weiterleiten
+            # 2. Nachricht an alle ANDEREN Clients im SELBEN Raum weiterleiten
             current_room = CLIENT_ROOMS.get(websocket)
             if current_room and current_room in ROOMS:
                 for client in ROOMS[current_room]:
                     if client != websocket:
-                        await client.send(message)
+                        try:
+                            await client.send(message)
+                        except websockets.exceptions.ConnectionClosed:
+                            pass
 
     except websockets.exceptions.ConnectionClosed:
         pass
@@ -51,14 +60,12 @@ async def ws_handler(websocket):
             ROOMS[room_id].discard(websocket)
             if not ROOMS[room_id]:
                 del ROOMS[room_id]
-        print(f"[WebSocket] Client getrennt.")
+        print(f"[WebSocket] Client getrennt: {client_ip}")
 
 async def main():
-    # Render weist automatisch einen Port über os.environ zu
     port = int(os.environ.get("PORT", 8765))
-    
     async with websockets.serve(ws_handler, "0.0.0.0", port):
-        print(f"[WebSocket] Server gestartet auf Port {port}")
+        print(f"[WebSocket] Server läuft auf Port {port}")
         await asyncio.Future()
 
 if __name__ == "__main__":

@@ -455,8 +455,8 @@
         const urlParams = new URLSearchParams(window.location.search);
         const currentRoom = urlParams.get('room') || 'SIM1';
 
-        // Server-Adresse
-        const ws = new WebSocket("wss://ekg-simulator.onrender.com");
+        let ws = null;
+        let pingInterval = null;
 
         let baseHR = 80; let baseSpO2 = 98; let baseEtco2 = 40; let baseAF = 12;     
         let currentHR = 80; let currentSpO2Display = 98; let currentEtco2Display = 40; 
@@ -492,11 +492,83 @@
         resize();
         window.addEventListener('resize', resize);
 
+        /* Robuste WebSocket Verbindung mit Auto-Reconnect und Ping-Keep-Alive */
+        function connectWebSocket() {
+            ws = new WebSocket("wss://ekg-simulator.onrender.com");
+
+            ws.onopen = () => { 
+                console.log("[Monitor] Verbunden!");
+                ws.send(JSON.stringify({ type: "join_room", room: currentRoom }));
+
+                // Ping alle 15s um Render-Timeout zu verhindern
+                clearInterval(pingInterval);
+                pingInterval = setInterval(() => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: "ping" }));
+                    }
+                }, 15000);
+            };
+
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data); 
+                if (data.type === "pong") return; // Heartbeat ignoration
+                
+                if (data.type === "audio_control") { 
+                    if (data.action === "alarms_on") isAudioMuted = false; 
+                    if (data.action === "alarms_off") isAudioMuted = true; 
+                } 
+                else if (data.type === "command" && data.action === "clear_nibd") { 
+                    document.getElementById("sysDisplay").innerText = "--"; 
+                    document.getElementById("diaDisplay").innerText = "--"; 
+                    document.getElementById("mapDisplay").innerText = "--"; 
+                    document.getElementById("nibdPulseDisplay").innerText = "--"; 
+                    nibdHistory = []; 
+                    updateHistoryDisplay(); 
+                } 
+                else if (data.type === "nibd_started") {
+                    triggerLocalNibdStart();
+                }
+                else if (data.type === "nibd_finished") {
+                    if (data.sys !== undefined) {
+                        triggerLocalNibdFinish(data.sys, data.dia, data.map, data.pulse, data.timestamp);
+                    }
+                }
+                else if (data.type === "analysis_started_sync") {
+                    startAnalysis(true);
+                }
+                else if (data.type === "shock_delivered_sync") {
+                    deliverShock(true);
+                }
+                else if (data.type === "12lead_sync") {
+                    trigger12LeadPrint(true);
+                }
+                else if (data.type === "vital_update") {
+                    baseHR = parseInt(data.heartRate); baseSpO2 = parseInt(data.spo2); baseEtco2 = parseInt(data.etco2); baseAF = parseInt(data.af); standbySys = data.sys; standbyDia = data.dia; isNibdConnected = data.sensors.nibd; isHDMActive = data.isHDMActive; isEcgConnected = data.sensors.ecg; isSpO2Connected = data.sensors.spo2; isCo2Connected = data.sensors.co2; isDefiConnected = data.sensors.defi; 
+                    if (isEcgConnected) { ecgWarningActive = false; clearTimeout(ecgTimeout); } if (isNibdConnected) { nibdWarningActive = false; clearTimeout(nibdTimeout); } if (isDefiConnected) { defiWarningActive = false; clearTimeout(defiTimeout); }
+                    if (!isNibdConnected && !isCurrentlyMeasuringNIBP) { document.getElementById("sysDisplay").innerText = "--"; document.getElementById("diaDisplay").innerText = "--"; document.getElementById("mapDisplay").innerText = "--"; document.getElementById("nibdPulseDisplay").innerText = "--"; }
+                    if (data.rhythm === 'nsr' || data.rhythm === 'stemi') { forceStopCprTimer(); resetAED(); } currentRhythm = data.rhythm || 'nsr'; spo2Quality = data.spo2Quality; fluctuateVitals(); 
+                }
+            };
+
+            ws.onclose = () => {
+                console.log("[Monitor] Verbindung getrennt. Reconnect in 3s...");
+                clearInterval(pingInterval);
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            ws.onerror = (err) => {
+                console.error("[Monitor] Fehler:", err);
+                ws.close();
+            };
+        }
+
+        connectWebSocket();
+
         function initMonitor() {
             document.getElementById("startOverlay").style.display = "none";
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
-            setTimeout(function() { if (ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "monitor_initialized" })); } }, 500);
+            setTimeout(function() { if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "monitor_initialized" })); } }, 500);
         }
 
         function updateTopClock() {
@@ -529,7 +601,7 @@
 
         function startCprTimer() { clearInterval(cprTimerInterval); cprTimeLeft = 120; updateTimerDisplay(); sendTimerToTrainer(); cprTimerInterval = setInterval(function() { cprTimeLeft--; updateTimerDisplay(); sendTimerToTrainer(); if (cprTimeLeft <= 0) { clearInterval(cprTimerInterval); sendTimerToTrainer(); startAnalysis(); } }, 1000); }
         function forceStopCprTimer() { clearInterval(cprTimerInterval); cprTimeLeft = 0; updateTimerDisplay(); sendTimerToTrainer(); }
-        function sendTimerToTrainer() { if (ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "cpr_timer_update", timeLeft: cprTimeLeft })); } }
+        function sendTimerToTrainer() { if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "cpr_timer_update", timeLeft: cprTimeLeft })); } }
 
         /* Mess-Verlauf */
         function updateHistoryDisplay() {
@@ -575,6 +647,8 @@
 
         function startMonitorNibd() {
             if (isCurrentlyMeasuringNIBP) return; 
+            
+            // Falls Kabel getrennt ist, Warnung zeigen
             if (!isNibdConnected) { 
                 nibdWarningActive = true; 
                 updateWarningBanner(); 
@@ -582,8 +656,8 @@
                 nibdTimeout = setTimeout(function() { nibdWarningActive = false; updateWarningBanner(); }, 5000); 
                 return; 
             }
-            
-            if (ws.readyState === WebSocket.OPEN) {
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: "nibd_started" }));
             }
             
@@ -599,7 +673,7 @@
                 
                 triggerLocalNibdFinish(sys, dia, map, pulse, timestamp);
 
-                if (ws.readyState === WebSocket.OPEN) { 
+                if (ws && ws.readyState === WebSocket.OPEN) { 
                     ws.send(JSON.stringify({ 
                         type: "nibd_finished", 
                         val: sys + '/' + dia,
@@ -641,12 +715,11 @@
                 osc.stop(audioCtx.currentTime + 1.5); 
             }
 
-            // Zeige den Hinweis für 5 Sekunden auf dem Monitor an
             const infoBanner = document.getElementById("info-area");
             infoBanner.style.display = "block";
             setTimeout(() => { infoBanner.style.display = "none"; }, 5000);
 
-            if (!fromNetwork && ws.readyState === WebSocket.OPEN) { 
+            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) { 
                 ws.send(JSON.stringify({ type: "12lead_sync" }));
                 ws.send(JSON.stringify({ type: "ekg_12_printed" })); 
             }
@@ -666,7 +739,7 @@
             }
             defiWarningActive = false; updateWarningBanner(); forceStopCprTimer();
 
-            if (!fromNetwork && ws.readyState === WebSocket.OPEN) { 
+            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) { 
                 ws.send(JSON.stringify({ type: "analysis_started_sync" }));
                 ws.send(JSON.stringify({ type: "analysis_started" })); 
             }
@@ -754,7 +827,7 @@
                 setTimeout(() => { flash.style.display = 'none'; }, 200); 
             }, 100);
 
-            if (!fromNetwork && ws.readyState === WebSocket.OPEN) { 
+            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) { 
                 ws.send(JSON.stringify({ type: "shock_delivered_sync" }));
                 ws.send(JSON.stringify({ type: "shock_delivered" })); 
             }
@@ -820,51 +893,6 @@
             if (isCo2Connected) { document.getElementById("co2Display").innerText = currentEtco2Display; document.getElementById("afDisplay").innerText = baseAF; } else { document.getElementById("co2Display").innerText = "--"; document.getElementById("afDisplay").innerText = "--"; }
             updateWarningBanner(); checkAlarms(currentHR, currentSpO2Display);
         }
-
-        ws.onopen = () => { 
-            ws.send(JSON.stringify({ type: "join_room", room: currentRoom }));
-        };
-
-        /* Empfang von Netzwerk-Nachrichten (Synchronisation) */
-        ws.onmessage = function(event) {
-            const data = JSON.parse(event.data); 
-            
-            if (data.type === "audio_control") { 
-                if (data.action === "alarms_on") isAudioMuted = false; 
-                if (data.action === "alarms_off") isAudioMuted = true; 
-            } 
-            else if (data.type === "command" && data.action === "clear_nibd") { 
-                document.getElementById("sysDisplay").innerText = "--"; 
-                document.getElementById("diaDisplay").innerText = "--"; 
-                document.getElementById("mapDisplay").innerText = "--"; 
-                document.getElementById("nibdPulseDisplay").innerText = "--"; 
-                nibdHistory = []; 
-                updateHistoryDisplay(); 
-            } 
-            else if (data.type === "nibd_started") {
-                triggerLocalNibdStart();
-            }
-            else if (data.type === "nibd_finished") {
-                if (data.sys !== undefined) {
-                    triggerLocalNibdFinish(data.sys, data.dia, data.map, data.pulse, data.timestamp);
-                }
-            }
-            else if (data.type === "analysis_started_sync") {
-                startAnalysis(true);
-            }
-            else if (data.type === "shock_delivered_sync") {
-                deliverShock(true);
-            }
-            else if (data.type === "12lead_sync") {
-                trigger12LeadPrint(true);
-            }
-            else if (data.type === "vital_update") {
-                baseHR = parseInt(data.heartRate); baseSpO2 = parseInt(data.spo2); baseEtco2 = parseInt(data.etco2); baseAF = parseInt(data.af); standbySys = data.sys; standbyDia = data.dia; isNibdConnected = data.sensors.nibd; isHDMActive = data.isHDMActive; isEcgConnected = data.sensors.ecg; isSpO2Connected = data.sensors.spo2; isCo2Connected = data.sensors.co2; isDefiConnected = data.sensors.defi; 
-                if (isEcgConnected) { ecgWarningActive = false; clearTimeout(ecgTimeout); } if (isNibdConnected) { nibdWarningActive = false; clearTimeout(nibdTimeout); } if (isDefiConnected) { defiWarningActive = false; clearTimeout(defiTimeout); }
-                if (!isNibdConnected && !isCurrentlyMeasuringNIBP) { document.getElementById("sysDisplay").innerText = "--"; document.getElementById("diaDisplay").innerText = "--"; document.getElementById("mapDisplay").innerText = "--"; document.getElementById("nibdPulseDisplay").innerText = "--"; }
-                if (data.rhythm === 'nsr' || data.rhythm === 'stemi') { forceStopCprTimer(); resetAED(); } currentRhythm = data.rhythm || 'nsr'; spo2Quality = data.spo2Quality; fluctuateVitals(); 
-            }
-        };
 
         function drawWaveforms() {
             if (!canvasECG) return;
