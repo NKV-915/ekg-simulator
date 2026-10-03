@@ -235,7 +235,7 @@
         const currentRoom = urlParams.get('room') || 'SIM1';
 
         // WebSocket Verbindung aufbauen (hier URL ggf. anpassen)
-        const ws = new WebSocket("wss://ekg-backend.onrender.com");
+        const ws = new WebSocket("wss://ekg-simulator.onrender.com");
         
         let sensors = { ecg: false, spo2: false, nibd: false, co2: false, defi: false };
         let currentSpO2Quality = 'good';
