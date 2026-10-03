@@ -81,7 +81,7 @@
         }
         #top-clock { 
             font-family: 'Courier New', Courier, monospace; 
-            font-size: 20px; 
+            font-size: 22px; 
             font-weight: bold; 
             color: #ffcc00; 
             letter-spacing: 1px; 
@@ -149,7 +149,7 @@
             box-sizing: border-box;
         }
 
-        /* Haupt-Monitor Grid-Verteilung (Proportional!) */
+        /* Haupt-Monitor Layout */
         #monitor { 
             display: flex; 
             flex-grow: 1; 
@@ -157,20 +157,20 @@
             height: calc(100vh - 36px); 
         }
         
-        /* 28% der Bildschirmbreite für Vitals (perfekte Balance) */
+        /* Vitalwerte Linke Spalte */
         #vitals { 
-            width: 28vw; 
-            min-width: 200px;
-            max-width: 320px;
+            width: 30vw; 
+            min-width: 230px;
+            max-width: 350px;
             background-color: #0c0c0c; 
             display: flex; 
             flex-direction: column; 
-            padding: 6px; 
+            padding: 4px; 
             box-sizing: border-box; 
             border-right: 2px solid #222; 
         }
         
-        /* Kurven bekommen den gesamten restlichen Platz */
+        /* Kurven-Fenster Mitte (Unterteilt in 4 proportionale Abschnitte) */
         #waveforms { 
             flex-grow: 1; 
             display: flex; 
@@ -180,16 +180,16 @@
             background-color: #000; 
         }
         
-        /* AED-Panel fixiert für Tasten */
+        /* AED-Panel Rechts (Vergrößert für griffigere Buttons) */
         #aed-panel { 
-            width: 130px; 
+            width: 150px; 
             background-color: #1a1a1a; 
             display: flex; 
             flex-direction: column; 
-            padding: 10px; 
+            padding: 12px; 
             align-items: center; 
             justify-content: flex-start; 
-            gap: 10px; 
+            gap: 12px; 
             box-sizing: border-box; 
         }
         
@@ -201,8 +201,8 @@
             display: flex; 
             flex-direction: column; 
             justify-content: space-between; 
-            flex-grow: 1; 
-            margin-bottom: 5px; 
+            flex: 1; 
+            margin-bottom: 4px; 
             box-sizing: border-box; 
             overflow: hidden;
         }
@@ -211,7 +211,7 @@
         .vital-title-row { 
             display: flex; 
             justify-content: space-between; 
-            font-size: clamp(14px, 2vw, 22px); 
+            font-size: clamp(16px, 2.2vw, 24px); 
             font-weight: bold; 
             background-color: #222; 
             padding: 2px 8px;
@@ -219,10 +219,11 @@
             align-items: baseline;
         }
         
+        /* Deutlich vergrößerte Anzeigewerte */
         .vital-value { 
-            font-size: clamp(45px, 6vw, 75px); 
+            font-size: clamp(65px, 7.5vw, 100px); 
             font-weight: bold; 
-            line-height: 0.90; 
+            line-height: 0.88; 
             text-align: right; 
             font-family: Arial, sans-serif; 
             letter-spacing: -1px; 
@@ -238,23 +239,44 @@
         .alarm-active { background-color: rgba(255, 0, 0, 0.4); color: white !important; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
 
-        canvas { width: 100%; height: 24.5vh; border-bottom: 1px dashed #222; }
+        /* Jede Kurve füllt genau 25% Höhe der mittleren Spalte aus */
+        canvas { 
+            flex: 1; 
+            width: 100%; 
+            height: 100%; 
+            min-height: 0; 
+            display: block; 
+            border-bottom: 1px dashed #222; 
+        }
 
-        .aed-btn { width: 100%; padding: 12px 6px; font-size: 13px; font-weight: bold; border-radius: 50px; border: none; cursor: pointer; transition: 0.3s; }
+        /* Größere Bedienelemente / Buttons */
+        .aed-btn { 
+            width: 100%; 
+            padding: 16px 8px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            border-radius: 50px; 
+            border: none; 
+            cursor: pointer; 
+            transition: 0.3s; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
         #btn-analyse { background-color: #ffcc00; color: #000; }
         #btn-analyse:active { background-color: #e6b800; transform: scale(0.95); }
         #btn-shock { background-color: #dc3545; color: #fff; opacity: 0.3; pointer-events: none; }
-        #btn-nibp-start { background-color: #ffaa00; color: #000; }
+        
+        /* NIBP Button in Grün mit weißer Schrift */
+        #btn-nibp-start { background-color: #28a745; color: #ffffff; }
         #btn-12lead { background-color: #7000ff; color: #fff; }
         
         .analyse-measuring { animation: analyse-blink 1s infinite alternate !important; }
         @keyframes analyse-blink { from { background-color: #ffcc00; color: #000; } to { background-color: #997a00; color: #fff; } }
         
         .nibd-measuring { animation: nibd-blink 1s infinite alternate !important; }
-        @keyframes nibd-blink { from { background-color: #ffaa00; color: #000; } to { background-color: #885500; color: #fff; } }
+        @keyframes nibd-blink { from { background-color: #28a745; color: #fff; } to { background-color: #155724; color: #fff; } }
 
         .shock-ready { opacity: 1 !important; pointer-events: auto !important; }
-        #cpr-timer { display: none; font-size: 26px; font-weight: bold; color: #444; font-family: 'Courier New', Courier, monospace; text-align: center; letter-spacing: 1px; margin-bottom: 2px; }
+        #cpr-timer { display: none; font-size: 30px; font-weight: bold; color: #444; font-family: 'Courier New', Courier, monospace; text-align: center; letter-spacing: 1px; margin-bottom: 2px; }
 
         #print-overlay { 
             position: fixed; top: 3vh; left: 3vw; width: 94vw; height: 94vh; 
@@ -361,44 +383,48 @@
     </div>
 
     <div id="monitor">
+        <!-- 4 Vitalblöcke in fester Reihenfolge -->
         <div id="vitals">
             <div class="vital-box ecg-color" id="box-hr">
-                <div class="vital-title-row"><span>HF</span><span style="font-size:12px;">/min</span></div>
+                <div class="vital-title-row"><span>HF</span><span style="font-size:14px;">/min</span></div>
                 <div class="vital-value" id="hrDisplay">--</div>
             </div>
             <div class="vital-box spo2-color" id="box-spo2">
-                <div class="vital-title-row"><span>SpO2</span><span style="font-size:12px;">%</span></div>
+                <div class="vital-title-row"><span>SpO2</span><span style="font-size:14px;">%</span></div>
                 <div class="vital-value" id="spo2Display">--</div>
             </div>
             <div class="vital-box co2-color" id="box-co2">
-                <div class="vital-title-row"><span>CO2</span><span style="font-size:12px;">mmHg</span></div>
-                <div class="vital-value" id="co2Display" style="font-size: clamp(38px, 5vw, 55px); margin-top: 0; margin-bottom: 0;">--</div>
-                <div style="font-size: 13px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-top: 2px; padding: 0 2px;">
-                    <span>AF:</span><span id="afDisplay" style="color: #ffaa00; font-size: 20px; font-family: Arial, sans-serif;">--</span>
+                <div class="vital-title-row"><span>CO2</span><span style="font-size:14px;">mmHg</span></div>
+                <div class="vital-value" id="co2Display" style="font-size: clamp(52px, 6vw, 80px); margin-top: 0; margin-bottom: 0;">--</div>
+                <div style="font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-top: 2px; padding: 0 4px;">
+                    <span>AF:</span><span id="afDisplay" style="color: #ffaa00; font-size: 26px; font-family: Arial, sans-serif;">--</span>
                 </div>
             </div>
             <div class="vital-box white-color" id="box-nibd">
-                <div class="vital-title-row"><span>NIBP</span><span style="font-size:12px;">mmHg</span></div>
-                <div class="vital-value" style="font-size: clamp(28px, 4vw, 42px); letter-spacing: -1px; margin-bottom: 2px; margin-top: auto;">
+                <div class="vital-title-row"><span>NIBP</span><span style="font-size:14px;">mmHg</span></div>
+                <div class="vital-value" style="font-size: clamp(38px, 4.8vw, 58px); letter-spacing: -1px; margin-bottom: 2px; margin-top: auto;">
                     <span id="sysDisplay">--</span>/<span id="diaDisplay">--</span>
                 </div>
-                <div style="font-size: 11px; font-weight: bold; color: #666; display: flex; justify-content: space-between; background-color: #222; margin: 2px -8px 2px -8px; padding: 2px 6px;">
-                    <span>MAP: <span id="mapDisplay" style="color:#fff; font-size:12px;">--</span></span>
-                    <span>HF: <span id="nibdPulseDisplay" style="color:#fff; font-size:12px;">--</span></span>
+                <div style="font-size: 13px; font-weight: bold; color: #666; display: flex; justify-content: space-between; background-color: #222; margin: 2px -8px 2px -8px; padding: 2px 6px;">
+                    <span>MAP: <span id="mapDisplay" style="color:#fff; font-size:14px;">--</span></span>
+                    <span>HF: <span id="nibdPulseDisplay" style="color:#fff; font-size:14px;">--</span></span>
                 </div>
                 <div id="historyList" style="display: block; height: 65px; margin-top: 2px; font-family: monospace; overflow: hidden; box-sizing: border-box;"></div>
             </div>
         </div>
 
+        <!-- 4 Kurvenreihen (Exakt ausgerichtet auf die linken Blöcke) -->
         <div id="waveforms">
             <canvas id="ecgCanvas"></canvas>
             <canvas id="spo2Canvas"></canvas>
             <canvas id="co2Canvas"></canvas>
+            <div id="nibdWaveArea" style="flex: 1; border-bottom: 1px dashed #222;"></div>
         </div>
 
+        <!-- Rechte Tastenleiste -->
         <div id="aed-panel">
-            <button id="btn-mute" onclick="toggleMute()" style="padding: 8px 24px; font-size: 12px; font-weight: bold; border-radius: 20px; border: none; cursor: pointer; width: 100%;">🔕 SOUND AN</button>
-            <hr style="width:100%; border: 1px solid #444; margin: 4px 0;">
+            <button id="btn-mute" onclick="toggleMute()" style="padding: 10px 6px; font-size: 13px; font-weight: bold; border-radius: 20px; border: none; cursor: pointer; width: 100%;">🔕 SOUND AN</button>
+            <hr style="width:100%; border: 1px solid #444; margin: 2px 0;">
             
             <div id="cpr-timer">00:00</div>
             
@@ -413,7 +439,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const currentRoom = urlParams.get('room') || 'SIM1';
 
-        // Deine Server Adresse
+        // Feste Render-Server Adresse
         const ws = new WebSocket("wss://ekg-simulator.onrender.com");
         
         const leads = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"];
@@ -498,7 +524,7 @@
             const listDiv = document.getElementById("historyList");
             if (nibdHistory.length > 3) { nibdHistory = nibdHistory.slice(0, 3); }
             if (nibdHistory.length === 0) { listDiv.innerHTML = ""; } 
-            else { listDiv.innerHTML = nibdHistory.map(function(entry) { return '<div style="display:flex; justify-content:space-between; color:#bbb; font-size: 12px; font-weight: bold; padding: 1px 2px; border-bottom: 1px dashed #1c1c1c;">' + entry + '</div>'; }).join(""); }
+            else { listDiv.innerHTML = nibdHistory.map(function(entry) { return '<div style="display:flex; justify-content:space-between; color:#bbb; font-size: 13px; font-weight: bold; padding: 1px 2px; border-bottom: 1px dashed #1c1c1c;">' + entry + '</div>'; }).join(""); }
         }
 
         function startMonitorNibd() {
