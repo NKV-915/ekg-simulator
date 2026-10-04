@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
-    <!-- PWA Meta Tags -->
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -22,7 +21,6 @@
             height: 100vh; 
         }
         
-        /* Start-Bildschirm Overlay */
         #startOverlay { 
             position: fixed; 
             top: 0; 
@@ -44,7 +42,6 @@
             font-size: 28px;
         }
 
-        /* HUD Warning Banner */
         #warning-area { 
             position: fixed; 
             top: 36px; 
@@ -67,7 +64,6 @@
             to { opacity: 0.4; } 
         }
 
-        /* HUD Info Banner (z.B. für 12-Kanal) */
         #info-area {
             position: fixed; 
             top: 36px; 
@@ -85,7 +81,6 @@
             box-shadow: 0 4px 15px rgba(112, 0, 255, 0.5);
         }
 
-        /* Header Bar */
         #top-header {
             height: 36px; 
             background-color: #222; 
@@ -105,7 +100,6 @@
             letter-spacing: 1px; 
         }
 
-        /* Haupt-Layout */
         #monitor { 
             display: flex; 
             flex-grow: 1; 
@@ -113,7 +107,6 @@
             height: calc(100vh - 36px); 
         } 
         
-        /* Links: 3 Kacheln (HF, SpO2, etCO2) */
         #vitals { 
             width: 25vw; 
             min-width: 200px;
@@ -126,7 +119,6 @@
             border-right: 2px solid #222; 
         }
         
-        /* Mitte: Kurven + Grosses NIBP Feld unten */
         #center-content { 
             flex-grow: 1; 
             display: flex; 
@@ -135,7 +127,6 @@
             background-color: #000; 
         }
         
-        /* Rechts: AED Steuerung */
         #aed-panel { 
             width: 150px; 
             background-color: #1a1a1a; 
@@ -193,7 +184,6 @@
         .alarm-active { background-color: rgba(255, 0, 0, 0.4); color: white !important; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
 
-        /* Kurven-Höhe */
         canvas { 
             flex: 1; 
             width: 100%; 
@@ -203,7 +193,6 @@
             border-bottom: 1px dashed #222; 
         }
 
-        /* NIBP Grossfeld unten */
         #nibp-center-area {
             flex: 1;
             background: #050505;
@@ -280,7 +269,6 @@
             padding-bottom: 3px;
         }
 
-        /* Buttons */
         .aed-btn { 
             width: 100%; 
             padding: 16px 8px; 
@@ -388,7 +376,6 @@
     </div>
 
     <div id="monitor">
-        <!-- Links: Vitalwerte HF, SpO2, etCO2 -->
         <div id="vitals">
             <div class="vital-box ecg-color" id="box-hr">
                 <div class="vital-title-row"><span>HF</span><span style="font-size:12px;">/min</span></div>
@@ -407,12 +394,10 @@
             </div>
         </div>
 
-        <!-- Mitte: Waveforms + NIBP Grossfeld -->
         <div id="center-content">
             <canvas id="ecgCanvas"></canvas>
             <canvas id="spo2Canvas"></canvas>
             
-            <!-- Grosses NIBP Feld im unteren Drittel -->
             <div id="nibp-center-area">
                 <div class="nibp-header-bar">
                     <span>NIBP</span>
@@ -437,7 +422,6 @@
             </div>
         </div>
 
-        <!-- Rechts: Bedienelemente -->
         <div id="aed-panel">
             <button id="btn-mute" onclick="toggleMute()" style="padding: 10px 6px; font-size: 13px; font-weight: bold; border-radius: 20px; border: none; cursor: pointer; width: 100%;">🔕 SOUND AN</button>
             <hr style="width:100%; border: 1px solid #444; margin: 2px 0;">
@@ -480,9 +464,14 @@
         let x = 0; let ecgFrameCounter = 0; let ecgComplexIndex = 0; let isDrawingECG = false; let lastYECG = canvasECG.height / 2; 
         let spo2FrameCounter = 10; let spo2ComplexIndex = 0; let isDrawingSpO2 = false; let lastYSpO2 = canvasSpO2.height / 2; 
         let cprFrameCounter = 0; let cprComplexIndex = 0; let isDrawingCPR = false;
+        let afibNextInterval = 40;
 
         const cprArtifactData = [0, 8, 22, 35, 18, -3, -15, -28, -12, 0];
-        const ecgData = [0,0,2,4,2,0,0,-3,25,-8,0,0,3,6,7,5,2,0,0]; const stemiData = [0,0,2,4,2,0,0,-3,25,18,17,16,15,13,10,7,4,2,0]; 
+        const ecgData = [0,0,2,4,2,0,0,-3,25,-8,0,0,3,6,7,5,2,0,0]; 
+        const stemiData = [0,0,2,4,2,0,0,-3,25,18,17,16,15,13,10,7,4,2,0]; 
+        const vtData = [0, -5, -15, -25, -10, 15, 35, 40, 25, 10, -2, -5];
+        const svtData = [0, -2, 28, -10, 0, 4, 8, 4, 0];
+        const avb3Data = [0, 2, 4, 2, 0, 0, 0, -4, -12, -20, 15, 35, 20, -5, 5, 10, 5, 0];
         const spo2Waves = { 'good': [0,2,5,10,12,10,6,5,6,4,2,1,0,0], 'medium': [0,1,3,5,6,5,3,2,3,2,1,0,0,0], 'poor': [0,0,1,0,-1,0,1,0,-1,0,0,0,0,0] };
 
         function resize() { 
@@ -492,15 +481,12 @@
         resize();
         window.addEventListener('resize', resize);
 
-        /* Robuste WebSocket Verbindung mit Auto-Reconnect und Ping-Keep-Alive */
         function connectWebSocket() {
             ws = new WebSocket("wss://ekg-simulator.onrender.com");
 
             ws.onopen = () => { 
-                console.log("[Monitor] Verbunden!");
                 ws.send(JSON.stringify({ type: "join_room", room: currentRoom }));
 
-                // Ping alle 15s um Render-Timeout zu verhindern
                 clearInterval(pingInterval);
                 pingInterval = setInterval(() => {
                     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -511,7 +497,7 @@
 
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data); 
-                if (data.type === "pong") return; // Heartbeat ignoration
+                if (data.type === "pong") return;
                 
                 if (data.type === "audio_control") { 
                     if (data.action === "alarms_on") isAudioMuted = false; 
@@ -551,14 +537,8 @@
             };
 
             ws.onclose = () => {
-                console.log("[Monitor] Verbindung getrennt. Reconnect in 3s...");
                 clearInterval(pingInterval);
                 setTimeout(connectWebSocket, 3000);
-            };
-
-            ws.onerror = (err) => {
-                console.error("[Monitor] Fehler:", err);
-                ws.close();
             };
         }
 
@@ -603,7 +583,6 @@
         function forceStopCprTimer() { clearInterval(cprTimerInterval); cprTimeLeft = 0; updateTimerDisplay(); sendTimerToTrainer(); }
         function sendTimerToTrainer() { if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "cpr_timer_update", timeLeft: cprTimeLeft })); } }
 
-        /* Mess-Verlauf */
         function updateHistoryDisplay() {
             const listDiv = document.getElementById("historyList");
             if (nibdHistory.length > 5) { nibdHistory = nibdHistory.slice(0, 5); }
@@ -616,7 +595,6 @@
             }
         }
 
-        /* Lokaler Mess-Start */
         function triggerLocalNibdStart() {
             nibdWarningActive = false; 
             updateWarningBanner(); 
@@ -629,7 +607,6 @@
             document.getElementById("diaDisplay").innerText = "---";
         }
 
-        /* Lokales Mess-Ende */
         function triggerLocalNibdFinish(sys, dia, map, pulse, timestamp) {
             nibdHistory.unshift('<span>' + timestamp + '</span><span style="color:#fff;">' + sys + '/' + dia + '</span><span style="color:#aaa; font-size:16px;">(' + map + ')</span>');
             document.getElementById("sysDisplay").innerText = sys; 
@@ -648,7 +625,6 @@
         function startMonitorNibd() {
             if (isCurrentlyMeasuringNIBP) return; 
             
-            // Falls Kabel getrennt ist, Warnung zeigen
             if (!isNibdConnected) { 
                 nibdWarningActive = true; 
                 updateWarningBanner(); 
@@ -691,7 +667,6 @@
         function playChargingTone(duration) { if (!audioCtx) return; chargeOsc = audioCtx.createOscillator(); chargeGain = audioCtx.createGain(); chargeOsc.type = 'sine'; chargeOsc.frequency.setValueAtTime(440, audioCtx.currentTime); chargeOsc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + duration); chargeOsc.connect(chargeGain); chargeGain.connect(audioCtx.destination); chargeGain.gain.setValueAtTime(0.2, audioCtx.currentTime); chargeOsc.start(audioCtx.currentTime); }
         function playFinalBeep() { if (!audioCtx) return; const beepOsc = audioCtx.createOscillator(); const beepGain = audioCtx.createGain(); beepOsc.type = 'sine'; beepOsc.frequency.setValueAtTime(880, audioCtx.currentTime); beepGain.gain.setValueAtTime(0.4, audioCtx.currentTime); beepGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15); beepOsc.connect(beepGain); beepGain.connect(audioCtx.destination); beepOsc.start(); beepOsc.stop(audioCtx.currentTime + 0.15); }
 
-        /* 12-Kanal EKG schreiben (Einfacher Hinweis + synchronisiert) */
         function trigger12LeadPrint(fromNetwork = false) {
             if (!fromNetwork && !isEcgConnected) { 
                 ecgWarningActive = true; 
@@ -729,7 +704,6 @@
         function stopChargingAndAlerts() { if (chargeOsc) { try { chargeOsc.stop(); } catch(e) {} chargeOsc = null; } if (quartIntervalTimer) { clearInterval(quartIntervalTimer); quartIntervalTimer = null; } }
         function playShockSound() { if (!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sawtooth'; osc.frequency.value = 150; osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.4); osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.setValueAtTime(1, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4); osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.4); }
 
-        /* Analyse starten (Synchronisiert) */
         function startAnalysis(fromNetwork = false) {
             const btnAnalyse = document.getElementById("btn-analyse");
             if (!fromNetwork && !isDefiConnected) { 
@@ -761,7 +735,7 @@
                 loadState.style.display = "none";
                 rdyState.style.display = "none";
                 
-                if (currentRhythm === 'vfib') {
+                if (currentRhythm === 'vfib' || currentRhythm === 'vt' || currentRhythm === 'torsades') {
                     btnAnalyse.style.background = "#6c757d"; btnAnalyse.style.color = "#fff"; btnAnalyse.innerText = "LADEN...";
                     
                     announceText.innerText = "Schock empfohlen";
@@ -812,7 +786,6 @@
             }, 4000);
         }
 
-        /* Schock abgeben (Synchronisiert) */
         function deliverShock(fromNetwork = false) {
             stopChargingAndAlerts(); 
             document.getElementById('btn-shock').classList.remove('shock-ready');
@@ -847,33 +820,42 @@
         function playAlarmTone() { if (!audioCtx || !isAlarming || isAudioMuted) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'square'; osc.frequency.value = 800; osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.setValueAtTime(0.8, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.4); osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.4); }
 
         function checkAlarms(hr, spo2) {
-            let alarm = false; if ((isEcgConnected || isDefiConnected || isSpO2Connected) && (currentRhythm === 'vfib' || currentRhythm === 'asystole' || hr < 50 || hr > 130)) { document.getElementById("box-hr").classList.add("alarm-active"); alarm = true; } else { document.getElementById("box-hr").classList.remove("alarm-active"); }
-            if (isSpO2Connected && (currentRhythm === 'vfib' || currentRhythm === 'asystole' || spo2 < 90)) { document.getElementById("box-spo2").classList.add("alarm-active"); alarm = true; } else { document.getElementById("box-spo2").classList.remove("alarm-active"); }
+            let alarm = false; 
+            const isNonSinus = ['vfib', 'asystole', 'vt', 'torsades'].includes(currentRhythm);
+            if ((isEcgConnected || isDefiConnected || isSpO2Connected) && (isNonSinus || hr < 50 || hr > 130)) { 
+                document.getElementById("box-hr").classList.add("alarm-active"); alarm = true; 
+            } else { document.getElementById("box-hr").classList.remove("alarm-active"); }
+            
+            if (isSpO2Connected && (isNonSinus || spo2 < 90)) { 
+                document.getElementById("box-spo2").classList.add("alarm-active"); alarm = true; 
+            } else { document.getElementById("box-spo2").classList.remove("alarm-active"); }
             isAlarming = alarm;
         }
 
-        /* Automatisches leichtes Schwanken aller Vitalwerte */
         function fluctuateVitals() {
-            if (currentRhythm === 'vfib') { 
+            if (currentRhythm === 'vfib' || currentRhythm === 'torsades') { 
                 currentHR = Math.floor(Math.random() * (260 - 150 + 1)) + 150; 
+            } else if (currentRhythm === 'vt') {
+                currentHR = Math.floor(Math.random() * (180 - 140 + 1)) + 140;
+            } else if (currentRhythm === 'svt') {
+                currentHR = Math.floor(Math.random() * (220 - 180 + 1)) + 180;
+            } else if (currentRhythm === 'avb3') {
+                currentHR = Math.floor(Math.random() * (38 - 28 + 1)) + 28;
             } else if (baseHR > 0) { 
                 currentHR = baseHR + Math.floor(Math.random() * 5) - 2; 
             } else { 
                 currentHR = 0; 
             }
 
-            if (baseSpO2 > 0 && (currentRhythm === 'nsr' || currentRhythm === 'stemi')) { 
+            const isValidPulseRhythm = ['nsr', 'stemi', 'svt', 'afib', 'avb3'].includes(currentRhythm);
+            if (baseSpO2 > 0 && isValidPulseRhythm) { 
                 currentSpO2Display = Math.min(100, Math.max(0, baseSpO2 + Math.floor(Math.random() * 3) - 1)); 
             } else { 
                 currentSpO2Display = 0; 
             }
 
-            if (currentRhythm === 'vfib' || currentRhythm === 'asystole') { 
-                if (isHDMActive) { 
-                    currentEtco2Display = 18 + Math.floor(Math.random() * 3) - 1; 
-                } else { 
-                    currentEtco2Display = 4 + Math.floor(Math.random() * 2); 
-                } 
+            if (currentRhythm === 'vfib' || currentRhythm === 'asystole' || currentRhythm === 'torsades') { 
+                currentEtco2Display = isHDMActive ? (18 + Math.floor(Math.random() * 3) - 1) : (4 + Math.floor(Math.random() * 2)); 
             } else if (baseEtco2 > 0) { 
                 currentEtco2Display = Math.max(0, baseEtco2 + Math.floor(Math.random() * 3) - 1); 
             } else {
@@ -888,19 +870,113 @@
         function updateUI() {
             if (!canvasECG) return;
             const hrBox = document.getElementById("box-hr"); const hrValue = document.getElementById("hrDisplay"); const spo2Value = document.getElementById("spo2Display"); hrBox.classList.remove("ecg-color", "spo2-color");
-            if (isEcgConnected || isDefiConnected) { if (currentRhythm === 'asystole') hrValue.innerText = "ASY"; else hrValue.innerText = currentHR; hrBox.classList.add("ecg-color"); } else if (isSpO2Connected) { if (currentRhythm === 'vfib' || currentRhythm === 'asystole') hrValue.innerText = "--"; else hrValue.innerText = currentHR; hrBox.classList.add("spo2-color"); } else { hrValue.innerText = "--"; hrBox.classList.add("ecg-color"); }
-            if (isSpO2Connected) { spo2Value.innerText = (currentRhythm === 'nsr' || currentRhythm === 'stemi') ? currentSpO2Display : "--"; } else { spo2Value.innerText = "--"; }
+            if (isEcgConnected || isDefiConnected) { 
+                if (currentRhythm === 'asystole') hrValue.innerText = "ASY"; 
+                else hrValue.innerText = currentHR; 
+                hrBox.classList.add("ecg-color"); 
+            } else if (isSpO2Connected) { 
+                if (['vfib', 'asystole', 'vt', 'torsades'].includes(currentRhythm)) hrValue.innerText = "--"; 
+                else hrValue.innerText = currentHR; 
+                hrBox.classList.add("spo2-color"); 
+            } else { hrValue.innerText = "--"; hrBox.classList.add("ecg-color"); }
+            
+            if (isSpO2Connected) { 
+                spo2Value.innerText = ['nsr', 'stemi', 'svt', 'afib', 'avb3'].includes(currentRhythm) ? currentSpO2Display : "--"; 
+            } else { spo2Value.innerText = "--"; }
+            
             if (isCo2Connected) { document.getElementById("co2Display").innerText = currentEtco2Display; document.getElementById("afDisplay").innerText = baseAF; } else { document.getElementById("co2Display").innerText = "--"; document.getElementById("afDisplay").innerText = "--"; }
             updateWarningBanner(); checkAlarms(currentHR, currentSpO2Display);
         }
 
         function drawWaveforms() {
             if (!canvasECG) return;
-            const safeHR = currentHR > 0 ? currentHR : 60; const framesPerBeat = (60 / safeHR) * 60; const baseECG = canvasECG.height / 2; const baseSpO2 = canvasSpO2.height / 2;
-            ctxECG.clearRect(x, 0, 25, canvasECG.height); ctxSpO2.clearRect(x, 0, 25, canvasSpO2.height); let yECG = baseECG; let ySpO2 = baseSpO2;
-            if (currentRhythm === 'vfib') { yECG = baseECG - (Math.sin(x * 0.1) * 12 + Math.sin(x * 0.05) * 8 + (Math.random() * 6 - 3)); } else if (currentRhythm === 'asystole') { yECG = baseECG; } else { ecgFrameCounter++; if (currentHR > 0 && ecgFrameCounter >= framesPerBeat && !isDrawingECG) { isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0; if ((isEcgConnected || isDefiConnected || isSpO2Connected) && !isAudioMuted) { playHeartbeatTone(); } } if (isDrawingECG) { let activeEcgArray = (currentRhythm === 'stemi') ? stemiData : ecgData; if (ecgComplexIndex < activeEcgArray.length) { yECG = baseECG - (activeEcgArray[ecgComplexIndex] * 3); } ecgComplexIndex++; if (ecgComplexIndex >= activeEcgArray.length) isDrawingECG = false; } }
-            if (isHDMActive && (currentRhythm === 'vfib' || currentRhythm === 'asystole')) { const cprFramesPerBeat = (60 / 105) * 60; cprFrameCounter++; if (cprFrameCounter >= cprFramesPerBeat && !isDrawingCPR) { isDrawingCPR = true; cprComplexIndex = 0; cprFrameCounter = 0; } if (isDrawingCPR) { if (cprComplexIndex < cprArtifactData.length) { yECG -= (cprArtifactData[cprComplexIndex] * 1.6); } cprComplexIndex++; if (cprComplexIndex >= cprArtifactData.length) isDrawingCPR = false; } }
-            if (currentRhythm !== 'nsr' && currentRhythm !== 'stemi') { ySpO2 = baseSpO2 + (Math.random() * 2 - 1); } else { spo2FrameCounter++; if (currentHR > 0 && spo2FrameCounter >= framesPerBeat && !isDrawingSpO2) { isDrawingSpO2 = true; spo2ComplexIndex = 0; spo2FrameCounter = 0; } if (isDrawingSpO2) { let currentSpo2Wave = spo2Waves[spo2Quality]; if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2ComplexIndex] * 4); } spo2ComplexIndex++; if (spo2ComplexIndex >= currentSpo2Wave.length) isDrawingSpO2 = false; } }
+            const safeHR = currentHR > 0 ? currentHR : 60; 
+            const framesPerBeat = (60 / safeHR) * 60; 
+            const baseECG = canvasECG.height / 2; 
+            const baseSpO2 = canvasSpO2.height / 2;
+            
+            ctxECG.clearRect(x, 0, 25, canvasECG.height); 
+            ctxSpO2.clearRect(x, 0, 25, canvasSpO2.height); 
+            let yECG = baseECG; 
+            let ySpO2 = baseSpO2;
+
+            // EKG-Wellenformen
+            if (currentRhythm === 'vfib') { 
+                yECG = baseECG - (Math.sin(x * 0.1) * 12 + Math.sin(x * 0.05) * 8 + (Math.random() * 6 - 3)); 
+            } else if (currentRhythm === 'torsades') {
+                let modulation = Math.sin(x * 0.03);
+                yECG = baseECG - (Math.sin(x * 0.2) * 18 * modulation + (Math.random() * 4 - 2));
+            } else if (currentRhythm === 'asystole') { 
+                yECG = baseECG + (Math.random() * 1.5 - 0.75); 
+            } else if (currentRhythm === 'afib') {
+                // Vorhofflimmern: Flimmern der Grundlinie + unregelmäßige QRS-Schläge
+                yECG += (Math.random() * 3 - 1.5);
+                ecgFrameCounter++;
+                if (ecgFrameCounter >= afibNextInterval && !isDrawingECG) {
+                    isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0;
+                    afibNextInterval = Math.floor(Math.random() * (framesPerBeat * 0.8)) + (framesPerBeat * 0.6);
+                    if ((isEcgConnected || isDefiConnected || isSpO2Connected) && !isAudioMuted) playHeartbeatTone();
+                }
+                if (isDrawingECG) {
+                    if (ecgComplexIndex < ecgData.length) yECG = baseECG - (ecgData[ecgComplexIndex] * 3);
+                    ecgComplexIndex++;
+                    if (ecgComplexIndex >= ecgData.length) isDrawingECG = false;
+                }
+            } else { 
+                ecgFrameCounter++; 
+                if (currentHR > 0 && ecgFrameCounter >= framesPerBeat && !isDrawingECG) { 
+                    isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0; 
+                    if ((isEcgConnected || isDefiConnected || isSpO2Connected) && !isAudioMuted) { playHeartbeatTone(); } 
+                } 
+                if (isDrawingECG) { 
+                    let activeArray = ecgData;
+                    if (currentRhythm === 'stemi') activeArray = stemiData;
+                    else if (currentRhythm === 'vt') activeArray = vtData;
+                    else if (currentRhythm === 'svt') activeArray = svtData;
+                    else if (currentRhythm === 'avb3') activeArray = avb3Data;
+
+                    if (ecgComplexIndex < activeArray.length) { 
+                        yECG = baseECG - (activeArray[ecgComplexIndex] * 3); 
+                    } 
+                    ecgComplexIndex++; 
+                    if (ecgComplexIndex >= activeArray.length) isDrawingECG = false; 
+                } 
+            }
+
+            // HDM-Artefakt
+            if (isHDMActive && (currentRhythm === 'vfib' || currentRhythm === 'asystole' || currentRhythm === 'torsades')) { 
+                const cprFramesPerBeat = (60 / 105) * 60; 
+                cprFrameCounter++; 
+                if (cprFrameCounter >= cprFramesPerBeat && !isDrawingCPR) { 
+                    isDrawingCPR = true; cprComplexIndex = 0; cprFrameCounter = 0; 
+                } 
+                if (isDrawingCPR) { 
+                    if (cprComplexIndex < cprArtifactData.length) { 
+                        yECG -= (cprArtifactData[cprComplexIndex] * 1.6); 
+                    } 
+                    cprComplexIndex++; 
+                    if (cprComplexIndex >= cprArtifactData.length) isDrawingCPR = false; 
+                } 
+            }
+
+            // SpO2 Kurve
+            if (!['nsr', 'stemi', 'svt', 'afib', 'avb3'].includes(currentRhythm)) { 
+                ySpO2 = baseSpO2 + (Math.random() * 2 - 1); 
+            } else { 
+                spo2FrameCounter++; 
+                if (currentHR > 0 && spo2FrameCounter >= framesPerBeat && !isDrawingSpO2) { 
+                    isDrawingSpO2 = true; spo2ComplexIndex = 0; spo2FrameCounter = 0; 
+                } 
+                if (isDrawingSpO2) { 
+                    let currentSpo2Wave = spo2Waves[spo2Quality]; 
+                    if (spo2ComplexIndex < currentSpo2Wave.length) { 
+                        ySpO2 = baseSpO2 - (currentSpo2Wave[spo2ComplexIndex] * 4); 
+                    } 
+                    spo2ComplexIndex++; 
+                    if (spo2ComplexIndex >= currentSpo2Wave.length) isDrawingSpO2 = false; 
+                } 
+            }
+
             if (isEcgConnected || isDefiConnected) { ctxECG.beginPath(); ctxECG.moveTo(x, lastYECG); ctxECG.lineTo(x + 2, yECG); ctxECG.strokeStyle = '#47d670'; ctxECG.lineWidth = 2.5; ctxECG.stroke(); }
             if (isSpO2Connected) { ctxSpO2.beginPath(); ctxSpO2.moveTo(x, lastYSpO2); ctxSpO2.lineTo(x + 2, ySpO2); ctxSpO2.strokeStyle = '#38b6ff'; ctxSpO2.lineWidth = 2.5; ctxSpO2.stroke(); }
             lastYECG = yECG; lastYSpO2 = ySpO2; x += 2; if (x >= canvasECG.width) { x = 0; lastYECG = yECG; lastYSpO2 = ySpO2; }

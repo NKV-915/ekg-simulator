@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
-    <!-- PWA Meta Tags -->
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -70,8 +69,8 @@
         }
 
         button { 
-            font-size: 16px; 
-            padding: 10px 14px; 
+            font-size: 15px; 
+            padding: 10px 12px; 
             border: none; 
             border-radius: 8px; 
             background-color: var(--primary); 
@@ -116,11 +115,15 @@
             font-weight: bold; 
         }
         
-        .grid-rhythms { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
-        @media (min-width: 380px) { .grid-rhythms { grid-template-columns: 1fr 1fr 1fr 1fr; } }
+        .grid-rhythms { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 6px; 
+            margin-top: 8px; 
+        }
         
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 8px; }
-        .btn-outline { background: white; color: #333; border: 2px solid #ccc; font-size: 13px; padding: 8px 4px; border-radius: 6px; cursor: pointer; }
+        .btn-outline { background: white; color: #333; border: 2px solid #ccc; font-size: 12px; padding: 8px 2px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         
         .active-rhythm { background: var(--danger); color: #fff; border-color: var(--danger); }
         .active-quality { background: var(--info); color: #000; border-color: var(--info); }
@@ -128,7 +131,6 @@
         .top-alert { display: none; padding: 12px; font-weight: bold; border-radius: 8px; text-align: center; margin-bottom: 5px; }
         #nibd-alert { background: var(--warning); color: #000; animation: pulse 1s infinite alternate; }
         
-        /* Schock-Auswahl-Karte */
         #shock-prompt-card { 
             display: none; 
             background: #111; 
@@ -152,14 +154,13 @@
 <body>
     
     <div class="dashboard">
-        <!-- Interaktives Schock-Auswahlfenster nach Schockabgabe -->
         <div id="shock-prompt-card" class="full-width">
             <div style="color: #ff4d4d; font-size: 18px; font-weight: bold; margin-bottom: 10px;">
                 ⚡ SCHOCK ABGEGEBEN! Welcher Rhythmus folgt?
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
                 <button style="background: var(--success);" onclick="selectShockRhythm('nsr')">Sinus</button>
-                <button style="background: #ff5500;" onclick="selectShockRhythm('vfib')">Flimmern</button>
+                <button style="background: #ff5500;" onclick="selectShockRhythm('vfib')">K-Flimmern</button>
                 <button style="background: #333; border: 1px solid #666;" onclick="selectShockRhythm('asystole')">Asystolie</button>
             </div>
         </div>
@@ -171,7 +172,6 @@
             <div id="trainer-cpr-timer" style="font-size: 36px; font-weight: bold; font-family: monospace; color: #444; letter-spacing: 1px;">00:00</div>
         </div>
 
-        <!-- Geänderte Buttons: Töne EIN / Töne AUS -->
         <div class="control-panel border-audio full-width">
             <h3>Monitor Sounds &amp; Töne</h3>
             <div class="grid-3" style="grid-template-columns: 1fr 1fr;">
@@ -185,7 +185,12 @@
             <div class="grid-rhythms">
                 <button id="r-nsr" class="btn-outline active-rhythm" style="background:var(--success); border-color:var(--success);" onclick="setRhythm('nsr')">Sinus</button>
                 <button id="r-stemi" class="btn-outline" onclick="setRhythm('stemi')">STEMI</button>
-                <button id="r-vfib" class="btn-outline" onclick="setRhythm('vfib')">Flimmern</button>
+                <button id="r-vt" class="btn-outline" onclick="setRhythm('vt')">VT (K-Tach)</button>
+                <button id="r-svt" class="btn-outline" onclick="setRhythm('svt')">SVT</button>
+                <button id="r-afib" class="btn-outline" onclick="setRhythm('afib')">V-Flimmern</button>
+                <button id="r-vfib" class="btn-outline" onclick="setRhythm('vfib')">K-Flimmern</button>
+                <button id="r-torsades" class="btn-outline" onclick="setRhythm('torsades')">Torsades</button>
+                <button id="r-avb3" class="btn-outline" onclick="setRhythm('avb3')">AV-Block III</button>
                 <button id="r-asystole" class="btn-outline" onclick="setRhythm('asystole')">Asystolie</button>
             </div>
             <button id="btn-hdm" class="sensor-btn" style="background: var(--secondary); margin-top: 12px;" onclick="toggleHDM()">HDM: INAKTIV</button>
@@ -256,60 +261,78 @@
     </div>
 
     <script>
-        // Raum-Code aus der URL auslesen (Standard: SIM1)
         const urlParams = new URLSearchParams(window.location.search);
         const currentRoom = urlParams.get('room') || 'SIM1';
 
-        // Server-Adresse
-        const ws = new WebSocket("wss://ekg-simulator.onrender.com");
-        
+        let ws = null;
+        let pingInterval = null;
         let sensors = { ecg: false, spo2: false, nibd: false, co2: false, defi: false };
         let currentSpO2Quality = 'good';
         let currentRhythm = 'nsr';
         let isHDMActive = false;
         let masterLog = [];
 
-        ws.onopen = () => { 
-            console.log("Verbunden!"); 
-            ws.send(JSON.stringify({ type: "join_room", room: currentRoom }));
-        };
+        const rhythmIds = ['nsr', 'stemi', 'vt', 'svt', 'afib', 'vfib', 'torsades', 'avb3', 'asystole'];
 
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
-            
-            if (data.type === "cpr_timer_update") {
-                const timerPanel = document.getElementById("timer-panel");
-                if (data.timeLeft > 0) {
-                    timerPanel.style.display = "flex";
-                    updateTrainerTimer(data.timeLeft);
-                } else {
-                    timerPanel.style.display = "none";
+        function connectWebSocket() {
+            ws = new WebSocket("wss://ekg-simulator.onrender.com");
+
+            ws.onopen = () => { 
+                ws.send(JSON.stringify({ type: "join_room", room: currentRoom }));
+                sendVitals();
+                
+                clearInterval(pingInterval);
+                pingInterval = setInterval(() => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: "ping" }));
+                    }
+                }, 15000);
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === "pong") return;
+
+                const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
+                
+                if (data.type === "cpr_timer_update") {
+                    const timerPanel = document.getElementById("timer-panel");
+                    if (data.timeLeft > 0) {
+                        timerPanel.style.display = "flex";
+                        updateTrainerTimer(data.timeLeft);
+                    } else {
+                        timerPanel.style.display = "none";
+                    }
                 }
-            }
-            else if (data.type === "monitor_initialized") {
-                addLogEntry(`[${time}] - 💻 Monitor eingeschaltet`);
-            }
-            else if (data.type === "analysis_started") {
-                addLogEntry(`[${time}] - 🔍 AED Analyse gestartet`);
-            }
-            else if (data.type === "shock_delivered") {
-                // Zeige das interaktive Schock-Auswahlfenster an
-                document.getElementById("shock-prompt-card").style.display = "block";
-                addLogEntry(`[${time}] - ⚡ Schock abgegeben`);
-            }
-            else if (data.type === "nibd_finished") {
-                const nibdAlert = document.getElementById("nibd-alert");
-                nibdAlert.style.display = "block";
-                setTimeout(() => { nibdAlert.style.display = "none"; }, 8000);
-                addLogEntry(`[${time}] - 🩺 RR-Messung beendet (${data.val} mmHg)`);
-            }
-            else if (data.type === "ekg_12_printed") {
-                addLogEntry(`[${time}] - 🩻 12-Kanal-EKG ausgedruckt`);
-            }
-        };
+                else if (data.type === "monitor_initialized") {
+                    addLogEntry(`[${time}] - 💻 Monitor eingeschaltet`);
+                }
+                else if (data.type === "analysis_started") {
+                    addLogEntry(`[${time}] - 🔍 AED Analyse gestartet`);
+                }
+                else if (data.type === "shock_delivered") {
+                    document.getElementById("shock-prompt-card").style.display = "block";
+                    addLogEntry(`[${time}] - ⚡ Schock abgegeben`);
+                }
+                else if (data.type === "nibd_finished") {
+                    const nibdAlert = document.getElementById("nibd-alert");
+                    nibdAlert.style.display = "block";
+                    setTimeout(() => { nibdAlert.style.display = "none"; }, 8000);
+                    addLogEntry(`[${time}] - 🩺 RR-Messung beendet (${data.val} mmHg)`);
+                }
+                else if (data.type === "ekg_12_printed") {
+                    addLogEntry(`[${time}] - 🩻 12-Kanal-EKG ausgedruckt`);
+                }
+            };
 
-        // Rhythmus-Auswahl nach Schock
+            ws.onclose = () => {
+                clearInterval(pingInterval);
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        connectWebSocket();
+
         function selectShockRhythm(rhythm) {
             document.getElementById("shock-prompt-card").style.display = "none";
             setRhythm(rhythm);
@@ -351,7 +374,7 @@
                 document.getElementById('btn-sound-on').style.background = 'var(--secondary)';
                 document.getElementById('btn-sound-off').style.background = 'var(--danger)';
             }
-            if (ws.readyState === WebSocket.OPEN) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: "audio_control", action: status }));
             }
         }
@@ -374,18 +397,28 @@
 
         function setRhythm(rhythm) {
             currentRhythm = rhythm;
-            document.getElementById("r-nsr").className = "btn-outline";
-            document.getElementById("r-stemi").className = "btn-outline";
-            document.getElementById("r-vfib").className = "btn-outline";
-            document.getElementById("r-asystole").className = "btn-outline";
+            rhythmIds.forEach(id => {
+                const btn = document.getElementById("r-" + id);
+                if (btn) {
+                    btn.className = "btn-outline";
+                    btn.style.background = "white";
+                    btn.style.color = "#333";
+                    btn.style.borderColor = "#ccc";
+                }
+            });
             
-            document.getElementById("r-" + rhythm).classList.add("active-rhythm");
-            if (rhythm === 'nsr') {
-                document.getElementById("r-" + rhythm).style.background = "var(--success)";
-                document.getElementById("r-" + rhythm).style.borderColor = "var(--success)";
-            } else {
-                document.getElementById("r-nsr").style.background = "white";
-                document.getElementById("r-nsr").style.color = "#333";
+            const activeBtn = document.getElementById("r-" + rhythm);
+            if (activeBtn) {
+                activeBtn.classList.add("active-rhythm");
+                if (rhythm === 'nsr') {
+                    activeBtn.style.background = "var(--success)";
+                    activeBtn.style.borderColor = "var(--success)";
+                    activeBtn.style.color = "#fff";
+                } else {
+                    activeBtn.style.background = "var(--danger)";
+                    activeBtn.style.borderColor = "var(--danger)";
+                    activeBtn.style.color = "#fff";
+                }
             }
             sendVitals();
         }
@@ -423,7 +456,7 @@
         }
 
         function sendVitals() {
-            if (ws.readyState === WebSocket.OPEN) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
                     type: "vital_update",
                     heartRate: document.getElementById("hrInput").value,
