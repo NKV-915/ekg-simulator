@@ -1,6 +1,6 @@
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open('ekg-sim-v14').then((cache) => {
+    caches.open('ekg-sim-v15').then((cache) => {
       return cache.addAll(['./', './index.html', './monitor.html', './observer.html', './control.html', './manifest.json']);
     })
   );

@@ -142,26 +142,30 @@
             animation: pulse-border 1s infinite alternate;
         }
 
-        #ekg-select-modal {
-            display: none; 
+        /* Modal Overlay analog Defibrillations-Screen */
+        #ekg-overlay {
             position: fixed; 
             top: 0; left: 0; 
             width: 100vw; height: 100vh; 
-            background: rgba(0,0,0,0.85); 
-            z-index: 9000; 
+            background-color: rgba(0, 0, 0, 0.85); 
+            display: none; 
             justify-content: center; 
-            align-items: center;
+            align-items: center; 
+            z-index: 9500;
         }
-        .modal-content {
-            background: #1e1e24; 
-            color: #fff; 
-            padding: 20px; 
-            border-radius: 14px; 
-            width: 90%; 
-            max-width: 420px; 
-            text-align: center; 
-            border: 2px solid #7000ff;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        #ekg-screen {
+            width: 380px; 
+            max-width: 90vw;
+            background-color: #111; 
+            border: 4px solid #7000ff; 
+            border-radius: 12px; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            box-shadow: 0 15px 40px rgba(112, 0, 255, 0.5);
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
         }
 
         .log-container { text-align: left !important; font-family: monospace; background: #222 !important; color: #fff !important; }
@@ -171,18 +175,19 @@
 </head>
 <body>
     
-    <div id="ekg-select-modal" onclick="closeEkgModal()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <h3 style="color: #a855f7; margin-top: 0; font-size: 18px;">🩻 12-Kanal EKG drucken</h3>
-            <p style="font-size: 14px; color: #bbb; margin-bottom: 15px;">Welches EKG soll am Monitor/Observer geschrieben werden?</p>
+    <!-- Pop-up Overlay (analog Defibrillator Screen) -->
+    <div id="ekg-overlay" onclick="closeEkgModal()">
+        <div id="ekg-screen" onclick="event.stopPropagation()">
+            <h3 style="color: #a855f7; margin-top: 0; font-size: 20px;">🩻 12-Kanal EKG Drucken</h3>
+            <p style="font-size: 14px; color: #ccc; margin-bottom: 20px;">Welches EKG soll an allen Monitoren &amp; Observern geschrieben werden?</p>
             
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
-                <button style="background: #7000ff; padding: 14px;" onclick="confirmEkgSelection('ekg_sample.png')">
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+                <button style="background: #7000ff; padding: 14px; font-size: 16px;" onclick="confirmEkgSelection('ekg_sample.png')">
                     📄 Standard EKG (ekg_sample.png)
                 </button>
             </div>
             
-            <button style="background: #444; width: 100%;" onclick="closeEkgModal()">Abbrechen</button>
+            <button style="background: #444; width: 100%; padding: 12px;" onclick="closeEkgModal()">Abbrechen</button>
         </div>
     </div>
 
@@ -227,7 +232,7 @@
                 <button id="r-asystole" class="btn-outline" onclick="setRhythm('asystole')">Asystolie</button>
             </div>
             
-            <button style="background: #7000ff; margin-top: 10px; width: 100%; font-size: 15px;" onclick="openEkgModal()">
+            <button style="background: #7000ff; margin-top: 12px; width: 100%; font-size: 15px; padding: 12px;" onclick="openEkgModal()">
                 🩻 12-KANAL EKG DRUCKEN
             </button>
 
@@ -371,11 +376,11 @@
         connectWebSocket();
 
         function openEkgModal() {
-            document.getElementById("ekg-select-modal").style.display = "flex";
+            document.getElementById("ekg-overlay").style.display = "flex";
         }
 
         function closeEkgModal() {
-            document.getElementById("ekg-select-modal").style.display = "none";
+            document.getElementById("ekg-overlay").style.display = "none";
         }
 
         function confirmEkgSelection(imageFilename) {

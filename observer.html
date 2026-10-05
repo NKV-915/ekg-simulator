@@ -17,7 +17,7 @@
 
         #info-area { position: fixed; top: 36px; left: 0; width: 100vw; background-color: rgba(112, 0, 255, 0.95); color: #fff; text-align: center; padding: 10px 0; font-size: 20px; font-weight: bold; letter-spacing: 1px; display: none; z-index: 6500; box-shadow: 0 4px 15px rgba(112, 0, 255, 0.5); }
 
-        /* 12-Kanal EKG Bild Overlay (PNG) */
+        /* 12-Kanal EKG Bild Overlay */
         #ekg-image-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background-color: rgba(0, 0, 0, 0.85); z-index: 8000; display: none;
@@ -93,11 +93,10 @@
     <div id="warning-area">⚠️ DISCONNECT</div>
     <div id="info-area">🩻 12-Kanal-EKG wird geschrieben ...</div>
 
-    <!-- EKG Bild Pop-up (PNG) -->
     <div id="ekg-image-overlay" onclick="closeEkgImage()">
         <div id="ekg-image-container" onclick="event.stopPropagation()">
             <button id="close-ekg-btn" onclick="closeEkgImage()">✕</button>
-            <img id="ekg-image" src="ekg_sample.png" alt="12-Kanal EKG Ausdruck" onerror="alert('FEHLER: Die Datei ekg_sample.png wurde auf GitHub nicht gefunden! Prüfe den Dateinamen und den Pfad.');">
+            <img id="ekg-image" src="ekg_sample.png" alt="12-Kanal EKG Ausdruck" onerror="alert('FEHLER: Die Datei ekg_sample.png wurde auf GitHub nicht gefunden!');">
         </div>
     </div>
 
@@ -260,6 +259,7 @@
                 else if (data.type === "analysis_started_sync" || data.type === "analysis_started") { startAnalysisSequence(); }
                 else if (data.type === "shock_delivered_sync" || data.type === "shock_delivered") { deliverShockSequence(); }
                 else if (data.type === "12lead_sync" || data.type === "ekg_12_printed") {
+                    document.getElementById("ekg-image").src = data.image || "ekg_sample.png";
                     const infoBanner = document.getElementById("info-area");
                     infoBanner.style.display = "block";
                     setTimeout(() => { 
