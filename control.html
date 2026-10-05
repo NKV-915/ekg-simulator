@@ -4,6 +4,7 @@
     <title>Controller - Trainer App</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' wss://ekg-simulator.onrender.com data: blob:; img-src 'self' data: blob:;">
     
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -142,7 +143,6 @@
             animation: pulse-border 1s infinite alternate;
         }
 
-        /* Modal Overlay analog Defibrillations-Screen */
         #ekg-overlay {
             position: fixed; 
             top: 0; left: 0; 
@@ -175,7 +175,6 @@
 </head>
 <body>
     
-    <!-- Pop-up Overlay (analog Defibrillator Screen) -->
     <div id="ekg-overlay" onclick="closeEkgModal()">
         <div id="ekg-screen" onclick="event.stopPropagation()">
             <h3 style="color: #a855f7; margin-top: 0; font-size: 20px;">🩻 12-Kanal EKG Drucken</h3>
@@ -203,7 +202,7 @@
             </div>
         </div>
 
-        <div id="nibd-alert" class="top-alert full-width">⚠️ WERT FUER NAECHSTE RR-MESSUNG AENDERN!</div>
+        <div id="nibd-alert" class="top-alert full-width">⚠️ WERT FUER NAECHSTE NIBP-MESSUNG AENDERN!</div>
 
         <div id="timer-panel" class="control-panel border-timer full-width" style="display: none;">
             <h3 style="color: #aaa; margin-bottom: 5px;">CPR-Timer (Vom Monitor)</h3>
@@ -283,7 +282,7 @@
         </div>
 
         <div class="control-panel border-bp">
-            <h3>Blutdruck (RR)</h3>
+            <h3>NIBP</h3>
             <div class="stepper-container" style="margin-bottom: 10px;">
                 <span style="font-weight: bold; margin-right: 4px;">Sys:</span>
                 <input type="number" id="sysInput" value="120" onchange="sendVitals()">&nbsp;
@@ -360,7 +359,7 @@
                     const nibdAlert = document.getElementById("nibd-alert");
                     nibdAlert.style.display = "block";
                     setTimeout(() => { nibdAlert.style.display = "none"; }, 8000);
-                    addLogEntry(`[${time}] - 🩺 RR-Messung beendet (${data.val} mmHg)`);
+                    addLogEntry(`[${time}] - 🩺 NIBP-Messung beendet (${data.val} mmHg)`);
                 }
                 else if (data.type === "ekg_12_printed") {
                     addLogEntry(`[${time}] - 🩻 12-Kanal-EKG ausgedruckt`);
