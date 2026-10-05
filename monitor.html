@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
-    <!-- PWA Meta Tags -->
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -79,7 +78,6 @@
             box-shadow: 0 4px 15px rgba(112, 0, 255, 0.5); 
         }
 
-        /* 12-Kanal EKG Bild Overlay (PNG) */
         #ekg-image-overlay {
             position: fixed; 
             top: 0; 
@@ -225,11 +223,10 @@
     <div id="warning-area">⚠️ DISCONNECT</div>
     <div id="info-area">🩻 12-Kanal-EKG wird geschrieben ...</div>
 
-    <!-- EKG Bild Pop-up (PNG) -->
     <div id="ekg-image-overlay" onclick="closeEkgImage()">
         <div id="ekg-image-container" onclick="event.stopPropagation()">
             <button id="close-ekg-btn" onclick="closeEkgImage()">✕</button>
-            <img id="ekg-image" src="ekg_sample.png" alt="12-Kanal EKG Ausdruck" onerror="alert('FEHLER: Die Datei ekg_sample.png wurde auf GitHub nicht gefunden! Prüfe den Dateinamen und den Pfad.');">
+            <img id="ekg-image" src="ekg_sample.png" alt="12-Kanal EKG Ausdruck" onerror="alert('FEHLER: Die Datei ekg_sample.png wurde auf GitHub nicht gefunden!');">
         </div>
     </div>
 
@@ -408,7 +405,7 @@
                 }
                 else if (data.type === "analysis_started_sync") { startAnalysis(true); }
                 else if (data.type === "shock_delivered_sync") { deliverShock(true); }
-                else if (data.type === "12lead_sync") { trigger12LeadPrint(true); }
+                else if (data.type === "12lead_sync") { trigger12LeadPrint(true, data.image || "ekg_sample.png"); }
                 else if (data.type === "vital_update") {
                     baseHR = parseInt(data.heartRate); baseSpO2 = parseInt(data.spo2); baseEtco2 = parseInt(data.etco2); baseAF = parseInt(data.af); standbySys = data.sys; standbyDia = data.dia; isNibdConnected = data.sensors.nibd; isHDMActive = data.isHDMActive; isEcgConnected = data.sensors.ecg; isSpO2Connected = data.sensors.spo2; isCo2Connected = data.sensors.co2; isDefiConnected = data.sensors.defi; 
                     if (isEcgConnected) { ecgWarningActive = false; clearTimeout(ecgTimeout); } if (isNibdConnected) { nibdWarningActive = false; clearTimeout(nibdTimeout); } if (isDefiConnected) { defiWarningActive = false; clearTimeout(defiTimeout); }
@@ -482,11 +479,12 @@
         function playChargingTone(duration) { if (!audioCtx) return; chargeOsc = audioCtx.createOscillator(); chargeGain = audioCtx.createGain(); chargeOsc.type = 'sine'; chargeOsc.frequency.setValueAtTime(440, audioCtx.currentTime); chargeOsc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + duration); chargeOsc.connect(chargeGain); chargeGain.connect(audioCtx.destination); chargeGain.gain.setValueAtTime(0.2, audioCtx.currentTime); chargeOsc.start(audioCtx.currentTime); }
         function playFinalBeep() { if (!audioCtx) return; const beepOsc = audioCtx.createOscillator(); const beepGain = audioCtx.createGain(); beepOsc.type = 'sine'; beepOsc.frequency.setValueAtTime(880, audioCtx.currentTime); beepGain.gain.setValueAtTime(0.4, audioCtx.currentTime); beepGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15); beepOsc.connect(beepGain); beepGain.connect(audioCtx.destination); beepOsc.start(); beepOsc.stop(audioCtx.currentTime + 0.15); }
 
-        /* 12-KANAL LOGIK: 5 Sekunden schreiben, dann EKG-Bild Popup */
-        function trigger12LeadPrint(fromNetwork = false) {
+        function trigger12LeadPrint(fromNetwork = false, imageFile = "ekg_sample.png") {
             if (!fromNetwork && !isEcgConnected) { ecgWarningActive = true; updateWarningBanner(); clearTimeout(ecgTimeout); ecgTimeout = setTimeout(function() { ecgWarningActive = false; updateWarningBanner(); }, 5000); return; }
             ecgWarningActive = false; updateWarningBanner();
             
+            document.getElementById("ekg-image").src = imageFile;
+
             if (audioCtx && !isAudioMuted) { 
                 const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); 
                 osc.type = 'sawtooth'; osc.frequency.value = 120; osc.connect(gain); gain.connect(audioCtx.destination); 
@@ -502,7 +500,7 @@
             }, 5000);
 
             if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) { 
-                ws.send(JSON.stringify({ type: "12lead_sync" })); 
+                ws.send(JSON.stringify({ type: "12lead_sync", image: imageFile })); 
                 ws.send(JSON.stringify({ type: "ekg_12_printed" })); 
             }
         }

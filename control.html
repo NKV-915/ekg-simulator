@@ -141,9 +141,27 @@
             box-shadow: 0 0 20px rgba(220, 53, 69, 0.6);
             animation: pulse-border 1s infinite alternate;
         }
-        @keyframes pulse-border {
-            from { border-color: #dc3545; }
-            to { border-color: #ffaa00; }
+
+        #ekg-select-modal {
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100vw; height: 100vh; 
+            background: rgba(0,0,0,0.85); 
+            z-index: 9000; 
+            justify-content: center; 
+            align-items: center;
+        }
+        .modal-content {
+            background: #1e1e24; 
+            color: #fff; 
+            padding: 20px; 
+            border-radius: 14px; 
+            width: 90%; 
+            max-width: 420px; 
+            text-align: center; 
+            border: 2px solid #7000ff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         }
 
         .log-container { text-align: left !important; font-family: monospace; background: #222 !important; color: #fff !important; }
@@ -153,6 +171,21 @@
 </head>
 <body>
     
+    <div id="ekg-select-modal" onclick="closeEkgModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h3 style="color: #a855f7; margin-top: 0; font-size: 18px;">🩻 12-Kanal EKG drucken</h3>
+            <p style="font-size: 14px; color: #bbb; margin-bottom: 15px;">Welches EKG soll am Monitor/Observer geschrieben werden?</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                <button style="background: #7000ff; padding: 14px;" onclick="confirmEkgSelection('ekg_sample.png')">
+                    📄 Standard EKG (ekg_sample.png)
+                </button>
+            </div>
+            
+            <button style="background: #444; width: 100%;" onclick="closeEkgModal()">Abbrechen</button>
+        </div>
+    </div>
+
     <div class="dashboard">
         <div id="shock-prompt-card" class="full-width">
             <div style="color: #ff4d4d; font-size: 18px; font-weight: bold; margin-bottom: 10px;">
@@ -193,8 +226,12 @@
                 <button id="r-avb3" class="btn-outline" onclick="setRhythm('avb3')">AV-Block III</button>
                 <button id="r-asystole" class="btn-outline" onclick="setRhythm('asystole')">Asystolie</button>
             </div>
-            <button id="btn-hdm" class="sensor-btn" style="background: var(--secondary); margin-top: 12px;" onclick="toggleHDM()">HDM: INAKTIV</button>
             
+            <button style="background: #7000ff; margin-top: 10px; width: 100%; font-size: 15px;" onclick="openEkgModal()">
+                🩻 12-KANAL EKG DRUCKEN
+            </button>
+
+            <button id="btn-hdm" class="sensor-btn" style="background: var(--secondary); margin-top: 8px;" onclick="toggleHDM()">HDM: INAKTIV</button>
             <button id="btn-ecg" class="sensor-btn sensor-off" style="margin-top: 8px;" onclick="toggleSensor('ecg')">EKG KABEL: GETRENNT</button>
             <button id="btn-defi" class="sensor-btn sensor-off" style="margin-top: 6px;" onclick="toggleSensor('defi')">DEFI-ELEKTRODEN: GETRENNT</button>
         </div>
@@ -332,6 +369,28 @@
         }
 
         connectWebSocket();
+
+        function openEkgModal() {
+            document.getElementById("ekg-select-modal").style.display = "flex";
+        }
+
+        function closeEkgModal() {
+            document.getElementById("ekg-select-modal").style.display = "none";
+        }
+
+        function confirmEkgSelection(imageFilename) {
+            closeEkgModal();
+            const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
+            addLogEntry(`[${time}] - 🩻 12-Kanal EKG gestartet (${imageFilename})`);
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ 
+                    type: "12lead_sync", 
+                    image: imageFilename 
+                }));
+                ws.send(JSON.stringify({ type: "ekg_12_printed" }));
+            }
+        }
 
         function selectShockRhythm(rhythm) {
             document.getElementById("shock-prompt-card").style.display = "none";
