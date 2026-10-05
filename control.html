@@ -140,7 +140,6 @@
             border-radius: 12px; 
             text-align: center; 
             box-shadow: 0 0 20px rgba(220, 53, 69, 0.6);
-            animation: pulse-border 1s infinite alternate;
         }
 
         #ekg-overlay {
@@ -175,18 +174,19 @@
 </head>
 <body>
     
-    <div id="ekg-overlay" onclick="closeEkgModal()">
-        <div id="ekg-screen" onclick="event.stopPropagation()">
+    <!-- Pop-up Overlay -->
+    <div id="ekg-overlay">
+        <div id="ekg-screen">
             <h3 style="color: #a855f7; margin-top: 0; font-size: 20px;">🩻 12-Kanal EKG Drucken</h3>
             <p style="font-size: 14px; color: #ccc; margin-bottom: 20px;">Welches EKG soll an allen Monitoren &amp; Observern geschrieben werden?</p>
             
             <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
-                <button style="background: #7000ff; padding: 14px; font-size: 16px;" onclick="confirmEkgSelection('ekg_sample.png')">
+                <button id="btn-modal-sample" style="background: #7000ff; padding: 14px; font-size: 16px;">
                     📄 Standard EKG (ekg_sample.png)
                 </button>
             </div>
             
-            <button style="background: #444; width: 100%; padding: 12px;" onclick="closeEkgModal()">Abbrechen</button>
+            <button id="btn-modal-close" style="background: #444; width: 100%; padding: 12px;">Abbrechen</button>
         </div>
     </div>
 
@@ -196,9 +196,9 @@
                 ⚡ SCHOCK ABGEGEBEN! Welcher Rhythmus folgt?
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
-                <button style="background: var(--success);" onclick="selectShockRhythm('nsr')">Sinus</button>
-                <button style="background: #ff5500;" onclick="selectShockRhythm('vfib')">K-Flimmern</button>
-                <button style="background: #333; border: 1px solid #666;" onclick="selectShockRhythm('asystole')">Asystolie</button>
+                <button id="btn-shock-nsr" style="background: var(--success);">Sinus</button>
+                <button id="btn-shock-vfib" style="background: #ff5500;">K-Flimmern</button>
+                <button id="btn-shock-asy" style="background: #333; border: 1px solid #666;">Asystolie</button>
             </div>
         </div>
 
@@ -212,90 +212,90 @@
         <div class="control-panel border-audio full-width">
             <h3>Monitor Sounds &amp; Töne</h3>
             <div class="grid-3" style="grid-template-columns: 1fr 1fr;">
-                <button id="btn-sound-on" style="background: var(--success);" onclick="sendAudioCommand('alarms_on')">🔊 Töne EIN</button>
-                <button id="btn-sound-off" style="background: var(--secondary);" onclick="sendAudioCommand('alarms_off')">🔕 Töne AUS</button>
+                <button id="btn-sound-on" style="background: var(--success);">🔊 Töne EIN</button>
+                <button id="btn-sound-off" style="background: var(--secondary);">🔕 Töne AUS</button>
             </div>
         </div>
 
         <div class="control-panel border-rhythm full-width">
             <h3>EKG Rhythmus &amp; Reanimation</h3>
             <div class="grid-rhythms">
-                <button id="r-nsr" class="btn-outline active-rhythm" style="background:var(--success); border-color:var(--success);" onclick="setRhythm('nsr')">Sinus</button>
-                <button id="r-stemi" class="btn-outline" onclick="setRhythm('stemi')">STEMI</button>
-                <button id="r-vt" class="btn-outline" onclick="setRhythm('vt')">VT (K-Tach)</button>
-                <button id="r-svt" class="btn-outline" onclick="setRhythm('svt')">SVT</button>
-                <button id="r-afib" class="btn-outline" onclick="setRhythm('afib')">V-Flimmern</button>
-                <button id="r-vfib" class="btn-outline" onclick="setRhythm('vfib')">K-Flimmern</button>
-                <button id="r-torsades" class="btn-outline" onclick="setRhythm('torsades')">Torsades</button>
-                <button id="r-avb3" class="btn-outline" onclick="setRhythm('avb3')">AV-Block III</button>
-                <button id="r-asystole" class="btn-outline" onclick="setRhythm('asystole')">Asystolie</button>
+                <button id="r-nsr" class="btn-outline active-rhythm" style="background:var(--success); border-color:var(--success);">Sinus</button>
+                <button id="r-stemi" class="btn-outline">STEMI</button>
+                <button id="r-vt" class="btn-outline">VT (K-Tach)</button>
+                <button id="r-svt" class="btn-outline">SVT</button>
+                <button id="r-afib" class="btn-outline">V-Flimmern</button>
+                <button id="r-vfib" class="btn-outline">K-Flimmern</button>
+                <button id="r-torsades" class="btn-outline">Torsades</button>
+                <button id="r-avb3" class="btn-outline">AV-Block III</button>
+                <button id="r-asystole" class="btn-outline">Asystolie</button>
             </div>
             
-            <button style="background: #7000ff; margin-top: 12px; width: 100%; font-size: 15px; padding: 12px;" onclick="openEkgModal()">
+            <button id="btn-open-12lead" style="background: #7000ff; margin-top: 12px; width: 100%; font-size: 15px; padding: 12px;">
                 🩻 12-KANAL EKG DRUCKEN
             </button>
 
-            <button id="btn-hdm" class="sensor-btn" style="background: var(--secondary); margin-top: 8px;" onclick="toggleHDM()">HDM: INAKTIV</button>
-            <button id="btn-ecg" class="sensor-btn sensor-off" style="margin-top: 8px;" onclick="toggleSensor('ecg')">EKG KABEL: GETRENNT</button>
-            <button id="btn-defi" class="sensor-btn sensor-off" style="margin-top: 6px;" onclick="toggleSensor('defi')">DEFI-ELEKTRODEN: GETRENNT</button>
+            <button id="btn-hdm" class="sensor-btn" style="background: var(--secondary); margin-top: 8px;">HDM: INAKTIV</button>
+            <button id="btn-ecg" class="sensor-btn sensor-off" style="margin-top: 8px;">EKG KABEL: GETRENNT</button>
+            <button id="btn-defi" class="sensor-btn sensor-off" style="margin-top: 6px;">DEFI-ELEKTRODEN: GETRENNT</button>
         </div>
 
         <div class="control-panel border-ecg">
             <h3>Herzfrequenz (HF)</h3>
             <div class="stepper-container" style="margin-bottom: 0;">
-                <button class="btn-small" onclick="changeValue('hrInput', -10, 0, 300)">-10</button>
-                <button onclick="changeValue('hrInput', -1, 0, 300)">-</button>
-                <input type="number" id="hrInput" value="80" onchange="sendVitals()">
-                <button onclick="changeValue('hrInput', 1, 0, 300)">+</button>
-                <button class="btn-small" onclick="changeValue('hrInput', 10, 0, 300)">+10</button>
+                <button id="btn-hr-m10" class="btn-small">-10</button>
+                <button id="btn-hr-m1">-</button>
+                <input type="number" id="hrInput" value="80">
+                <button id="btn-hr-p1">+</button>
+                <button id="btn-hr-p10" class="btn-small">+10</button>
             </div>
         </div>
 
         <div class="control-panel border-spo2">
             <h3>Saettigung (SpO2)</h3>
             <div class="stepper-container">
-                <button class="btn-small" onclick="changeValue('spo2Input', -5, 0, 100)">-5</button>
-                <button onclick="changeValue('spo2Input', -1, 0, 100)">-</button>
-                <input type="number" id="spo2Input" value="98" onchange="sendVitals()">
-                <button onclick="changeValue('spo2Input', 1, 0, 100)">+</button>
-                <button class="btn-small" onclick="changeValue('spo2Input', 5, 0, 100)">+5</button>
+                <button id="btn-spo2-m5" class="btn-small">-5</button>
+                <button id="btn-spo2-m1">-</button>
+                <input type="number" id="spo2Input" value="98">
+                <button id="btn-spo2-p1">+</button>
+                <button id="btn-spo2-p5" class="btn-small">+5</button>
             </div>
             <div class="grid-3">
-                <button id="q-good" class="btn-outline active-quality" onclick="setSpO2Quality('good')">Gut</button>
-                <button id="q-medium" class="btn-outline" onclick="setSpO2Quality('medium')">Mittel</button>
-                <button id="q-poor" class="btn-outline" onclick="setSpO2Quality('poor')">Schlecht</button>
+                <button id="q-good" class="btn-outline active-quality">Gut</button>
+                <button id="q-medium" class="btn-outline">Mittel</button>
+                <button id="q-poor" class="btn-outline">Schlecht</button>
             </div>
-            <button id="btn-spo2" class="sensor-btn sensor-off" style="margin-top: 10px;" onclick="toggleSensor('spo2')">SpO2 SENSOR: GETRENNT</button>
+            <button id="btn-spo2" class="sensor-btn sensor-off" style="margin-top: 10px;">SpO2 SENSOR: GETRENNT</button>
         </div>
 
         <div class="control-panel border-co2">
             <h3>Kapnografie (etCO2 / AF)</h3>
             <div class="stepper-container" style="margin-bottom: 5px;">
                 <span style="font-weight: bold; margin-right: 4px;">CO2:</span>
-                <input type="number" id="co2Input" value="40" onchange="sendVitals()"> mmHg
+                <input type="number" id="co2Input" value="40"> mmHg
             </div>
             <div class="stepper-container" style="margin-bottom: 10px;">
                 <span style="font-weight: bold; margin-right: 12px;">AF:</span>
-                <input type="number" id="afInput" value="12" onchange="sendVitals()"> / min
+                <input type="number" id="afInput" value="12"> / min
             </div>
-            <button id="btn-co2" class="sensor-btn sensor-off" onclick="toggleSensor('co2')">CO2 SENSOR: GETRENNT</button>
+            <button id="btn-co2" class="sensor-btn sensor-off">CO2 SENSOR: GETRENNT</button>
         </div>
 
         <div class="control-panel border-bp">
             <h3>NIBP</h3>
             <div class="stepper-container" style="margin-bottom: 10px;">
                 <span style="font-weight: bold; margin-right: 4px;">Sys:</span>
-                <input type="number" id="sysInput" value="120" onchange="sendVitals()">&nbsp;
+                <input type="number" id="sysInput" value="120">&nbsp;
                 <span style="font-weight: bold; margin-right: 4px;">Dia:</span>
-                <input type="number" id="diaInput" value="80" onchange="sendVitals()">
+                <input type="number" id="diaInput" value="80">
             </div>
-            <button id="btn-nibd" class="sensor-btn sensor-off" onclick="toggleSensor('nibd')">MANSCHETTE: GETRENNT</button>
+            <button id="btn-nibd" class="sensor-btn sensor-off">MANSCHETTE: GETRENNT</button>
         </div>
 
         <div class="control-panel full-width log-container">
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                 <span style="font-weight: bold; color: #fff;">📋 EINSATZ-PROTOKOLL (LIVE):</span>
-                <button class="btn-small" style="background:#444; padding: 4px 8px; font-size:11px;" onclick="clearLog()">Log loeschen</button>
+                <button id="btn-clear-log" class="btn-small" style="background:#444; padding: 4px 8px; font-size:11px;">Log loeschen</button>
             </div>
             <div id="masterLogList" class="log-list">Warte auf Monitor-Aktivierung...</div>
         </div>
@@ -373,6 +373,56 @@
         }
 
         connectWebSocket();
+
+        // SAUBERE EVENT-LISTENER STATT INLINE-ONCLICK (CSP-Konform)
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('btn-open-12lead').addEventListener('click', openEkgModal);
+            document.getElementById('btn-modal-close').addEventListener('click', closeEkgModal);
+            document.getElementById('ekg-overlay').addEventListener('click', closeEkgModal);
+            document.getElementById('btn-modal-sample').addEventListener('click', () => confirmEkgSelection('ekg_sample.png'));
+
+            document.getElementById('btn-shock-nsr').addEventListener('click', () => selectShockRhythm('nsr'));
+            document.getElementById('btn-shock-vfib').addEventListener('click', () => selectShockRhythm('vfib'));
+            document.getElementById('btn-shock-asy').addEventListener('click', () => selectShockRhythm('asystole'));
+
+            document.getElementById('btn-sound-on').addEventListener('click', () => sendAudioCommand('alarms_on'));
+            document.getElementById('btn-sound-off').addEventListener('click', () => sendAudioCommand('alarms_off'));
+
+            rhythmIds.forEach(id => {
+                const btn = document.getElementById('r-' + id);
+                if (btn) btn.addEventListener('click', () => setRhythm(id));
+            });
+
+            document.getElementById('btn-hdm').addEventListener('click', toggleHDM);
+            document.getElementById('btn-ecg').addEventListener('click', () => toggleSensor('ecg'));
+            document.getElementById('btn-defi').addEventListener('click', () => toggleSensor('defi'));
+            document.getElementById('btn-spo2').addEventListener('click', () => toggleSensor('spo2'));
+            document.getElementById('btn-co2').addEventListener('click', () => toggleSensor('co2'));
+            document.getElementById('btn-nibd').addEventListener('click', () => toggleSensor('nibd'));
+
+            document.getElementById('btn-hr-m10').addEventListener('click', () => changeValue('hrInput', -10, 0, 300));
+            document.getElementById('btn-hr-m1').addEventListener('click', () => changeValue('hrInput', -1, 0, 300));
+            document.getElementById('btn-hr-p1').addEventListener('click', () => changeValue('hrInput', 1, 0, 300));
+            document.getElementById('btn-hr-p10').addEventListener('click', () => changeValue('hrInput', 10, 0, 300));
+
+            document.getElementById('btn-spo2-m5').addEventListener('click', () => changeValue('spo2Input', -5, 0, 100));
+            document.getElementById('btn-spo2-m1').addEventListener('click', () => changeValue('spo2Input', -1, 0, 100));
+            document.getElementById('btn-spo2-p1').addEventListener('click', () => changeValue('spo2Input', 1, 0, 100));
+            document.getElementById('btn-spo2-p5').addEventListener('click', () => changeValue('spo2Input', 5, 0, 100));
+
+            document.getElementById('q-good').addEventListener('click', () => setSpO2Quality('good'));
+            document.getElementById('q-medium').addEventListener('click', () => setSpO2Quality('medium'));
+            document.getElementById('q-poor').addEventListener('click', () => setSpO2Quality('poor'));
+
+            document.getElementById('hrInput').addEventListener('change', sendVitals);
+            document.getElementById('spo2Input').addEventListener('change', sendVitals);
+            document.getElementById('co2Input').addEventListener('change', sendVitals);
+            document.getElementById('afInput').addEventListener('change', sendVitals);
+            document.getElementById('sysInput').addEventListener('change', sendVitals);
+            document.getElementById('diaInput').addEventListener('change', sendVitals);
+
+            document.getElementById('btn-clear-log').addEventListener('click', clearLog);
+        });
 
         function openEkgModal() {
             document.getElementById("ekg-overlay").style.display = "flex";
