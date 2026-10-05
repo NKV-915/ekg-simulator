@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ekg-sim-v20';
+const CACHE_NAME = 'ekg-sim-v25';
 const ASSETS = [
   './', 
   './index.html', 
@@ -10,7 +10,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  self.skipWaiting(); // Zwingt den neuen Service Worker sofort aktiv zu werden
+  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
@@ -22,7 +22,7 @@ self.addEventListener('activate', (e) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            return caches.delete(key); // Löscht alle alten Caches automatisch
+            return caches.delete(key);
           }
         })
       );

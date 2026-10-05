@@ -167,6 +167,28 @@
             text-align: center;
         }
 
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #222;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+        .status-online { background-color: var(--success); }
+        .status-offline { background-color: var(--danger); }
+
         .log-container { text-align: left !important; font-family: monospace; background: #222 !important; color: #fff !important; }
         .log-list { max-height: 150px; overflow-y: auto; font-size: 13px; line-height: 1.5; border-top: 1px solid #444; padding-top: 8px; margin-top: 8px; width: 100%; }
         .log-entry { border-bottom: 1px solid #333; padding: 2px 0; }
@@ -174,7 +196,6 @@
 </head>
 <body>
     
-    <!-- Pop-up Overlay -->
     <div id="ekg-overlay">
         <div id="ekg-screen">
             <h3 style="color: #a855f7; margin-top: 0; font-size: 20px;">🩻 12-Kanal EKG Drucken</h3>
@@ -191,6 +212,14 @@
     </div>
 
     <div class="dashboard">
+        <div class="status-header full-width">
+            <span>RAUM: <strong id="room-name-display" style="color: var(--warning);">---</strong></span>
+            <span style="display: flex; align-items: center;">
+                <span id="net-dot" class="status-dot status-offline"></span>
+                <span id="net-text">VERBINDE...</span>
+            </span>
+        </div>
+
         <div id="shock-prompt-card" class="full-width">
             <div style="color: #ff4d4d; font-size: 18px; font-weight: bold; margin-bottom: 10px;">
                 ⚡ SCHOCK ABGEGEBEN! Welcher Rhythmus folgt?
@@ -304,6 +333,7 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const currentRoom = urlParams.get('room') || 'SIM1';
+        document.getElementById("room-name-display").innerText = currentRoom;
 
         let ws = null;
         let pingInterval = null;
@@ -315,10 +345,23 @@
 
         const rhythmIds = ['nsr', 'stemi', 'vt', 'svt', 'afib', 'vfib', 'torsades', 'avb3', 'asystole'];
 
+        function setNetStatus(isOnline) {
+            const dot = document.getElementById("net-dot");
+            const text = document.getElementById("net-text");
+            if (isOnline) {
+                dot.className = "status-dot status-online";
+                text.innerText = "ONLINE";
+            } else {
+                dot.className = "status-dot status-offline";
+                text.innerText = "OFFLINE";
+            }
+        }
+
         function connectWebSocket() {
             ws = new WebSocket("wss://ekg-simulator.onrender.com");
 
             ws.onopen = () => { 
+                setNetStatus(true);
                 ws.send(JSON.stringify({ type: "join_room", room: currentRoom }));
                 sendVitals();
                 
@@ -367,6 +410,7 @@
             };
 
             ws.onclose = () => {
+                setNetStatus(false);
                 clearInterval(pingInterval);
                 setTimeout(connectWebSocket, 3000);
             };
@@ -374,7 +418,6 @@
 
         connectWebSocket();
 
-        // SAUBERE EVENT-LISTENER STATT INLINE-ONCLICK (CSP-Konform)
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('btn-open-12lead').addEventListener('click', openEkgModal);
             document.getElementById('btn-modal-close').addEventListener('click', closeEkgModal);
@@ -435,7 +478,6 @@
         function confirmEkgSelection(imageFilename) {
             closeEkgModal();
             const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
-            addLogEntry(`[${time}] - 🩻 12-Kanal EKG gestartet (${imageFilename})`);
 
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ 
@@ -443,6 +485,9 @@
                     image: imageFilename 
                 }));
                 ws.send(JSON.stringify({ type: "ekg_12_printed" }));
+                addLogEntry(`[${time}] - 🩻 12-Kanal EKG gesendet (${imageFilename})`);
+            } else {
+                addLogEntry(`[${time}] - ⚠️ FEHLER: Keine Netzwerk-Verbindung zum Raum!`);
             }
         }
 
