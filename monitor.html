@@ -222,7 +222,7 @@
     </div>
 
     <div id="warning-area">⚠️ DISCONNECT</div>
-    <div id="info-area">🩻 12-Kanal-EKG wird geschrieben ...</div>
+    <div id="info-area">🩻 12-Kanal-EKG wird angefordert ...</div>
 
     <div id="ekg-image-overlay" onclick="closeEkgImage()">
         <div id="ekg-image-container" onclick="event.stopPropagation()">
@@ -406,7 +406,12 @@
                 }
                 else if (data.type === "analysis_started_sync") { startAnalysis(true); }
                 else if (data.type === "shock_delivered_sync") { deliverShock(true); }
-                else if (data.type === "12lead_sync") { trigger12LeadPrint(true, data.image || "ekg_sample.png"); }
+                else if (data.type === "12lead_show") { 
+                    showEkgImage(data.image || "ekg_sample.png"); 
+                }
+                else if (data.type === "12lead_close") { 
+                    closeEkgImage(true); 
+                }
                 else if (data.type === "vital_update") {
                     baseHR = parseInt(data.heartRate); baseSpO2 = parseInt(data.spo2); baseEtco2 = parseInt(data.etco2); baseAF = parseInt(data.af); standbySys = data.sys; standbyDia = data.dia; isNibdConnected = data.sensors.nibd; isHDMActive = data.isHDMActive; isEcgConnected = data.sensors.ecg; isSpO2Connected = data.sensors.spo2; isCo2Connected = data.sensors.co2; isDefiConnected = data.sensors.defi; 
                     if (isEcgConnected) { ecgWarningActive = false; clearTimeout(ecgTimeout); } if (isNibdConnected) { nibdWarningActive = false; clearTimeout(nibdTimeout); } if (isDefiConnected) { defiWarningActive = false; clearTimeout(defiTimeout); }
@@ -429,7 +434,7 @@
             if (ecgWarningActive) activeWarnings.push("EKG-Kabel pruefen");
             if (nibdWarningActive) activeWarnings.push("RR-Manschette pruefen");
             if (defiWarningActive) activeWarnings.push("Defi-Elektroden pruefen");
-            if (activeWarnings.length > 0) { banner.style.display = "block"; banner.innerText = "⚠️ " + activeWarnings.join("  |  ").toUpperCase(); } else { banner.style.display = "none"; }
+            if (activeWarnings.length > 0) { banner.style.display = "block"; banner.innerText = "⚠️️ " + activeWarnings.join("  |  ").toUpperCase(); } else { banner.style.display = "none"; }
         }
 
         function updateTimerDisplay() {
@@ -480,11 +485,9 @@
         function playChargingTone(duration) { if (!audioCtx) return; chargeOsc = audioCtx.createOscillator(); chargeGain = audioCtx.createGain(); chargeOsc.type = 'sine'; chargeOsc.frequency.setValueAtTime(440, audioCtx.currentTime); chargeOsc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + duration); chargeOsc.connect(chargeGain); chargeGain.connect(audioCtx.destination); chargeGain.gain.setValueAtTime(0.2, audioCtx.currentTime); chargeOsc.start(audioCtx.currentTime); }
         function playFinalBeep() { if (!audioCtx) return; const beepOsc = audioCtx.createOscillator(); const beepGain = audioCtx.createGain(); beepOsc.type = 'sine'; beepOsc.frequency.setValueAtTime(880, audioCtx.currentTime); beepGain.gain.setValueAtTime(0.4, audioCtx.currentTime); beepGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15); beepOsc.connect(beepGain); beepGain.connect(audioCtx.destination); beepOsc.start(); beepOsc.stop(audioCtx.currentTime + 0.15); }
 
-        function trigger12LeadPrint(fromNetwork = false, imageFile = "ekg_sample.png") {
-            if (!fromNetwork && !isEcgConnected) { ecgWarningActive = true; updateWarningBanner(); clearTimeout(ecgTimeout); ecgTimeout = setTimeout(function() { ecgWarningActive = false; updateWarningBanner(); }, 5000); return; }
+        function trigger12LeadPrint() {
+            if (!isEcgConnected) { ecgWarningActive = true; updateWarningBanner(); clearTimeout(ecgTimeout); ecgTimeout = setTimeout(function() { ecgWarningActive = false; updateWarningBanner(); }, 5000); return; }
             ecgWarningActive = false; updateWarningBanner();
-            
-            document.getElementById("ekg-image").src = imageFile;
 
             if (audioCtx && !isAudioMuted) { 
                 const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); 
@@ -493,25 +496,31 @@
             }
 
             const infoBanner = document.getElementById("info-area"); 
+            infoBanner.innerText = "🩻 12-Kanal-EKG wird angefordert ...";
             infoBanner.style.display = "block"; 
 
-            setTimeout(() => { 
+            clearTimeout(window.infoBannerTimeout);
+            window.infoBannerTimeout = setTimeout(() => { 
                 infoBanner.style.display = "none"; 
-                showEkgImage();
-            }, 5000);
+            }, 10000);
 
-            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) { 
-                ws.send(JSON.stringify({ type: "12lead_sync", image: imageFile })); 
-                ws.send(JSON.stringify({ type: "ekg_12_printed" })); 
+            if (ws && ws.readyState === WebSocket.OPEN) { 
+                ws.send(JSON.stringify({ type: "12lead_requested" })); 
             }
         }
 
-        function showEkgImage() {
+        function showEkgImage(imageFile) {
+            clearTimeout(window.infoBannerTimeout);
+            document.getElementById("info-area").style.display = "none";
+            document.getElementById("ekg-image").src = imageFile;
             document.getElementById("ekg-image-overlay").style.display = "flex";
         }
 
-        function closeEkgImage() {
+        function closeEkgImage(fromNetwork = false) {
             document.getElementById("ekg-image-overlay").style.display = "none";
+            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "12lead_close" }));
+            }
         }
 
         function startQuartAlert() { if (!audioCtx) return; quartIntervalTimer = setInterval(function() { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sine'; osc.frequency.value = quartToggle ? 440 : 587.33; quartToggle = !quartToggle; osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.setValueAtTime(0.4, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.22); osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.22); }, 250); }
@@ -646,8 +655,7 @@
                     if (ecgComplexIndex < activeArray.length) { 
                         yECG = baseECG - (activeArray[ecgComplexIndex] * 3); 
                     } 
-                    ecgComplexIndex++; 
-                    if (ecgComplexIndex >= activeArray.length) isDrawingECG = false; 
+                    ecgComplexIndex++; if (ecgComplexIndex >= activeArray.length) isDrawingECG = false; 
                 } 
             }
 

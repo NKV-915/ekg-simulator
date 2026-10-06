@@ -198,12 +198,12 @@
     
     <div id="ekg-overlay">
         <div id="ekg-screen">
-            <h3 style="color: #a855f7; margin-top: 0; font-size: 20px;">🩻 12-Kanal EKG Drucken</h3>
-            <p style="font-size: 14px; color: #ccc; margin-bottom: 20px;">Welches EKG soll an allen Monitoren &amp; Observern geschrieben werden?</p>
+            <h3 style="color: #a855f7; margin-top: 0; font-size: 20px;">🩻 12-Kanal EKG Auswählen</h3>
+            <p style="font-size: 14px; color: #ccc; margin-bottom: 20px;">12-Kanal EKG angefordert! Welches Bild soll gesendet werden?</p>
             
-            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
-                <button id="btn-modal-sample" style="background: #7000ff; padding: 14px; font-size: 16px;">
-                    📄 Standard EKG (ekg_sample.png)
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                <button id="btn-modal-sample" style="background: #7000ff; padding: 12px; font-size: 15px;">
+                    📄 Normalbefund (ekg_sample.png)
                 </button>
             </div>
             
@@ -379,7 +379,11 @@
 
                 const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
                 
-                if (data.type === "cpr_timer_update") {
+                if (data.type === "12lead_requested") {
+                    openEkgModal();
+                    addLogEntry(`[${time}] - 🩻 12-Kanal EKG vom Monitor angefordert!`);
+                }
+                else if (data.type === "cpr_timer_update") {
                     const timerPanel = document.getElementById("timer-panel");
                     if (data.timeLeft > 0) {
                         timerPanel.style.display = "flex";
@@ -405,7 +409,7 @@
                     addLogEntry(`[${time}] - 🩺 NIBP-Messung beendet (${data.val} mmHg)`);
                 }
                 else if (data.type === "ekg_12_printed") {
-                    addLogEntry(`[${time}] - 🩻 12-Kanal-EKG ausgedruckt`);
+                    addLogEntry(`[${time}] - 🩻 12-Kanal-EKG gedruckt`);
                 }
             };
 
@@ -481,13 +485,13 @@
 
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ 
-                    type: "12lead_sync", 
+                    type: "12lead_show", 
                     image: imageFilename 
                 }));
                 ws.send(JSON.stringify({ type: "ekg_12_printed" }));
-                addLogEntry(`[${time}] - 🩻 12-Kanal EKG gesendet (${imageFilename})`);
+                addLogEntry(`[${time}] - 🩻 12-Kanal EKG freigegeben (${imageFilename})`);
             } else {
-                addLogEntry(`[${time}] - ⚠️ FEHLER: Keine Netzwerk-Verbindung zum Raum!`);
+                addLogEntry(`[${time}] - ⚠️ FEHLER: Keine Netzverbindung!`);
             }
         }
 

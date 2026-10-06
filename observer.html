@@ -4,7 +4,8 @@
     <title>EKG Simulator - Observer</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' wss://ekg-simulator.onrender.com data: blob:; img-src 'self' data: blob:;">
+
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,7 +18,6 @@
 
         #info-area { position: fixed; top: 36px; left: 0; width: 100vw; background-color: rgba(112, 0, 255, 0.95); color: #fff; text-align: center; padding: 10px 0; font-size: 20px; font-weight: bold; letter-spacing: 1px; display: none; z-index: 6500; box-shadow: 0 4px 15px rgba(112, 0, 255, 0.5); }
 
-        /* 12-Kanal EKG Bild Overlay */
         #ekg-image-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background-color: rgba(0, 0, 0, 0.85); z-index: 8000; display: none;
@@ -91,7 +91,7 @@
 <body>
 
     <div id="warning-area">⚠️ DISCONNECT</div>
-    <div id="info-area">🩻 12-Kanal-EKG wird geschrieben ...</div>
+    <div id="info-area">🩻 12-Kanal-EKG wird angefordert ...</div>
 
     <div id="ekg-image-overlay" onclick="closeEkgImage()">
         <div id="ekg-image-container" onclick="event.stopPropagation()">
@@ -258,14 +258,21 @@
                 }
                 else if (data.type === "analysis_started_sync" || data.type === "analysis_started") { startAnalysisSequence(); }
                 else if (data.type === "shock_delivered_sync" || data.type === "shock_delivered") { deliverShockSequence(); }
-                else if (data.type === "12lead_sync" || data.type === "ekg_12_printed") {
-                    document.getElementById("ekg-image").src = data.image || "ekg_sample.png";
+                else if (data.type === "12lead_requested") {
                     const infoBanner = document.getElementById("info-area");
+                    infoBanner.innerText = "🩻 12-Kanal-EKG wird angefordert ...";
                     infoBanner.style.display = "block";
-                    setTimeout(() => { 
-                        infoBanner.style.display = "none"; 
-                        showEkgImage();
-                    }, 5000);
+                    clearTimeout(window.infoBannerTimeout);
+                    window.infoBannerTimeout = setTimeout(() => { infoBanner.style.display = "none"; }, 10000);
+                }
+                else if (data.type === "12lead_show") {
+                    clearTimeout(window.infoBannerTimeout);
+                    document.getElementById("info-area").style.display = "none";
+                    document.getElementById("ekg-image").src = data.image || "ekg_sample.png";
+                    showEkgImage();
+                }
+                else if (data.type === "12lead_close") {
+                    closeEkgImage();
                 }
                 else if (data.type === "vital_update") {
                     baseHR = parseInt(data.heartRate); baseSpO2 = parseInt(data.spo2); baseEtco2 = parseInt(data.etco2); baseAF = parseInt(data.af); isHDMActive = data.isHDMActive; isEcgConnected = data.sensors.ecg; isSpO2Connected = data.sensors.spo2; isCo2Connected = data.sensors.co2; isDefiConnected = data.sensors.defi; 
@@ -412,7 +419,7 @@
                 if (currentHR > 0 && spo2FrameCounter >= framesPerBeat && !isDrawingSpO2) { isDrawingSpO2 = true; spo2ComplexIndex = 0; spo2FrameCounter = 0; } 
                 if (isDrawingSpO2) { 
                     let currentSpo2Wave = spo2Waves[spo2Quality]; 
-                    if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2ComplexIndex] * 4); } 
+                    if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2Quality].length); } 
                     spo2ComplexIndex++; if (spo2ComplexIndex >= currentSpo2Wave.length) isDrawingSpO2 = false; 
                 } 
             }
