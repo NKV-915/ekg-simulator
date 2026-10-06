@@ -106,7 +106,7 @@
             display: block; 
             border-radius: 4px;
         }
-        #close-ekg-btn {
+        #close-ekg-btn, #close-value-btn {
             position: absolute; 
             top: -14px; 
             right: -14px;
@@ -125,7 +125,26 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.5); 
             z-index: 8001;
         }
-        #close-ekg-btn:active { transform: scale(0.9); }
+        #close-ekg-btn:active, #close-value-btn:active { transform: scale(0.9); }
+
+        /* BZ / Temp Messwert Overlay */
+        #value-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.85); z-index: 8000; display: none;
+            justify-content: center; align-items: center;
+        }
+        #value-card-container {
+            position: relative; width: 340px; max-width: 85vw;
+            background: #111; color: #fff; padding: 25px 20px; border-radius: 12px;
+            border: 3px solid #ffcc00; text-align: center;
+            box-shadow: 0 0 30px rgba(0,0,0,0.9);
+        }
+        #value-card-title {
+            font-size: 20px; font-weight: bold; color: #aaa; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px;
+        }
+        #value-card-val {
+            font-size: 42px; font-weight: bold; color: #fff; font-family: Arial, sans-serif;
+        }
 
         #top-header { 
             height: 36px; 
@@ -160,7 +179,7 @@
             border-right: 2px solid #222; 
         }
         #center-content { flex-grow: 1; display: flex; flex-direction: column; border-right: 2px solid #333; background-color: #000; }
-        #aed-panel { width: 150px; background-color: #1a1a1a; display: flex; flex-direction: column; padding: 12px; align-items: center; justify-content: flex-start; gap: 12px; box-sizing: border-box; }
+        #aed-panel { width: 150px; background-color: #1a1a1a; display: flex; flex-direction: column; padding: 12px; align-items: center; justify-content: flex-start; gap: 10px; box-sizing: border-box; }
         
         .vital-box { background: #000; border: 1px solid #1c1c1c; padding: 6px 10px; border-radius: 6px; display: flex; flex-direction: column; justify-content: space-between; flex: 1; margin-bottom: 4px; box-sizing: border-box; overflow: hidden; }
         .vital-box:last-child { margin-bottom: 0; }
@@ -184,7 +203,7 @@
         .nibp-history-container { width: 48%; max-width: 420px; height: 100%; border-left: 1px solid #333; padding-left: 15px; display: flex; flex-direction: column; justify-content: flex-start; box-sizing: border-box; }
         .history-header { font-size: 16px; font-weight: bold; color: #ffaa00; letter-spacing: 0.5px; margin-bottom: 6px; border-bottom: 1px solid #222; padding-bottom: 3px; }
 
-        .aed-btn { width: 100%; padding: 16px 8px; font-size: 16px; font-weight: bold; border-radius: 50px; border: none; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .aed-btn { width: 100%; padding: 14px 8px; font-size: 16px; font-weight: bold; border-radius: 50px; border: none; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         #btn-analyse { background-color: #ffcc00; color: #000; }
         #btn-analyse:active { background-color: #e6b800; transform: scale(0.95); }
         #btn-shock { background-color: #dc3545; color: #fff; opacity: 0.3; pointer-events: none; }
@@ -228,6 +247,14 @@
         <div id="ekg-image-container" onclick="event.stopPropagation()">
             <button id="close-ekg-btn" onclick="closeEkgImage()">✕</button>
             <img id="ekg-image" src="ekg_sinus.png" alt="12-Kanal EKG Ausdruck" onerror="alert('FEHLER: Die EKG-Bilddatei wurde auf GitHub nicht gefunden!');">
+        </div>
+    </div>
+
+    <div id="value-overlay" onclick="closeValueOverlay()">
+        <div id="value-card-container" onclick="event.stopPropagation()">
+            <button id="close-value-btn" onclick="closeValueOverlay()">✕</button>
+            <div id="value-card-title">BLUTZUCKER</div>
+            <div id="value-card-val">100 mg/dl</div>
         </div>
     </div>
 
@@ -321,6 +348,12 @@
             <button id="btn-shock" class="aed-btn" onclick="deliverShock()">SCHOCK</button>
             <button id="btn-nibp-start" class="aed-btn" onclick="startMonitorNibd()">NIBP</button>
             <button id="btn-12lead" class="aed-btn" onclick="trigger12LeadPrint()">12-KANAL</button>
+
+            <!-- Neue BZ & Temp Buttons mit Abstand -->
+            <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 15px;">
+                <button id="btn-bz" class="aed-btn" style="background-color: #ffcc00; color: #000;" onclick="triggerBzRequest()">BZ</button>
+                <button id="btn-temp" class="aed-btn" style="background-color: #dc3545; color: #fff;" onclick="triggerTempRequest()">Temp.</button>
+            </div>
         </div>
     </div>
 
@@ -412,6 +445,18 @@
                 else if (data.type === "12lead_close") { 
                     closeEkgImage(true); 
                 }
+                else if (data.type === "bz_requested") {
+                    showInfoBanner("🩸 BZ-Messung angefordert ...");
+                }
+                else if (data.type === "temp_requested") {
+                    showInfoBanner("🌡️ Temperaturmessung angefordert ...");
+                }
+                else if (data.type === "value_show") {
+                    showValueOverlay(data.title, data.value, data.color);
+                }
+                else if (data.type === "value_close") {
+                    closeValueOverlay(true);
+                }
                 else if (data.type === "vital_update") {
                     baseHR = parseInt(data.heartRate); baseSpO2 = parseInt(data.spo2); baseEtco2 = parseInt(data.etco2); baseAF = parseInt(data.af); standbySys = data.sys; standbyDia = data.dia; isNibdConnected = data.sensors.nibd; isHDMActive = data.isHDMActive; isEcgConnected = data.sensors.ecg; isSpO2Connected = data.sensors.spo2; isCo2Connected = data.sensors.co2; isDefiConnected = data.sensors.defi; 
                     if (isEcgConnected) { ecgWarningActive = false; clearTimeout(ecgTimeout); } if (isNibdConnected) { nibdWarningActive = false; clearTimeout(nibdTimeout); } if (isDefiConnected) { defiWarningActive = false; clearTimeout(defiTimeout); }
@@ -435,6 +480,44 @@
             if (nibdWarningActive) activeWarnings.push("RR-Manschette pruefen");
             if (defiWarningActive) activeWarnings.push("Defi-Elektroden pruefen");
             if (activeWarnings.length > 0) { banner.style.display = "block"; banner.innerText = "⚠️ " + activeWarnings.join("  |  ").toUpperCase(); } else { banner.style.display = "none"; }
+        }
+
+        function showInfoBanner(text) {
+            const infoBanner = document.getElementById("info-area"); 
+            infoBanner.innerText = text;
+            infoBanner.style.display = "block"; 
+            clearTimeout(window.infoBannerTimeout);
+            window.infoBannerTimeout = setTimeout(() => { infoBanner.style.display = "none"; }, 10000);
+        }
+
+        function triggerBzRequest() {
+            showInfoBanner("🩸 BZ-Messung angefordert ...");
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "bz_requested" }));
+            }
+        }
+
+        function triggerTempRequest() {
+            showInfoBanner("🌡️ Temperaturmessung angefordert ...");
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "temp_requested" }));
+            }
+        }
+
+        function showValueOverlay(title, val, color) {
+            clearTimeout(window.infoBannerTimeout);
+            document.getElementById("info-area").style.display = "none";
+            document.getElementById("value-card-title").innerText = title;
+            document.getElementById("value-card-val").innerText = val;
+            document.getElementById("value-card-container").style.borderColor = color || "#ffaa00";
+            document.getElementById("value-overlay").style.display = "flex";
+        }
+
+        function closeValueOverlay(fromNetwork = false) {
+            document.getElementById("value-overlay").style.display = "none";
+            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "value_close" }));
+            }
         }
 
         function updateTimerDisplay() {
@@ -495,14 +578,7 @@
                 gain.gain.setValueAtTime(0.1, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 1.5); 
             }
 
-            const infoBanner = document.getElementById("info-area"); 
-            infoBanner.innerText = "🩻 12-Kanal-EKG wird angefordert ...";
-            infoBanner.style.display = "block"; 
-
-            clearTimeout(window.infoBannerTimeout);
-            window.infoBannerTimeout = setTimeout(() => { 
-                infoBanner.style.display = "none"; 
-            }, 10000);
+            showInfoBanner("🩻 12-Kanal-EKG wird angefordert ...");
 
             if (ws && ws.readyState === WebSocket.OPEN) { 
                 ws.send(JSON.stringify({ type: "12lead_requested" })); 
@@ -643,7 +719,6 @@
                 ecgFrameCounter++; 
                 if (currentHR > 0 && ecgFrameCounter >= framesPerBeat && !isDrawingECG) { 
                     isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0; 
-                    if ((isEcgConnected || isDefiConnected || isSpO2Connected) && !isAudioMuted) { playHeartbeatTone(); } 
                 } 
                 if (isDrawingECG) { 
                     let activeArray = ecgData;
@@ -652,9 +727,7 @@
                     else if (currentRhythm === 'svt') activeArray = svtData;
                     else if (currentRhythm === 'avb3') activeArray = avb3Data;
 
-                    if (ecgComplexIndex < activeArray.length) { 
-                        yECG = baseECG - (activeArray[ecgComplexIndex] * 3); 
-                    } 
+                    if (ecgComplexIndex < activeArray.length) { yECG = baseECG - (activeArray[ecgComplexIndex] * 3); } 
                     ecgComplexIndex++; if (ecgComplexIndex >= activeArray.length) isDrawingECG = false; 
                 } 
             }

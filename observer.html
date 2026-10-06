@@ -31,7 +31,7 @@
         #ekg-image-container img {
             max-width: 100%; max-height: 80vh; display: block; border-radius: 4px;
         }
-        #close-ekg-btn {
+        #close-ekg-btn, #close-value-btn {
             position: absolute; top: -14px; right: -14px;
             width: 36px; height: 36px; background: #dc3545; color: #fff;
             border: 2px solid #fff; border-radius: 50%; font-size: 20px;
@@ -39,7 +39,25 @@
             justify-content: center; align-items: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.5); z-index: 8001;
         }
-        #close-ekg-btn:active { transform: scale(0.9); }
+        #close-ekg-btn:active, #close-value-btn:active { transform: scale(0.9); }
+
+        #value-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.85); z-index: 8000; display: none;
+            justify-content: center; align-items: center;
+        }
+        #value-card-container {
+            position: relative; width: 340px; max-width: 85vw;
+            background: #111; color: #fff; padding: 25px 20px; border-radius: 12px;
+            border: 3px solid #ffcc00; text-align: center;
+            box-shadow: 0 0 30px rgba(0,0,0,0.9);
+        }
+        #value-card-title {
+            font-size: 20px; font-weight: bold; color: #aaa; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px;
+        }
+        #value-card-val {
+            font-size: 42px; font-weight: bold; color: #fff; font-family: Arial, sans-serif;
+        }
 
         #top-header { height: 36px; background-color: #222; border-bottom: 2px solid #333; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; box-sizing: border-box; z-index: 5500; }
         #top-clock { font-family: 'Courier New', Courier, monospace; font-size: 22px; font-weight: bold; color: #ffcc00; letter-spacing: 1px; }
@@ -97,6 +115,14 @@
         <div id="ekg-image-container" onclick="event.stopPropagation()">
             <button id="close-ekg-btn" onclick="closeEkgImage()">✕</button>
             <img id="ekg-image" src="ekg_sinus.png" alt="12-Kanal EKG Ausdruck" onerror="alert('FEHLER: Die EKG-Bilddatei wurde auf GitHub nicht gefunden!');">
+        </div>
+    </div>
+
+    <div id="value-overlay" onclick="closeValueOverlay()">
+        <div id="value-card-container" onclick="event.stopPropagation()">
+            <button id="close-value-btn" onclick="closeValueOverlay()">✕</button>
+            <div id="value-card-title">BLUTZUCKER</div>
+            <div id="value-card-val">100 mg/dl</div>
         </div>
     </div>
 
@@ -259,11 +285,7 @@
                 else if (data.type === "analysis_started_sync" || data.type === "analysis_started") { startAnalysisSequence(); }
                 else if (data.type === "shock_delivered_sync" || data.type === "shock_delivered") { deliverShockSequence(); }
                 else if (data.type === "12lead_requested") {
-                    const infoBanner = document.getElementById("info-area");
-                    infoBanner.innerText = "🩻 12-Kanal-EKG wird angefordert ...";
-                    infoBanner.style.display = "block";
-                    clearTimeout(window.infoBannerTimeout);
-                    window.infoBannerTimeout = setTimeout(() => { infoBanner.style.display = "none"; }, 10000);
+                    showInfoBanner("🩻 12-Kanal-EKG wird angefordert ...");
                 }
                 else if (data.type === "12lead_show") {
                     clearTimeout(window.infoBannerTimeout);
@@ -274,6 +296,18 @@
                 else if (data.type === "12lead_close") {
                     closeEkgImage();
                 }
+                else if (data.type === "bz_requested") {
+                    showInfoBanner("🩸 BZ-Messung angefordert ...");
+                }
+                else if (data.type === "temp_requested") {
+                    showInfoBanner("🌡️ Temperaturmessung angefordert ...");
+                }
+                else if (data.type === "value_show") {
+                    showValueOverlay(data.title, data.value, data.color);
+                }
+                else if (data.type === "value_close") {
+                    closeValueOverlay();
+                }
                 else if (data.type === "vital_update") {
                     baseHR = parseInt(data.heartRate); baseSpO2 = parseInt(data.spo2); baseEtco2 = parseInt(data.etco2); baseAF = parseInt(data.af); isHDMActive = data.isHDMActive; isEcgConnected = data.sensors.ecg; isSpO2Connected = data.sensors.spo2; isCo2Connected = data.sensors.co2; isDefiConnected = data.sensors.defi; 
                     currentRhythm = data.rhythm || 'nsr'; spo2Quality = data.spo2Quality; fluctuateVitals(); 
@@ -283,6 +317,27 @@
         }
 
         connectWebSocket();
+
+        function showInfoBanner(text) {
+            const infoBanner = document.getElementById("info-area"); 
+            infoBanner.innerText = text;
+            infoBanner.style.display = "block"; 
+            clearTimeout(window.infoBannerTimeout);
+            window.infoBannerTimeout = setTimeout(() => { infoBanner.style.display = "none"; }, 10000);
+        }
+
+        function showValueOverlay(title, val, color) {
+            clearTimeout(window.infoBannerTimeout);
+            document.getElementById("info-area").style.display = "none";
+            document.getElementById("value-card-title").innerText = title;
+            document.getElementById("value-card-val").innerText = val;
+            document.getElementById("value-card-container").style.borderColor = color || "#ffaa00";
+            document.getElementById("value-overlay").style.display = "flex";
+        }
+
+        function closeValueOverlay() {
+            document.getElementById("value-overlay").style.display = "none";
+        }
 
         function showEkgImage() {
             document.getElementById("ekg-image-overlay").style.display = "flex";

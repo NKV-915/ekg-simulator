@@ -142,7 +142,7 @@
             box-shadow: 0 0 20px rgba(220, 53, 69, 0.6);
         }
 
-        #ekg-overlay {
+        #ekg-overlay, #measure-val-overlay {
             position: fixed; 
             top: 0; left: 0; 
             width: 100vw; height: 100vh; 
@@ -152,7 +152,7 @@
             align-items: center; 
             z-index: 9500;
         }
-        #ekg-screen {
+        #ekg-screen, #measure-val-screen {
             width: 380px; 
             max-width: 90vw;
             background-color: #111; 
@@ -196,6 +196,7 @@
 </head>
 <body>
     
+    <!-- 12-Kanal EKG Modal -->
     <div id="ekg-overlay">
         <div id="ekg-screen">
             <h3 style="color: #a855f7; margin-top: 0; font-size: 20px;">🩻 12-Kanal EKG Auswählen</h3>
@@ -214,6 +215,23 @@
             </div>
             
             <button id="btn-modal-close" style="background: #444; width: 100%; padding: 12px;">Abbrechen</button>
+        </div>
+    </div>
+
+    <!-- BZ / Temp Messwert Freigabe Modal -->
+    <div id="measure-val-overlay">
+        <div id="measure-val-screen">
+            <h3 id="measure-modal-title" style="color: #ffaa00; margin-top: 0; font-size: 20px;">Messwert freigeben</h3>
+            <p style="font-size: 14px; color: #ccc; margin-bottom: 15px;">Wert für Monitor &amp; Observer festlegen:</p>
+            
+            <div style="margin-bottom: 20px;">
+                <input type="text" id="measureValInput" value="100 mg/dl" style="font-size: 22px; width: 80%; text-align: center; padding: 8px; border-radius: 8px; border: 2px solid #555; background: #222; color: #fff; font-weight: bold;">
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button id="btn-confirm-measure" style="background: var(--success); flex: 1; padding: 12px; font-size: 15px;">Freigeben</button>
+                <button id="btn-cancel-measure" style="background: #444; flex: 1; padding: 12px; font-size: 15px;">Abbrechen</button>
+            </div>
         </div>
     </div>
 
@@ -349,6 +367,9 @@
         let isHDMActive = false;
         let masterLog = [];
 
+        let currentMeasureTitle = 'BLUTZUCKER';
+        let currentMeasureColor = '#ffcc00';
+
         const rhythmIds = ['nsr', 'stemi', 'vt', 'svt', 'afib', 'vfib', 'torsades', 'avb3', 'asystole'];
 
         function setNetStatus(isOnline) {
@@ -388,6 +409,14 @@
                 if (data.type === "12lead_requested") {
                     openEkgModal();
                     addLogEntry(`[${time}] - 🩻 12-Kanal EKG vom Monitor angefordert!`);
+                }
+                else if (data.type === "bz_requested") {
+                    openMeasureValModal("BLUTZUCKER", "100 mg/dl", "#ffcc00");
+                    addLogEntry(`[${time}] - 🩸 BZ-Messung vom Monitor angefordert!`);
+                }
+                else if (data.type === "temp_requested") {
+                    openMeasureValModal("TEMPERATUR", "36.9 °C", "#dc3545");
+                    addLogEntry(`[${time}] - 🌡️ Temperaturmessung vom Monitor angefordert!`);
                 }
                 else if (data.type === "cpr_timer_update") {
                     const timerPanel = document.getElementById("timer-panel");
@@ -436,6 +465,10 @@
             document.getElementById('btn-modal-sinus').addEventListener('click', () => confirmEkgSelection('ekg_sinus.png'));
             document.getElementById('btn-modal-rbbb').addEventListener('click', () => confirmEkgSelection('ekg_rbbb.png'));
             document.getElementById('btn-modal-lbbb').addEventListener('click', () => confirmEkgSelection('ekg_lbbb.png'));
+
+            document.getElementById('btn-confirm-measure').addEventListener('click', confirmMeasureValue);
+            document.getElementById('btn-cancel-measure').addEventListener('click', closeMeasureValModal);
+            document.getElementById('measure-val-overlay').addEventListener('click', closeMeasureValModal);
 
             document.getElementById('btn-shock-nsr').addEventListener('click', () => selectShockRhythm('nsr'));
             document.getElementById('btn-shock-vfib').addEventListener('click', () => selectShockRhythm('vfib'));
@@ -501,6 +534,39 @@
                 addLogEntry(`[${time}] - 🩻 12-Kanal EKG freigegeben (${imageFilename})`);
             } else {
                 addLogEntry(`[${time}] - ⚠️ FEHLER: Keine Netzverbindung!`);
+            }
+        }
+
+        function openMeasureValModal(title, defaultVal, color) {
+            currentMeasureTitle = title;
+            currentMeasureColor = color;
+            const titleElem = document.getElementById("measure-modal-title");
+            titleElem.innerText = (title === "BLUTZUCKER" ? "🩸 " : "🌡️ ") + title + " freigeben";
+            titleElem.style.color = color;
+            document.getElementById("measure-val-screen").style.borderColor = color;
+            document.getElementById("measureValInput").value = defaultVal;
+            document.getElementById("measure-val-overlay").style.display = "flex";
+        }
+
+        function closeMeasureValModal() {
+            document.getElementById("measure-val-overlay").style.display = "none";
+        }
+
+        function confirmMeasureValue() {
+            const val = document.getElementById("measureValInput").value;
+            closeMeasureValModal();
+            const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ 
+                    type: "value_show", 
+                    title: currentMeasureTitle,
+                    value: val,
+                    color: currentMeasureColor
+                }));
+                addLogEntry(`[${time}] - Messwert freigegeben: ${currentMeasureTitle} = ${val}`);
+            } else {
+                addLogEntry(`[${time}] - ⚠️️ FEHLER: Keine Netzverbindung!`);
             }
         }
 
