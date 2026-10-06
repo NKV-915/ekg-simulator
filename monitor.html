@@ -1,407 +1,415 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <title>Controller - Trainer App</title>
+    <title>EKG Simulator - Monitor</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' wss://ekg-simulator.onrender.com data: blob:; img-src 'self' data: blob:;">
-    
+
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <style>
-        :root {
-            --bg-color: #f4f4f9;
-            --card-bg: #ffffff;
-            --text-main: #333333;
-            --primary: #007bff;
-            --primary-active: #0056b3;
-            --secondary: #6c757d;
-            --danger: #dc3545;
-            --success: #28a745;
-            --warning: #ffaa00;
-            --info: #00ffff;
-            --co2-color: #ffff00;
-        }
-
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background-color: var(--bg-color); 
+            background-color: #000; 
+            color: #fff; 
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
             margin: 0; 
-            padding: 10px;
-            color: var(--text-main);
-            box-sizing: border-box;
-        }
-
-        .dashboard {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        @media (min-width: 480px) {
-            .dashboard { grid-template-columns: 1fr 1fr; }
-            .full-width { grid-column: span 2; }
-        }
-
-        .control-panel { 
-            background: var(--card-bg); 
-            padding: 15px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
-            text-align: center; 
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            box-sizing: border-box;
-        }
-
-        h3 { margin: 0 0 10px 0; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
-        
-        .stepper-container { 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            gap: 6px; 
-            margin-bottom: 10px;
-        }
-
-        button { 
-            font-size: 15px; 
-            padding: 10px 12px; 
-            border: none; 
-            border-radius: 8px; 
-            background-color: var(--primary); 
-            color: white; 
-            cursor: pointer; 
-            font-weight: bold;
-            transition: background-color 0.2s, transform 0.1s;
-            touch-action: manipulation; 
-        }
-        button:active { background-color: var(--primary-active); transform: scale(0.96); }
-        .btn-small { background-color: var(--secondary); padding: 10px 8px; font-size: 14px; }
-        
-        .sensor-btn { 
-            width: 100%; 
-            font-weight: bold; 
-            font-size: 14px; 
-            padding: 10px; 
-            margin-top: auto;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            color: white;
-        }
-        .sensor-off { background-color: var(--danger); }
-        .sensor-on { background-color: var(--success); }
-
-        .border-ecg { border-top: 4px solid var(--success); }
-        .border-spo2 { border-top: 4px solid var(--info); }
-        .border-bp { border-top: 4px solid var(--warning); }
-        .border-rhythm { border-top: 4px solid var(--danger); }
-        .border-audio { border-top: 4px solid #7000ff; }
-        .border-co2 { border-top: 4px solid var(--co2-color); }
-        .border-timer { border-top: 4px solid #00ff00; background: #111; color: #fff; }
-
-        input[type="number"] { 
-            font-size: 20px; 
-            width: 60px; 
-            text-align: center; 
-            padding: 6px; 
-            border: 2px solid #ccc; 
-            border-radius: 8px; 
-            font-weight: bold; 
-        }
-        
-        .grid-rhythms { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 6px; 
-            margin-top: 8px; 
-        }
-        
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 8px; }
-        .btn-outline { background: white; color: #333; border: 2px solid #ccc; font-size: 12px; padding: 8px 2px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        
-        .active-rhythm { background: var(--danger); color: #fff; border-color: var(--danger); }
-        .active-quality { background: var(--info); color: #000; border-color: var(--info); }
-
-        .top-alert { display: none; padding: 12px; font-weight: bold; border-radius: 8px; text-align: center; margin-bottom: 5px; }
-        #nibd-alert { background: var(--warning); color: #000; animation: pulse 1s infinite alternate; }
-        
-        #shock-prompt-card { 
-            display: none; 
-            background: #111; 
-            border: 3px solid var(--danger); 
-            padding: 15px; 
-            border-radius: 12px; 
-            text-align: center; 
-            box-shadow: 0 0 20px rgba(220, 53, 69, 0.6);
-        }
-
-        #ekg-overlay, #measure-val-overlay {
-            position: fixed; 
-            top: 0; left: 0; 
-            width: 100vw; height: 100vh; 
-            background-color: rgba(0, 0, 0, 0.85); 
-            display: none; 
-            justify-content: center; 
-            align-items: center; 
-            z-index: 9500;
-        }
-        #ekg-screen, #measure-val-screen {
-            width: 380px; 
-            max-width: 90vw;
-            background-color: #111; 
-            border: 4px solid #7000ff; 
-            border-radius: 12px; 
+            overflow: hidden; 
             display: flex; 
             flex-direction: column; 
-            overflow: hidden; 
-            box-shadow: 0 15px 40px rgba(112, 0, 255, 0.5);
-            padding: 20px;
-            box-sizing: border-box;
-            text-align: center;
+            height: 100vh; 
+        }
+        
+        #startOverlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            background: rgba(0,0,0,0.95); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 9999; 
+            cursor: pointer; 
+        }
+        #startOverlay h1 { 
+            border: 2px solid #fff; 
+            padding: 20px 40px; 
+            border-radius: 10px; 
+            text-align: center; 
+            font-size: 28px; 
         }
 
-        .status-header {
-            display: flex;
-            justify-content: space-between;
+        #warning-area { 
+            position: fixed; 
+            top: 36px; 
+            left: 0; 
+            width: 100vw; 
+            background-color: rgba(220, 53, 69, 0.95); 
+            color: #fff; 
+            text-align: center; 
+            padding: 8px 0; 
+            font-size: 18px; 
+            font-weight: bold; 
+            letter-spacing: 1px; 
+            display: none; 
+            z-index: 6000; 
+            box-shadow: 0 4px 15px rgba(255,0,0,0.5); 
+            animation: banner-blink 0.6s infinite alternate; 
+        }
+        @keyframes banner-blink { from { opacity: 1; } to { opacity: 0.4; } }
+
+        #info-area { 
+            position: fixed; 
+            top: 36px; 
+            left: 0; 
+            width: 100vw; 
+            background-color: rgba(112, 0, 255, 0.95); 
+            color: #fff; 
+            text-align: center; 
+            padding: 10px 0; 
+            font-size: 20px; 
+            font-weight: bold; 
+            letter-spacing: 1px; 
+            display: none; 
+            z-index: 6500; 
+            box-shadow: 0 4px 15px rgba(112, 0, 255, 0.5); 
+        }
+
+        #ekg-image-overlay {
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.85); 
+            z-index: 8000; 
+            display: none;
+            justify-content: center; 
             align-items: center;
-            background: #222;
-            color: #fff;
-            padding: 8px 12px;
+        }
+        #ekg-image-container {
+            position: relative; 
+            max-width: 90vw; 
+            max-height: 85vh;
+            background: #fff; 
+            padding: 8px; 
             border-radius: 8px;
-            margin-bottom: 10px;
-            font-size: 13px;
-            font-weight: bold;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
         }
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 6px;
+        #ekg-image-container img {
+            max-width: 100%; 
+            max-height: 80vh; 
+            display: block; 
+            border-radius: 4px;
         }
-        .status-online { background-color: var(--success); }
-        .status-offline { background-color: var(--danger); }
+        #close-ekg-btn, #close-value-btn {
+            position: absolute; 
+            top: -14px; 
+            right: -14px;
+            width: 36px; 
+            height: 36px; 
+            background: #dc3545; 
+            color: #fff;
+            border: 2px solid #fff; 
+            border-radius: 50%; 
+            font-size: 20px;
+            font-weight: bold; 
+            cursor: pointer; 
+            display: flex;
+            justify-content: center; 
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5); 
+            z-index: 8001;
+        }
+        #close-ekg-btn:active, #close-value-btn:active { transform: scale(0.9); }
 
-        .log-container { text-align: left !important; font-family: monospace; background: #222 !important; color: #fff !important; }
-        .log-list { max-height: 150px; overflow-y: auto; font-size: 13px; line-height: 1.5; border-top: 1px solid #444; padding-top: 8px; margin-top: 8px; width: 100%; }
-        .log-entry { border-bottom: 1px solid #333; padding: 2px 0; }
+        /* BZ / Temp Messwert Overlay */
+        #value-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: rgba(0, 0, 0, 0.85); z-index: 8000; display: none;
+            justify-content: center; align-items: center;
+        }
+        #value-card-container {
+            position: relative; width: 340px; max-width: 85vw;
+            background: #111; color: #fff; padding: 25px 20px; border-radius: 12px;
+            border: 3px solid #ffcc00; text-align: center;
+            box-shadow: 0 0 30px rgba(0,0,0,0.9);
+        }
+        #value-card-title {
+            font-size: 20px; font-weight: bold; color: #aaa; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px;
+        }
+        #value-card-val {
+            font-size: 42px; font-weight: bold; color: #fff; font-family: Arial, sans-serif;
+        }
+
+        #top-header { 
+            height: 36px; 
+            background-color: #222; 
+            border-bottom: 2px solid #333; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 0 12px; 
+            box-sizing: border-box; 
+            z-index: 5500; 
+        }
+        #top-clock { 
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 22px; 
+            font-weight: bold; 
+            color: #ffcc00; 
+            letter-spacing: 1px; 
+        }
+
+        #monitor { display: flex; flex-grow: 1; width: 100vw; height: calc(100vh - 36px); } 
+        
+        #vitals { 
+            width: 25vw; 
+            min-width: 200px; 
+            max-width: 280px; 
+            background-color: #0c0c0c; 
+            display: flex; 
+            flex-direction: column; 
+            padding: 4px; 
+            box-sizing: border-box; 
+            border-right: 2px solid #222; 
+        }
+        #center-content { flex-grow: 1; display: flex; flex-direction: column; border-right: 2px solid #333; background-color: #000; }
+        #aed-panel { width: 150px; background-color: #1a1a1a; display: flex; flex-direction: column; padding: 12px; align-items: center; justify-content: flex-start; gap: 10px; box-sizing: border-box; }
+        
+        .vital-box { background: #000; border: 1px solid #1c1c1c; padding: 6px 10px; border-radius: 6px; display: flex; flex-direction: column; justify-content: space-between; flex: 1; margin-bottom: 4px; box-sizing: border-box; overflow: hidden; }
+        .vital-box:last-child { margin-bottom: 0; }
+        
+        .vital-title-row { display: flex; justify-content: space-between; font-size: clamp(16px, 2.2vw, 24px); font-weight: bold; background-color: #222; padding: 3px 8px; margin: -6px -10px 4px -10px; align-items: baseline; }
+        .vital-value { font-size: clamp(70px, 8.5vw, 110px); font-weight: bold; line-height: 0.88; text-align: right; font-family: Arial, sans-serif; letter-spacing: -1px; margin-top: auto; margin-bottom: 2px; }
+        
+        .ecg-color { color: #47d670; } .spo2-color { color: #38b6ff; } .co2-color { color: #ffaa00; }  
+        
+        .alarm-active { background-color: rgba(255, 0, 0, 0.4); color: white !important; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        canvas { flex: 1; width: 100%; height: 100%; min-height: 0; display: block; border-bottom: 1px dashed #222; }
+
+        #nibp-center-area { flex: 1; background: #050505; border-top: 2px solid #222; display: flex; flex-direction: column; padding: 8px 15px; box-sizing: border-box; }
+        .nibp-header-bar { display: flex; justify-content: space-between; align-items: center; background: #1c1c1c; padding: 4px 12px; margin: -8px -15px 8px -15px; font-weight: bold; font-size: 16px; color: #fff; }
+        .nibp-body { display: flex; flex-grow: 1; align-items: center; justify-content: space-between; gap: 15px; }
+        .nibp-value-container { display: flex; flex-direction: column; justify-content: center; flex: 1; }
+        .nibp-main-val { font-size: clamp(55px, 6vw, 90px); font-weight: bold; font-family: Arial, sans-serif; color: #ffffff; line-height: 0.9; }
+        .nibp-sub-vals { display: flex; gap: 20px; font-size: clamp(16px, 1.8vw, 22px); font-weight: bold; color: #888; margin-top: 8px; }
+        .nibp-history-container { width: 48%; max-width: 420px; height: 100%; border-left: 1px solid #333; padding-left: 15px; display: flex; flex-direction: column; justify-content: flex-start; box-sizing: border-box; }
+        .history-header { font-size: 16px; font-weight: bold; color: #ffaa00; letter-spacing: 0.5px; margin-bottom: 6px; border-bottom: 1px solid #222; padding-bottom: 3px; }
+
+        .aed-btn { width: 100%; padding: 14px 8px; font-size: 16px; font-weight: bold; border-radius: 50px; border: none; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        #btn-analyse { background-color: #ffcc00; color: #000; }
+        #btn-analyse:active { background-color: #e6b800; transform: scale(0.95); }
+        #btn-shock { background-color: #dc3545; color: #fff; opacity: 0.3; pointer-events: none; }
+        #btn-nibp-start { background-color: #28a745; color: #ffffff; }
+        #btn-12lead { background-color: #7000ff; color: #fff; }
+        
+        .analyse-measuring { animation: analyse-blink 1s infinite alternate !important; }
+        @keyframes analyse-blink { from { background-color: #ffcc00; color: #000; } to { background-color: #997a00; color: #fff; } }
+        .nibd-measuring { animation: nibd-blink 1s infinite alternate !important; }
+        @keyframes nibd-blink { from { background-color: #28a745; color: #fff; } to { background-color: #155724; color: #fff; } }
+
+        .shock-ready { opacity: 1 !important; pointer-events: auto !important; }
+        #cpr-timer { display: none; font-size: 30px; font-weight: bold; color: #444; font-family: 'Courier New', Courier, monospace; text-align: center; letter-spacing: 1px; margin-bottom: 2px; }
+
+        #flash-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #fff; z-index: 9999; pointer-events: none; display: none; opacity: 0; transition: opacity 0.1s ease-out; }
+
+        #defib-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.85); display: flex; justify-content: center; align-items: center; z-index: 8500; display: none; }
+        #defib-screen { width: 480px; height: 300px; background-color: #000; border: 5px solid #333; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.9); }
+        #announcement-state { display: flex; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; padding: 20px; text-align: center; }
+        #announcement-text { font-size: 30px; font-weight: bold; text-transform: uppercase; font-family: Arial, sans-serif; letter-spacing: 1px; line-height: 1.3; }
+        #loading-state { display: none; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; padding: 20px; }
+        #energy-display { font-size: 30px; font-weight: bold; margin-bottom: 20px; color: #fff; font-family: monospace; }
+        #progress-container { width: 85%; height: 20px; background-color: #111; border: 2px solid #555; border-radius: 14px; overflow: hidden; }
+        #progress-fill { height: 100%; width: 0%; background-color: #dc3545; }
+        #loading-text { margin-top: 12px; font-size: 14px; color: #aaa; font-weight: bold; letter-spacing: 1px; }
+        #ready-state { display: none; flex-direction: column; flex-grow: 1; }
+        #ready-header { background-color: #222; color: #ffca28; text-align: center; padding: 8px; font-weight: bold; font-size: 18px; text-transform: uppercase; border-bottom: 2px solid #333; letter-spacing: 0.5px;}
+        #ready-info { background-color: #bdc3c7; color: #000; flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; text-align: center; }
     </style>
 </head>
 <body>
-    
-    <!-- 12-Kanal EKG Modal -->
-    <div id="ekg-overlay">
-        <div id="ekg-screen">
-            <h3 style="color: #a855f7; margin-top: 0; font-size: 20px;">🩻 12-Kanal EKG Auswählen</h3>
-            <p style="font-size: 14px; color: #ccc; margin-bottom: 20px;">Welches EKG soll gesendet werden?</p>
-            
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-                <button id="btn-modal-sinus" style="background: #7000ff; padding: 12px; font-size: 15px;">
-                    📄 Normalbefund (ekg_sinus.png)
-                </button>
-                <button id="btn-modal-rbbb" style="background: #007bff; padding: 12px; font-size: 15px;">
-                    ⚡ RSB (ekg_rbbb.png)
-                </button>
-                <button id="btn-modal-lbbb" style="background: #007bff; padding: 12px; font-size: 15px;">
-                    ⚡ LSB (ekg_lbbb.png)
-                </button>
-            </div>
-            
-            <button id="btn-modal-close" style="background: #444; width: 100%; padding: 12px;">Abbrechen</button>
+
+    <div id="startOverlay" onclick="initMonitor()">
+        <h1>Monitor einschalten</h1>
+    </div>
+
+    <div id="warning-area">⚠️ DISCONNECT</div>
+    <div id="info-area">🩻 12-Kanal-EKG wird angefordert ...</div>
+
+    <div id="ekg-image-overlay" onclick="closeEkgImage()">
+        <div id="ekg-image-container" onclick="event.stopPropagation()">
+            <button id="close-ekg-btn" onclick="closeEkgImage()">✕</button>
+            <img id="ekg-image" src="ekg_sinus.png" alt="12-Kanal EKG Ausdruck" onerror="alert('FEHLER: Die EKG-Bilddatei wurde auf GitHub nicht gefunden!');">
         </div>
     </div>
 
-    <!-- BZ / Temp Messwert Freigabe Modal -->
-    <div id="measure-val-overlay">
-        <div id="measure-val-screen">
-            <h3 id="measure-modal-title" style="color: #ffaa00; margin-top: 0; font-size: 20px;">Messwert freigeben</h3>
-            <p style="font-size: 14px; color: #ccc; margin-bottom: 15px;">Wert für Monitor &amp; Observer anpassen:</p>
-            
-            <div style="margin-bottom: 20px;">
-                <input type="text" id="measureValInput" value="100 mg/dl" style="font-size: 22px; width: 85%; text-align: center; padding: 8px; border-radius: 8px; border: 2px solid #555; background: #222; color: #fff; font-weight: bold;">
+    <div id="value-overlay" onclick="closeValueOverlay()">
+        <div id="value-card-container" onclick="event.stopPropagation()">
+            <button id="close-value-btn" onclick="closeValueOverlay()">✕</button>
+            <div id="value-card-title">BLUTZUCKER</div>
+            <div id="value-card-val">100 mg/dl</div>
+        </div>
+    </div>
+
+    <div id="flash-overlay"></div>
+
+    <div id="defib-overlay">
+        <div id="defib-screen">
+            <div id="announcement-state">
+                <div id="announcement-text">EVALUIERE...</div>
             </div>
-            
-            <div style="display: flex; gap: 10px;">
-                <button id="btn-confirm-measure" style="background: var(--success); flex: 1; padding: 12px; font-size: 15px;">Freigeben</button>
-                <button id="btn-cancel-measure" style="background: #444; flex: 1; padding: 12px; font-size: 15px;">Abbrechen</button>
+            <div id="loading-state">
+                <div id="energy-display">200 J</div>
+                <div id="progress-container"><div id="progress-fill"></div></div>
+                <div id="loading-text">LÄDT... BITTE WARTEN</div>
+            </div>
+            <div id="ready-state">
+                <div id="ready-header">Halbautomatischer Modus</div>
+                <div id="ready-info">
+                    <p style="font-size: 18px; font-weight: bold; margin: 2px 0;">200 J verfügbar</p>
+                    <p style="font-size: 20px; font-weight: bold; text-transform: uppercase; margin: 2px 0 0 0;">SCHOCK-Taste drücken!</p>
+                    <svg viewBox="0 0 100 100" style="width: 26px; height: 26px; margin: 4px 0;">
+                        <polygon points="50,100 100,40 0,40" fill="black"/>
+                    </svg>
+                    <svg viewBox="0 0 100 100" style="width: 60px; height: 60px; cursor: pointer;" onclick="deliverShock()">
+                        <circle cx="50" cy="50" r="48" fill="#c0392b" />
+                        <polygon points="55,15 35,45 50,45 45,85 65,55 50,55" fill="white"/>
+                    </svg>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="dashboard">
-        <div class="status-header full-width">
-            <span>RAUM: <strong id="room-name-display" style="color: var(--warning);">---</strong></span>
-            <span style="display: flex; align-items: center;">
-                <span id="net-dot" class="status-dot status-offline"></span>
-                <span id="net-text">VERBINDE...</span>
-            </span>
-        </div>
+    <div id="top-header">
+        <div style="color: #888; font-weight: bold; font-size: 13px; letter-spacing: 1px;">EKG Simulator</div>
+        <div id="top-clock">--:--:--</div>
+        <div class="header-right"></div>
+    </div>
 
-        <div id="shock-prompt-card" class="full-width">
-            <div style="color: #ff4d4d; font-size: 18px; font-weight: bold; margin-bottom: 10px;">
-                ⚡ SCHOCK ABGEGEBEN! Welcher Rhythmus folgt?
+    <div id="monitor">
+        <div id="vitals">
+            <div class="vital-box ecg-color" id="box-hr">
+                <div class="vital-title-row"><span>HF</span><span style="font-size:12px;">/min</span></div>
+                <div class="vital-value" id="hrDisplay">--</div>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
-                <button id="btn-shock-nsr" style="background: var(--success);">Sinus</button>
-                <button id="btn-shock-vfib" style="background: #ff5500;">K-Flimmern</button>
-                <button id="btn-shock-asy" style="background: #333; border: 1px solid #666;">Asystolie</button>
+            <div class="vital-box spo2-color" id="box-spo2">
+                <div class="vital-title-row"><span>SpO2</span><span style="font-size:12px;">%</span></div>
+                <div class="vital-value" id="spo2Display">--</div>
             </div>
-        </div>
-
-        <div id="nibd-alert" class="top-alert full-width">⚠️ WERT FUER NAECHSTE NIBP-MESSUNG AENDERN!</div>
-
-        <div id="timer-panel" class="control-panel border-timer full-width" style="display: none;">
-            <h3 style="color: #aaa; margin-bottom: 5px;">CPR-Timer (Vom Monitor)</h3>
-            <div id="trainer-cpr-timer" style="font-size: 36px; font-weight: bold; font-family: monospace; color: #444; letter-spacing: 1px;">00:00</div>
-        </div>
-
-        <div class="control-panel border-audio full-width">
-            <h3>Monitor Sounds &amp; Töne</h3>
-            <div class="grid-3" style="grid-template-columns: 1fr 1fr;">
-                <button id="btn-sound-on" style="background: var(--success);">🔊 Töne EIN</button>
-                <button id="btn-sound-off" style="background: var(--secondary);">🔕 Töne AUS</button>
+            <div class="vital-box co2-color" id="box-co2">
+                <div class="vital-title-row"><span>etCO2</span><span style="font-size:12px;">mmHg</span></div>
+                <div class="vital-value" id="co2Display" style="margin-top: 0; margin-bottom: 0;">--</div>
+                <div style="font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-top: 2px; padding: 0 4px;">
+                    <span>AF:</span><span id="afDisplay" style="color: #ffaa00; font-size: 28px; font-family: Arial, sans-serif;">--</span>
+                </div>
             </div>
         </div>
 
-        <div class="control-panel border-rhythm full-width">
-            <h3>EKG Rhythmus &amp; Reanimation</h3>
-            <div class="grid-rhythms">
-                <button id="r-nsr" class="btn-outline active-rhythm" style="background:var(--success); border-color:var(--success);">Sinus</button>
-                <button id="r-stemi" class="btn-outline">STEMI</button>
-                <button id="r-vt" class="btn-outline">VT (K-Tach)</button>
-                <button id="r-svt" class="btn-outline">SVT</button>
-                <button id="r-afib" class="btn-outline">V-Flimmern</button>
-                <button id="r-vfib" class="btn-outline">K-Flimmern</button>
-                <button id="r-torsades" class="btn-outline">Torsades</button>
-                <button id="r-avb3" class="btn-outline">AV-Block III</button>
-                <button id="r-asystole" class="btn-outline">Asystolie</button>
-            </div>
+        <div id="center-content">
+            <canvas id="ecgCanvas"></canvas>
+            <canvas id="spo2Canvas"></canvas>
             
-            <button id="btn-open-12lead" style="background: #7000ff; margin-top: 12px; width: 100%; font-size: 15px; padding: 12px;">
-                🩻 12-KANAL EKG DRUCKEN
-            </button>
-
-            <!-- Direkt-Buttons zum Senden von BZ & Temp vom Controller -->
-            <div style="display: flex; gap: 8px; margin-top: 8px;">
-                <button id="btn-send-bz" style="background: #ffcc00; color: #000; flex: 1; font-size: 14px; padding: 10px;">
-                    🩸 BZ Senden
-                </button>
-                <button id="btn-send-temp" style="background: #dc3545; color: #fff; flex: 1; font-size: 14px; padding: 10px;">
-                    🌡️ Temp Senden
-                </button>
-            </div>
-
-            <button id="btn-hdm" class="sensor-btn" style="background: var(--secondary); margin-top: 8px;">HDM: INAKTIV</button>
-            <button id="btn-ecg" class="sensor-btn sensor-off" style="margin-top: 8px;">EKG KABEL: GETRENNT</button>
-            <button id="btn-defi" class="sensor-btn sensor-off" style="margin-top: 6px;">DEFI-ELEKTRODEN: GETRENNT</button>
-        </div>
-
-        <div class="control-panel border-ecg">
-            <h3>Herzfrequenz (HF)</h3>
-            <div class="stepper-container" style="margin-bottom: 0;">
-                <button id="btn-hr-m10" class="btn-small">-10</button>
-                <button id="btn-hr-m1">-</button>
-                <input type="number" id="hrInput" value="80">
-                <button id="btn-hr-p1">+</button>
-                <button id="btn-hr-p10" class="btn-small">+10</button>
+            <div id="nibp-center-area">
+                <div class="nibp-header-bar">
+                    <span>NIBP</span>
+                    <span style="font-size: 13px; color: #aaa;">mmHg</span>
+                </div>
+                <div class="nibp-body">
+                    <div class="nibp-value-container">
+                        <div class="nibp-main-val">
+                            <span id="sysDisplay">--</span>/<span id="diaDisplay">--</span>
+                        </div>
+                        <div class="nibp-sub-vals">
+                            <span>MAP: <strong id="mapDisplay" style="color:#fff;">--</strong></span>
+                            <span>PULS: <strong id="nibdPulseDisplay" style="color:#fff;">--</strong></span>
+                        </div>
+                    </div>
+                    
+                    <div class="nibp-history-container">
+                        <div class="history-header">MESS-VERLAUF</div>
+                        <div id="historyList" style="overflow-y: auto; flex-grow: 1;"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="control-panel border-spo2">
-            <h3>Saettigung (SpO2)</h3>
-            <div class="stepper-container">
-                <button id="btn-spo2-m5" class="btn-small">-5</button>
-                <button id="btn-spo2-m1">-</button>
-                <input type="number" id="spo2Input" value="98">
-                <button id="btn-spo2-p1">+</button>
-                <button id="btn-spo2-p5" class="btn-small">+5</button>
-            </div>
-            <div class="grid-3">
-                <button id="q-good" class="btn-outline active-quality">Gut</button>
-                <button id="q-medium" class="btn-outline">Mittel</button>
-                <button id="q-poor" class="btn-outline">Schlecht</button>
-            </div>
-            <button id="btn-spo2" class="sensor-btn sensor-off" style="margin-top: 10px;">SpO2 SENSOR: GETRENNT</button>
-        </div>
+        <div id="aed-panel">
+            <button id="btn-mute" onclick="toggleMute()" style="padding: 10px 6px; font-size: 13px; font-weight: bold; border-radius: 20px; border: none; cursor: pointer; width: 100%;">🔕 SOUND AN</button>
+            <hr style="width:100%; border: 1px solid #444; margin: 2px 0;">
+            <div id="cpr-timer">00:00</div>
+            <button id="btn-analyse" class="aed-btn" onclick="startAnalysis()">ANALYSE</button>
+            <button id="btn-shock" class="aed-btn" onclick="deliverShock()">SCHOCK</button>
+            <button id="btn-nibp-start" class="aed-btn" onclick="startMonitorNibd()">NIBP</button>
+            <button id="btn-12lead" class="aed-btn" onclick="trigger12LeadPrint()">12-KANAL</button>
 
-        <div class="control-panel border-co2">
-            <h3>Kapnografie (etCO2 / AF)</h3>
-            <div class="stepper-container" style="margin-bottom: 5px;">
-                <span style="font-weight: bold; margin-right: 4px;">CO2:</span>
-                <input type="number" id="co2Input" value="40"> mmHg
+            <!-- BZ & Temp Buttons -->
+            <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 15px;">
+                <button id="btn-bz" class="aed-btn" style="background-color: #ffcc00; color: #000;" onclick="triggerBzRequest()">BZ</button>
+                <button id="btn-temp" class="aed-btn" style="background-color: #dc3545; color: #fff;" onclick="triggerTempRequest()">Temp.</button>
             </div>
-            <div class="stepper-container" style="margin-bottom: 10px;">
-                <span style="font-weight: bold; margin-right: 12px;">AF:</span>
-                <input type="number" id="afInput" value="12"> / min
-            </div>
-            <button id="btn-co2" class="sensor-btn sensor-off">CO2 SENSOR: GETRENNT</button>
-        </div>
-
-        <div class="control-panel border-bp">
-            <h3>NIBP</h3>
-            <div class="stepper-container" style="margin-bottom: 10px;">
-                <span style="font-weight: bold; margin-right: 4px;">Sys:</span>
-                <input type="number" id="sysInput" value="120">&nbsp;
-                <span style="font-weight: bold; margin-right: 4px;">Dia:</span>
-                <input type="number" id="diaInput" value="80">
-            </div>
-            <button id="btn-nibd" class="sensor-btn sensor-off">MANSCHETTE: GETRENNT</button>
-        </div>
-
-        <div class="control-panel full-width log-container">
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <span style="font-weight: bold; color: #fff;">📋 EINSATZ-PROTOKOLL (LIVE):</span>
-                <button id="btn-clear-log" class="btn-small" style="background:#444; padding: 4px 8px; font-size:11px;">Log loeschen</button>
-            </div>
-            <div id="masterLogList" class="log-list">Warte auf Monitor-Aktivierung...</div>
         </div>
     </div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const currentRoom = urlParams.get('room') || 'SIM1';
-        document.getElementById("room-name-display").innerText = currentRoom;
 
-        let ws = null;
-        let pingInterval = null;
-        let sensors = { ecg: false, spo2: false, nibd: false, co2: false, defi: false };
-        let currentSpO2Quality = 'good';
-        let currentRhythm = 'nsr';
-        let isHDMActive = false;
-        let masterLog = [];
+        let ws = null; let pingInterval = null;
+        let baseHR = 80; let baseSpO2 = 98; let baseEtco2 = 40; let baseAF = 12;     
+        let currentHR = 80; let currentSpO2Display = 98; let currentEtco2Display = 40; 
+        let standbySys = "120"; let standbyDia = "80"; let isNibdConnected = false; 
+        let currentRhythm = 'nsr'; 
+        
+        let isEcgConnected = false; let isSpO2Connected = false; let isCo2Connected = false; let isDefiConnected = false; 
+        let isHDMActive = false; let spo2Quality = 'good'; let nibdHistory = []; let isAlarming = false;
+        
+        let ecgWarningActive = false; let nibdWarningActive = false; let defiWarningActive = false;
+        let ecgTimeout = null; let nibdTimeout = null; let defiTimeout = null;
+        let isAudioMuted = true; 
+        let audioCtx = null; let chargeOsc = null; let chargeGain = null; let quartIntervalTimer = null; let quartToggle = false;
+        let cprTimerInterval = null; let cprTimeLeft = 0; let isCurrentlyMeasuringNIBP = false;
 
-        let currentMeasureTitle = 'BLUTZUCKER';
-        let currentMeasureColor = '#ffcc00';
+        const canvasECG = document.getElementById("ecgCanvas"); const ctxECG = canvasECG.getContext("2d"); 
+        const canvasSpO2 = document.getElementById("spo2Canvas"); const ctxSpO2 = canvasSpO2.getContext("2d"); 
+        
+        let x = 0; let ecgFrameCounter = 0; let ecgComplexIndex = 0; let isDrawingECG = false; let lastYECG = canvasECG.height / 2; 
+        let spo2FrameCounter = 10; let spo2ComplexIndex = 0; let isDrawingSpO2 = false; let lastYSpO2 = canvasSpO2.height / 2; 
+        let cprFrameCounter = 0; let cprComplexIndex = 0; let isDrawingCPR = false;
+        let afibNextInterval = 40;
 
-        const rhythmIds = ['nsr', 'stemi', 'vt', 'svt', 'afib', 'vfib', 'torsades', 'avb3', 'asystole'];
+        const cprArtifactData = [0, 5, 12, 20, 28, 35, 25, 10, 0, -10, -20, -28, -35, -25, -10, 0];
+        const ecgData = [0,0,0, 1,2,3,2,1,0, 0,0,0,0, -2,-4, 15,30,15,0, -6,-10,-6,0, 0,0,0,0,0, 1,2,3,4,5,4,3,2,1,0, 0,0]; 
+        const stemiData = [0,0,0, 1,2,3,2,1,0, 0,0,0,0, -2,-4, 15,30,15, 10, 12,14,15,16,16,15,14,12,10,8,5,2,0, 0,0]; 
+        const afibData = [0,0,0,0,0,0,0,0,0, 0,0,0,0, -2,-4, 15,30,15,0, -6,-10,-6,0, 0,0,0,0,0, 1,2,3,4,5,4,3,2,1,0, 0,0];
+        const vtData = [0, -5, -15, -25, -30, -20, -5, 10, 25, 35, 40, 35, 20, 5, -10, -20, -10, 0];
+        const svtData = [0, -2,-5, 15,30,15, -5,-10,0, 2,4,6,4,2,0];
+        const avb3Data = [0,0, 1,2,3,2,1,0, 0,0,0,0, -5,-10, 5,15,20,15,5, -10,-20,-10,0, 0,0,0, -2,-4,-6,-4,-2,0, 0,0,0, 1,2,3,2,1,0];
+        
+        const spo2Waves = { 
+            'good': [0,0,0,0, 1,3,6,10,14,12,9,7,8,6,4,2,1,0,0], 
+            'medium': [0,0,0,0, 1,2,4,7,9,7,5,4,5,3,2,1,0,0,0], 
+            'poor': [0,0,0,0, 0,1,2,1,0,1,0,0,0,0,0,0,0,0,0] 
+        };
 
-        function setNetStatus(isOnline) {
-            const dot = document.getElementById("net-dot");
-            const text = document.getElementById("net-text");
-            if (isOnline) {
-                dot.className = "status-dot status-online";
-                text.innerText = "ONLINE";
-            } else {
-                dot.className = "status-dot status-offline";
-                text.innerText = "OFFLINE";
-            }
+        function resize() { 
+            canvasECG.width = canvasECG.clientWidth; canvasECG.height = canvasECG.clientHeight; 
+            canvasSpO2.width = canvasSpO2.clientWidth; canvasSpO2.height = canvasSpO2.clientHeight; 
         }
+        resize();
+        window.addEventListener('resize', resize);
 
         function connectWebSocket() {
             ws = new WebSocket("wss://ekg-simulator.onrender.com");
 
             ws.onopen = () => { 
-                setNetStatus(true);
                 ws.send(JSON.stringify({ type: "join_room", room: currentRoom }));
-                sendVitals();
-                
                 clearInterval(pingInterval);
                 pingInterval = setInterval(() => {
                     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -410,318 +418,351 @@
                 }, 15000);
             };
 
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data); 
                 if (data.type === "pong") return;
-
-                const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
                 
-                if (data.type === "12lead_requested") {
-                    openEkgModal();
-                    addLogEntry(`[${time}] - 🩻 12-Kanal EKG vom Monitor angefordert!`);
+                if (data.type === "audio_control") { 
+                    if (data.action === "alarms_on") isAudioMuted = false; 
+                    if (data.action === "alarms_off") isAudioMuted = true; 
+                } 
+                else if (data.type === "command" && data.action === "clear_nibd") { 
+                    document.getElementById("sysDisplay").innerText = "--"; 
+                    document.getElementById("diaDisplay").innerText = "--"; 
+                    document.getElementById("mapDisplay").innerText = "--"; 
+                    document.getElementById("nibdPulseDisplay").innerText = "--"; 
+                    nibdHistory = []; updateHistoryDisplay(); 
+                } 
+                else if (data.type === "nibd_started") { triggerLocalNibdStart(); }
+                else if (data.type === "nibd_finished") {
+                    if (data.sys !== undefined) { triggerLocalNibdFinish(data.sys, data.dia, data.map, data.pulse, data.timestamp); }
+                }
+                else if (data.type === "analysis_started_sync") { startAnalysis(true); }
+                else if (data.type === "shock_delivered_sync") { deliverShock(true); }
+                else if (data.type === "12lead_show") { 
+                    showEkgImage(data.image || "ekg_sinus.png"); 
+                }
+                else if (data.type === "12lead_close") { 
+                    closeEkgImage(true); 
                 }
                 else if (data.type === "bz_requested") {
-                    openMeasureValModal("BLUTZUCKER", "100 mg/dl", "#ffcc00");
-                    addLogEntry(`[${time}] - 🩸 BZ-Messung vom Monitor angefordert!`);
+                    showInfoBanner("🩸 BZ-Messung angefordert ...");
                 }
                 else if (data.type === "temp_requested") {
-                    openMeasureValModal("TEMPERATUR", "36.9 °C", "#dc3545");
-                    addLogEntry(`[${time}] - 🌡️ Temperaturmessung vom Monitor angefordert!`);
+                    showInfoBanner("🌡️ Temperaturmessung angefordert ...");
                 }
-                else if (data.type === "cpr_timer_update") {
-                    const timerPanel = document.getElementById("timer-panel");
-                    if (data.timeLeft > 0) {
-                        timerPanel.style.display = "flex";
-                        updateTrainerTimer(data.timeLeft);
-                    } else {
-                        timerPanel.style.display = "none";
-                    }
+                else if (data.type === "value_show") {
+                    showValueOverlay(data.title, data.value, data.color);
                 }
-                else if (data.type === "monitor_initialized") {
-                    addLogEntry(`[${time}] - 💻 Monitor eingeschaltet`);
+                else if (data.type === "value_close") {
+                    closeValueOverlay(true);
                 }
-                else if (data.type === "analysis_started") {
-                    addLogEntry(`[${time}] - 🔍 AED Analyse gestartet`);
-                }
-                else if (data.type === "shock_delivered") {
-                    document.getElementById("shock-prompt-card").style.display = "block";
-                    addLogEntry(`[${time}] - ⚡ Schock abgegeben`);
-                }
-                else if (data.type === "nibd_finished") {
-                    const nibdAlert = document.getElementById("nibd-alert");
-                    nibdAlert.style.display = "block";
-                    setTimeout(() => { nibdAlert.style.display = "none"; }, 8000);
-                    addLogEntry(`[${time}] - 🩺 NIBP-Messung beendet (${data.val} mmHg)`);
-                }
-                else if (data.type === "ekg_12_printed") {
-                    addLogEntry(`[${time}] - 🩻 12-Kanal-EKG gedruckt`);
+                else if (data.type === "vital_update") {
+                    baseHR = parseInt(data.heartRate); baseSpO2 = parseInt(data.spo2); baseEtco2 = parseInt(data.etco2); baseAF = parseInt(data.af); standbySys = data.sys; standbyDia = data.dia; isNibdConnected = data.sensors.nibd; isHDMActive = data.isHDMActive; isEcgConnected = data.sensors.ecg; isSpO2Connected = data.sensors.spo2; isCo2Connected = data.sensors.co2; isDefiConnected = data.sensors.defi; 
+                    if (isEcgConnected) { ecgWarningActive = false; clearTimeout(ecgTimeout); } if (isNibdConnected) { nibdWarningActive = false; clearTimeout(nibdTimeout); } if (isDefiConnected) { defiWarningActive = false; clearTimeout(defiTimeout); }
+                    if (!isNibdConnected && !isCurrentlyMeasuringNIBP) { document.getElementById("sysDisplay").innerText = "--"; document.getElementById("diaDisplay").innerText = "--"; document.getElementById("mapDisplay").innerText = "--"; document.getElementById("nibdPulseDisplay").innerText = "--"; }
+                    if (data.rhythm === 'nsr' || data.rhythm === 'stemi') { forceStopCprTimer(); resetAED(); } currentRhythm = data.rhythm || 'nsr'; spo2Quality = data.spo2Quality; fluctuateVitals(); 
                 }
             };
 
-            ws.onclose = () => {
-                setNetStatus(false);
-                clearInterval(pingInterval);
-                setTimeout(connectWebSocket, 3000);
-            };
+            ws.onclose = () => { clearInterval(pingInterval); setTimeout(connectWebSocket, 3000); };
         }
-
         connectWebSocket();
 
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('btn-open-12lead').addEventListener('click', openEkgModal);
-            document.getElementById('btn-modal-close').addEventListener('click', closeEkgModal);
-            document.getElementById('ekg-overlay').addEventListener('click', closeEkgModal);
+        function initMonitor() { document.getElementById("startOverlay").style.display = "none"; const AudioContext = window.AudioContext || window.webkitAudioContext; audioCtx = new AudioContext(); setTimeout(function() { if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "monitor_initialized" })); } }, 500); }
+        function updateTopClock() { const now = new Date(); document.getElementById("top-clock").innerText = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false }); }
+        updateTopClock(); setInterval(updateTopClock, 1000);
 
-            document.getElementById('btn-send-bz').addEventListener('click', () => openMeasureValModal("BLUTZUCKER", "100 mg/dl", "#ffcc00"));
-            document.getElementById('btn-send-temp').addEventListener('click', () => openMeasureValModal("TEMPERATUR", "36.9 °C", "#dc3545"));
-
-            document.getElementById('btn-modal-sinus').addEventListener('click', () => confirmEkgSelection('ekg_sinus.png'));
-            document.getElementById('btn-modal-rbbb').addEventListener('click', () => confirmEkgSelection('ekg_rbbb.png'));
-            document.getElementById('btn-modal-lbbb').addEventListener('click', () => confirmEkgSelection('ekg_lbbb.png'));
-
-            document.getElementById('btn-confirm-measure').addEventListener('click', confirmMeasureValue);
-            document.getElementById('btn-cancel-measure').addEventListener('click', closeMeasureValModal);
-            document.getElementById('measure-val-overlay').addEventListener('click', closeMeasureValModal);
-
-            document.getElementById('btn-shock-nsr').addEventListener('click', () => selectShockRhythm('nsr'));
-            document.getElementById('btn-shock-vfib').addEventListener('click', () => selectShockRhythm('vfib'));
-            document.getElementById('btn-shock-asy').addEventListener('click', () => selectShockRhythm('asystole'));
-
-            document.getElementById('btn-sound-on').addEventListener('click', () => sendAudioCommand('alarms_on'));
-            document.getElementById('btn-sound-off').addEventListener('click', () => sendAudioCommand('alarms_off'));
-
-            rhythmIds.forEach(id => {
-                const btn = document.getElementById('r-' + id);
-                if (btn) btn.addEventListener('click', () => setRhythm(id));
-            });
-
-            document.getElementById('btn-hdm').addEventListener('click', toggleHDM);
-            document.getElementById('btn-ecg').addEventListener('click', () => toggleSensor('ecg'));
-            document.getElementById('btn-defi').addEventListener('click', () => toggleSensor('defi'));
-            document.getElementById('btn-spo2').addEventListener('click', () => toggleSensor('spo2'));
-            document.getElementById('btn-co2').addEventListener('click', () => toggleSensor('co2'));
-            document.getElementById('btn-nibd').addEventListener('click', () => toggleSensor('nibd'));
-
-            document.getElementById('btn-hr-m10').addEventListener('click', () => changeValue('hrInput', -10, 0, 300));
-            document.getElementById('btn-hr-m1').addEventListener('click', () => changeValue('hrInput', -1, 0, 300));
-            document.getElementById('btn-hr-p1').addEventListener('click', () => changeValue('hrInput', 1, 0, 300));
-            document.getElementById('btn-hr-p10').addEventListener('click', () => changeValue('hrInput', 10, 0, 300));
-
-            document.getElementById('btn-spo2-m5').addEventListener('click', () => changeValue('spo2Input', -5, 0, 100));
-            document.getElementById('btn-spo2-m1').addEventListener('click', () => changeValue('spo2Input', -1, 0, 100));
-            document.getElementById('btn-spo2-p1').addEventListener('click', () => changeValue('spo2Input', 1, 0, 100));
-            document.getElementById('btn-spo2-p5').addEventListener('click', () => changeValue('spo2Input', 5, 0, 100));
-
-            document.getElementById('q-good').addEventListener('click', () => setSpO2Quality('good'));
-            document.getElementById('q-medium').addEventListener('click', () => setSpO2Quality('medium'));
-            document.getElementById('q-poor').addEventListener('click', () => setSpO2Quality('poor'));
-
-            document.getElementById('hrInput').addEventListener('change', sendVitals);
-            document.getElementById('spo2Input').addEventListener('change', sendVitals);
-            document.getElementById('co2Input').addEventListener('change', sendVitals);
-            document.getElementById('afInput').addEventListener('change', sendVitals);
-            document.getElementById('sysInput').addEventListener('change', sendVitals);
-            document.getElementById('diaInput').addEventListener('change', sendVitals);
-
-            document.getElementById('btn-clear-log').addEventListener('click', clearLog);
-        });
-
-        function openEkgModal() {
-            document.getElementById("ekg-overlay").style.display = "flex";
+        function updateWarningBanner() {
+            const banner = document.getElementById("warning-area");
+            let activeWarnings = [];
+            if (ecgWarningActive) activeWarnings.push("EKG-Kabel pruefen");
+            if (nibdWarningActive) activeWarnings.push("RR-Manschette pruefen");
+            if (defiWarningActive) activeWarnings.push("Defi-Elektroden pruefen");
+            if (activeWarnings.length > 0) { banner.style.display = "block"; banner.innerText = "⚠️ " + activeWarnings.join("  |  ").toUpperCase(); } else { banner.style.display = "none"; }
         }
 
-        function closeEkgModal() {
-            document.getElementById("ekg-overlay").style.display = "none";
+        function showInfoBanner(text) {
+            const infoBanner = document.getElementById("info-area"); 
+            infoBanner.innerText = text;
+            infoBanner.style.display = "block"; 
+            clearTimeout(window.infoBannerTimeout);
+            window.infoBannerTimeout = setTimeout(() => { infoBanner.style.display = "none"; }, 10000);
         }
 
-        function confirmEkgSelection(imageFilename) {
-            closeEkgModal();
-            const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
-
+        function triggerBzRequest() {
+            showInfoBanner("🩸 BZ-Messung angefordert ...");
             if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ 
-                    type: "12lead_show", 
-                    image: imageFilename 
-                }));
-                ws.send(JSON.stringify({ type: "ekg_12_printed" }));
-                addLogEntry(`[${time}] - 🩻 12-Kanal EKG freigegeben (${imageFilename})`);
-            } else {
-                addLogEntry(`[${time}] - ⚠️ FEHLER: Keine Netzverbindung!`);
+                ws.send(JSON.stringify({ type: "bz_requested" }));
             }
         }
 
-        function openMeasureValModal(title, defaultVal, color) {
-            currentMeasureTitle = title;
-            currentMeasureColor = color;
-            const titleElem = document.getElementById("measure-modal-title");
-            titleElem.innerText = (title === "BLUTZUCKER" ? "🩸 " : "🌡️ ") + title + " anpassen";
-            titleElem.style.color = color;
-            document.getElementById("measure-val-screen").style.borderColor = color;
-            document.getElementById("measureValInput").value = defaultVal;
-            document.getElementById("measure-val-overlay").style.display = "flex";
-        }
-
-        function closeMeasureValModal() {
-            document.getElementById("measure-val-overlay").style.display = "none";
-        }
-
-        function confirmMeasureValue() {
-            const val = document.getElementById("measureValInput").value;
-            closeMeasureValModal();
-            const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
-
+        function triggerTempRequest() {
+            showInfoBanner("🌡️ Temperaturmessung angefordert ...");
             if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ 
-                    type: "value_show", 
-                    title: currentMeasureTitle,
-                    value: val,
-                    color: currentMeasureColor
-                }));
-                addLogEntry(`[${time}] - Messwert freigegeben: ${currentMeasureTitle} = ${val}`);
-            } else {
-                addLogEntry(`[${time}] - ⚠️ FEHLER: Keine Netzverbindung!`);
+                ws.send(JSON.stringify({ type: "temp_requested" }));
             }
         }
 
-        function selectShockRhythm(rhythm) {
-            document.getElementById("shock-prompt-card").style.display = "none";
-            setRhythm(rhythm);
+        function showValueOverlay(title, val, color) {
+            clearTimeout(window.infoBannerTimeout);
+            document.getElementById("info-area").style.display = "none";
+            document.getElementById("value-card-title").innerText = title;
+            document.getElementById("value-card-val").innerText = val;
+            document.getElementById("value-card-container").style.borderColor = color || "#ffaa00";
+            document.getElementById("value-overlay").style.display = "flex";
         }
 
-        function toggleHDM() {
-            isHDMActive = !isHDMActive;
-            const btn = document.getElementById("btn-hdm");
-            const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
-            
-            if (isHDMActive) {
-                btn.style.background = "var(--warning)";
-                btn.style.color = "#000";
-                btn.innerText = "HDM: LAEUFT (EFFEKT AKTIV)";
-                addLogEntry(`[${time}] - 🫁 Herzdruckmassage gestartet`);
-            } else {
-                btn.style.background = "var(--secondary)";
-                btn.style.color = "white";
-                btn.innerText = "HDM: INAKTIV";
-                addLogEntry(`[${time}] - 🫁 Herzdruckmassage gestoppt`);
+        function closeValueOverlay(fromNetwork = false) {
+            document.getElementById("value-overlay").style.display = "none";
+            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "value_close" }));
             }
-            sendVitals();
         }
 
-        function updateTrainerTimer(seconds) {
-            const timerDiv = document.getElementById("trainer-cpr-timer");
-            const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-            const secs = (seconds % 60).toString().padStart(2, '0');
+        function updateTimerDisplay() {
+            const timerDiv = document.getElementById("cpr-timer");
+            if (cprTimeLeft <= 0) { timerDiv.innerText = "00:00"; timerDiv.style.display = "none"; return; }
+            timerDiv.style.display = "block"; 
+            const mins = Math.floor(cprTimeLeft / 60).toString().padStart(2, '0'); const secs = (cprTimeLeft % 60).toString().padStart(2, '0');
             timerDiv.innerText = `${mins}:${secs}`;
-            if (seconds <= 15) timerDiv.style.color = "var(--danger)";
-            else timerDiv.style.color = "var(--success)";
+            if (cprTimeLeft <= 15) { timerDiv.style.color = "#dc3545"; } else { timerDiv.style.color = "#00ff00"; }
         }
 
-        function sendAudioCommand(status) {
-            if (status === 'alarms_on') {
-                document.getElementById('btn-sound-on').style.background = 'var(--success)';
-                document.getElementById('btn-sound-off').style.background = 'var(--secondary)';
-            } else {
-                document.getElementById('btn-sound-on').style.background = 'var(--secondary)';
-                document.getElementById('btn-sound-off').style.background = 'var(--danger)';
+        function startCprTimer() { clearInterval(cprTimerInterval); cprTimeLeft = 120; updateTimerDisplay(); sendTimerToTrainer(); cprTimerInterval = setInterval(function() { cprTimeLeft--; updateTimerDisplay(); sendTimerToTrainer(); if (cprTimeLeft <= 0) { clearInterval(cprTimerInterval); sendTimerToTrainer(); startAnalysis(); } }, 1000); }
+        function forceStopCprTimer() { clearInterval(cprTimerInterval); cprTimeLeft = 0; updateTimerDisplay(); sendTimerToTrainer(); }
+        function sendTimerToTrainer() { if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "cpr_timer_update", timeLeft: cprTimeLeft })); } }
+
+        function updateHistoryDisplay() {
+            const listDiv = document.getElementById("historyList");
+            if (nibdHistory.length > 5) { nibdHistory = nibdHistory.slice(0, 5); }
+            if (nibdHistory.length === 0) { listDiv.innerHTML = "<div style='color:#555; font-size:15px; padding-top:6px;'>Keine Messungen</div>"; } else { listDiv.innerHTML = nibdHistory.map(function(entry) { return '<div style="display:flex; justify-content:space-between; color:#47d670; font-size: 19px; font-weight: bold; padding: 4px 0; border-bottom: 1px solid #1a1a1a;">' + entry + '</div>'; }).join(""); }
+        }
+
+        function triggerLocalNibdStart() {
+            nibdWarningActive = false; updateWarningBanner(); isCurrentlyMeasuringNIBP = true;
+            const btn = document.getElementById("btn-nibp-start"); btn.classList.add("nibd-measuring"); btn.innerText = "MESSUNG..."; btn.style.pointerEvents = "none";
+            document.getElementById("sysDisplay").innerText = "---"; document.getElementById("diaDisplay").innerText = "---";
+        }
+
+        function triggerLocalNibdFinish(sys, dia, map, pulse, timestamp) {
+            nibdHistory.unshift('<span>' + timestamp + '</span><span style="color:#fff;">' + sys + '/' + dia + '</span><span style="color:#aaa; font-size:16px;">(' + map + ')</span>');
+            document.getElementById("sysDisplay").innerText = sys; document.getElementById("diaDisplay").innerText = dia; document.getElementById("mapDisplay").innerText = map; document.getElementById("nibdPulseDisplay").innerText = pulse;
+            updateHistoryDisplay(); 
+            const btn = document.getElementById("btn-nibp-start"); btn.classList.remove("nibd-measuring"); btn.innerText = "NIBP"; btn.style.pointerEvents = "auto"; isCurrentlyMeasuringNIBP = false;
+        }
+
+        function startMonitorNibd() {
+            if (isCurrentlyMeasuringNIBP) return; 
+            if (!isNibdConnected) { nibdWarningActive = true; updateWarningBanner(); clearTimeout(nibdTimeout); nibdTimeout = setTimeout(function() { nibdWarningActive = false; updateWarningBanner(); }, 5000); return; }
+            if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "nibd_started" })); }
+            triggerLocalNibdStart();
+            setTimeout(function() {
+                const sys = parseInt(standbySys); const dia = parseInt(standbyDia); const map = Math.round((sys + 2 * dia) / 3); const pulse = (currentRhythm === 'vfib' || currentRhythm === 'asystole') ? '--' : currentHR; const now = new Date(); const timestamp = now.toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', hour12: false});
+                triggerLocalNibdFinish(sys, dia, map, pulse, timestamp);
+                if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "nibd_finished", val: sys + '/' + dia, sys: sys, dia: dia, map: map, pulse: pulse, timestamp: timestamp })); }
+            }, 30000); 
+        }
+
+        function toggleMute() { isAudioMuted = !isAudioMuted; const btn = document.getElementById("btn-mute"); if (isAudioMuted) { btn.style.background = "#dc3545"; btn.innerText = "🔊 SOUND AUS"; } else { btn.style.background = "#444"; btn.innerText = "🔕 SOUND AN"; } }
+        function playChargingTone(duration) { if (!audioCtx) return; chargeOsc = audioCtx.createOscillator(); chargeGain = audioCtx.createGain(); chargeOsc.type = 'sine'; chargeOsc.frequency.setValueAtTime(440, audioCtx.currentTime); chargeOsc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + duration); chargeOsc.connect(chargeGain); chargeGain.connect(audioCtx.destination); chargeGain.gain.setValueAtTime(0.2, audioCtx.currentTime); chargeOsc.start(audioCtx.currentTime); }
+        function playFinalBeep() { if (!audioCtx) return; const beepOsc = audioCtx.createOscillator(); const beepGain = audioCtx.createGain(); beepOsc.type = 'sine'; beepOsc.frequency.setValueAtTime(880, audioCtx.currentTime); beepGain.gain.setValueAtTime(0.4, audioCtx.currentTime); beepGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15); beepOsc.start(audioCtx.currentTime); beepOsc.stop(audioCtx.currentTime + 0.15); }
+
+        function trigger12LeadPrint() {
+            if (!isEcgConnected) { ecgWarningActive = true; updateWarningBanner(); clearTimeout(ecgTimeout); ecgTimeout = setTimeout(function() { ecgWarningActive = false; updateWarningBanner(); }, 5000); return; }
+            ecgWarningActive = false; updateWarningBanner();
+
+            if (audioCtx && !isAudioMuted) { 
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); 
+                osc.type = 'sawtooth'; osc.frequency.value = 120; osc.connect(gain); gain.connect(audioCtx.destination); 
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 1.5); 
             }
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: "audio_control", action: status }));
+
+            showInfoBanner("🩻 12-Kanal-EKG wird angefordert ...");
+
+            if (ws && ws.readyState === WebSocket.OPEN) { 
+                ws.send(JSON.stringify({ type: "12lead_requested" })); 
             }
         }
 
-        function addLogEntry(text) {
-            masterLog.unshift(text);
-            updateLogDisplay();
+        function showEkgImage(imageFile) {
+            clearTimeout(window.infoBannerTimeout);
+            document.getElementById("info-area").style.display = "none";
+            document.getElementById("ekg-image").src = imageFile;
+            document.getElementById("ekg-image-overlay").style.display = "flex";
         }
 
-        function clearLog() {
-            masterLog = [];
-            updateLogDisplay();
+        function closeEkgImage(fromNetwork = false) {
+            document.getElementById("ekg-image-overlay").style.display = "none";
+            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "12lead_close" }));
+            }
         }
 
-        function updateLogDisplay() {
-            const logDiv = document.getElementById("masterLogList");
-            if (masterLog.length === 0) logDiv.innerHTML = "Keine Eintraege dokumentiert";
-            else logDiv.innerHTML = masterLog.map(entry => `<div class="log-entry">${entry}</div>`).join("");
-        }
+        function startQuartAlert() { if (!audioCtx) return; quartIntervalTimer = setInterval(function() { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sine'; osc.frequency.value = quartToggle ? 440 : 587.33; quartToggle = !quartToggle; osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.setValueAtTime(0.4, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.22); osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.22); }, 250); }
+        function stopChargingAndAlerts() { if (chargeOsc) { try { chargeOsc.stop(); } catch(e) {} chargeOsc = null; } if (quartIntervalTimer) { clearInterval(quartIntervalTimer); quartIntervalTimer = null; } }
+        function playShockSound() { if (!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sawtooth'; osc.frequency.value = 150; osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.4); osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.setValueAtTime(1, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4); osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.4); }
 
-        function setRhythm(rhythm) {
-            currentRhythm = rhythm;
-            rhythmIds.forEach(id => {
-                const btn = document.getElementById("r-" + id);
-                if (btn) {
-                    btn.className = "btn-outline";
-                    btn.style.background = "white";
-                    btn.style.color = "#333";
-                    btn.style.borderColor = "#ccc";
-                }
-            });
+        function startAnalysis(fromNetwork = false) {
+            const btnAnalyse = document.getElementById("btn-analyse");
+            if (!fromNetwork && !isDefiConnected) { defiWarningActive = true; updateWarningBanner(); clearTimeout(defiTimeout); defiTimeout = setTimeout(function() { defiWarningActive = false; updateWarningBanner(); }, 5000); return; }
+            defiWarningActive = false; updateWarningBanner(); forceStopCprTimer();
+
+            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "analysis_started_sync" })); ws.send(JSON.stringify({ type: "analysis_started" })); }
+            btnAnalyse.classList.add("analyse-measuring"); btnAnalyse.innerText = "ANALYSE..."; btnAnalyse.style.pointerEvents = "none";
             
-            const activeBtn = document.getElementById("r-" + rhythm);
-            if (activeBtn) {
-                activeBtn.classList.add("active-rhythm");
-                if (rhythm === 'nsr') {
-                    activeBtn.style.background = "var(--success)";
-                    activeBtn.style.borderColor = "var(--success)";
-                    activeBtn.style.color = "#fff";
+            setTimeout(function() {
+                btnAnalyse.classList.remove("analyse-measuring");
+                const overlay = document.getElementById("defib-overlay"); const announceState = document.getElementById("announcement-state"); const announceText = document.getElementById("announcement-text"); const loadState = document.getElementById("loading-state"); const rdyState = document.getElementById("ready-state"); const fill = document.getElementById("progress-fill");
+                overlay.style.display = "flex"; announceState.style.display = "flex"; loadState.style.display = "none"; rdyState.style.display = "none";
+                
+                if (currentRhythm === 'vfib' || currentRhythm === 'vt' || currentRhythm === 'torsades') {
+                    btnAnalyse.style.background = "#6c757d"; btnAnalyse.style.color = "#fff"; btnAnalyse.innerText = "LADEN...";
+                    announceText.innerText = "Schock empfohlen"; announceText.style.color = "#dc3545"; 
+                    setTimeout(function() {
+                        announceState.style.display = "none"; loadState.style.display = "flex"; fill.style.width = "0%";
+                        playChargingTone(3); 
+                        let elapsed = 0; const duration = 3000;
+                        const chargeInterval = setInterval(function() {
+                            elapsed += 50; fill.style.width = ((elapsed / duration) * 100) + "%";
+                            if (elapsed >= duration) {
+                                clearInterval(chargeInterval); stopChargingAndAlerts(); playFinalBeep();
+                                loadState.style.display = "none"; rdyState.style.display = "flex";
+                                btnAnalyse.innerText = "BEREIT"; document.getElementById('btn-shock').classList.add('shock-ready'); startQuartAlert();
+                            }
+                        }, 50);
+                    }, 2000);
                 } else {
-                    activeBtn.style.background = "var(--danger)";
-                    activeBtn.style.borderColor = "var(--danger)";
-                    activeBtn.style.color = "#fff";
+                    btnAnalyse.style.background = "#28a745"; btnAnalyse.style.color = "#fff"; btnAnalyse.innerText = "KEIN SCHOCK";
+                    announceText.innerText = "Kein Schock empfohlen"; announceText.style.color = "#28a745"; 
+                    setTimeout(function() { resetAED(); startCprTimer(); }, 4000);
                 }
-            }
-            sendVitals();
+            }, 4000);
         }
 
-        function toggleSensor(sensorType) {
-            sensors[sensorType] = !sensors[sensorType];
-            const btn = document.getElementById("btn-" + sensorType);
-            btn.className = sensors[sensorType] ? "sensor-btn sensor-on" : "sensor-btn sensor-off";
+        function deliverShock(fromNetwork = false) {
+            stopChargingAndAlerts(); document.getElementById('btn-shock').classList.remove('shock-ready'); document.getElementById("defib-overlay").style.display = "none"; playShockSound();
+            const flash = document.getElementById('flash-overlay'); flash.style.display = 'block'; flash.style.opacity = '1';
+            setTimeout(function() { flash.style.opacity = '0'; setTimeout(() => { flash.style.display = 'none'; }, 200); }, 100);
+            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "shock_delivered_sync" })); ws.send(JSON.stringify({ type: "shock_delivered" })); }
+            setTimeout(function() { resetAED(); startCprTimer(); }, 3000);
+        }
+
+        function resetAED() { stopChargingAndAlerts(); document.getElementById("defib-overlay").style.display = "none"; document.getElementById('btn-shock').classList.remove('shock-ready'); const btnAnalyse = document.getElementById("btn-analyse"); btnAnalyse.style.background = "#ffcc00"; btnAnalyse.style.color = "#000"; btnAnalyse.innerText = "ANALYSE"; btnAnalyse.style.pointerEvents = "auto"; btnAnalyse.style.opacity = "1"; }
+        function playHeartbeatTone() { if (!audioCtx || isAudioMuted) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sine'; osc.frequency.value = 600; osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.setValueAtTime(0.5, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1); osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.1); }
+        function playAlarmTone() { if (!audioCtx || !isAlarming || isAudioMuted) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'square'; osc.frequency.value = 800; osc.connect(gain); gain.connect(audioCtx.destination); gain.gain.setValueAtTime(0.8, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.4); osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.4); }
+
+        function checkAlarms(hr, spo2) {
+            let alarm = false; const isNonSinus = ['vfib', 'asystole', 'vt', 'torsades'].includes(currentRhythm);
+            if ((isEcgConnected || isDefiConnected || isSpO2Connected) && (isNonSinus || hr < 50 || hr > 130)) { document.getElementById("box-hr").classList.add("alarm-active"); alarm = true; } else { document.getElementById("box-hr").classList.remove("alarm-active"); }
+            if (isSpO2Connected && (isNonSinus || spo2 < 90)) { document.getElementById("box-spo2").classList.add("alarm-active"); alarm = true; } else { document.getElementById("box-spo2").classList.remove("alarm-active"); }
+            isAlarming = alarm;
+        }
+
+        function fluctuateVitals() {
+            if (currentRhythm === 'vfib' || currentRhythm === 'torsades') { currentHR = Math.floor(Math.random() * (260 - 150 + 1)) + 150; 
+            } else if (currentRhythm === 'vt') { currentHR = Math.floor(Math.random() * (180 - 140 + 1)) + 140;
+            } else if (currentRhythm === 'svt') { currentHR = Math.floor(Math.random() * (220 - 180 + 1)) + 180;
+            } else if (currentRhythm === 'avb3') { currentHR = Math.floor(Math.random() * (38 - 28 + 1)) + 28;
+            } else if (baseHR > 0) { currentHR = baseHR + Math.floor(Math.random() * 5) - 2; 
+            } else { currentHR = 0; }
+
+            const isValidPulseRhythm = ['nsr', 'stemi', 'svt', 'afib', 'avb3'].includes(currentRhythm);
+            if (baseSpO2 > 0 && isValidPulseRhythm) { currentSpO2Display = Math.min(100, Math.max(0, baseSpO2 + Math.floor(Math.random() * 3) - 1)); } else { currentSpO2Display = 0; }
+
+            if (currentRhythm === 'vfib' || currentRhythm === 'asystole' || currentRhythm === 'torsades') { currentEtco2Display = isHDMActive ? (18 + Math.floor(Math.random() * 3) - 1) : (4 + Math.floor(Math.random() * 2)); } else if (baseEtco2 > 0) { currentEtco2Display = Math.max(0, baseEtco2 + Math.floor(Math.random() * 3) - 1); } else { currentEtco2Display = 0; }
+            updateUI();
+        }
+
+        setInterval(fluctuateVitals, 2500);
+
+        function updateUI() {
+            if (!canvasECG) return;
+            const hrBox = document.getElementById("box-hr"); const hrValue = document.getElementById("hrDisplay"); const spo2Value = document.getElementById("spo2Display"); hrBox.classList.remove("ecg-color", "spo2-color");
+            if (isEcgConnected || isDefiConnected) { 
+                if (currentRhythm === 'asystole') hrValue.innerText = "ASY"; else hrValue.innerText = currentHR; hrBox.classList.add("ecg-color"); 
+            } else if (isSpO2Connected) { 
+                if (['vfib', 'asystole', 'vt', 'torsades'].includes(currentRhythm)) hrValue.innerText = "--"; else hrValue.innerText = currentHR; hrBox.classList.add("spo2-color"); 
+            } else { hrValue.innerText = "--"; hrBox.classList.add("ecg-color"); }
             
-            let label = sensorType.toUpperCase();
-            if(sensorType === 'ecg') label = "EKG KABEL";
-            if(sensorType === 'spo2') label = "SpO2 SENSOR";
-            if(sensorType === 'co2') label = "CO2 SENSOR";
-            if(sensorType === 'nibd') label = "MANSCHETTE";
-            if(sensorType === 'defi') label = "DEFI-ELEKTRODEN";
-
-            btn.innerText = sensors[sensorType] ? label + ": ANGESCHLOSSEN" : label + ": GETRENNT";
-            sendVitals();
+            if (isSpO2Connected) { spo2Value.innerText = ['nsr', 'stemi', 'svt', 'afib', 'avb3'].includes(currentRhythm) ? currentSpO2Display : "--"; } else { spo2Value.innerText = "--"; }
+            if (isCo2Connected) { document.getElementById("co2Display").innerText = currentEtco2Display; document.getElementById("afDisplay").innerText = baseAF; } else { document.getElementById("co2Display").innerText = "--"; document.getElementById("afDisplay").innerText = "--"; }
+            updateWarningBanner(); checkAlarms(currentHR, currentSpO2Display);
         }
 
-        function setSpO2Quality(quality) {
-            currentSpO2Quality = quality;
-            document.getElementById("q-good").classList.remove("active-quality");
-            document.getElementById("q-medium").classList.remove("active-quality");
-            document.getElementById("q-poor").classList.remove("active-quality");
-            document.getElementById("q-" + quality).classList.add("active-quality");
-            sendVitals();
-        }
+        function drawWaveforms() {
+            if (!canvasECG) return;
+            const safeHR = currentHR > 0 ? currentHR : 60; const framesPerBeat = (60 / safeHR) * 60; const baseECG = canvasECG.height / 2; const baseSpO2 = canvasSpO2.height / 2;
+            ctxECG.clearRect(x, 0, 25, canvasECG.height); ctxSpO2.clearRect(x, 0, 25, canvasSpO2.height); let yECG = baseECG; let ySpO2 = baseSpO2;
 
-        function changeValue(inputId, amount, min, max) {
-            const input = document.getElementById(inputId);
-            let val = parseInt(input.value) + amount;
-            input.value = Math.min(max, Math.max(min, val));
-            sendVitals();
-        }
+            if (currentRhythm === 'vfib') { 
+                yECG = baseECG - (Math.sin(x * 0.1) * 12 + Math.sin(x * 0.05) * 8 + (Math.random() * 6 - 3)); 
+            } else if (currentRhythm === 'torsades') {
+                let modulation = Math.sin(x * 0.03);
+                yECG = baseECG - (Math.sin(x * 0.2) * 18 * modulation + (Math.random() * 4 - 2));
+            } else if (currentRhythm === 'asystole') { 
+                yECG = baseECG + (Math.random() * 1.5 - 0.75); 
+            } else if (currentRhythm === 'afib') {
+                yECG = baseECG + (Math.random() * 4 - 2) + Math.sin(x * 0.1) * 3;
+                ecgFrameCounter++;
+                if (ecgFrameCounter >= afibNextInterval && !isDrawingECG) {
+                    isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0;
+                    afibNextInterval = Math.floor(Math.random() * (framesPerBeat * 0.8)) + (framesPerBeat * 0.6);
+                    if ((isEcgConnected || isDefiConnected || isSpO2Connected) && !isAudioMuted) playHeartbeatTone();
+                }
+                if (isDrawingECG) {
+                    if (ecgComplexIndex < afibData.length) yECG = baseECG - (afibData[ecgComplexIndex] * 3);
+                    ecgComplexIndex++;
+                    if (ecgComplexIndex >= afibData.length) isDrawingECG = false;
+                }
+            } else { 
+                ecgFrameCounter++; 
+                if (currentHR > 0 && ecgFrameCounter >= framesPerBeat && !isDrawingECG) { 
+                    isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0; 
+                    if ((isEcgConnected || isDefiConnected || isSpO2Connected) && !isAudioMuted) { playHeartbeatTone(); } 
+                } 
+                if (isDrawingECG) { 
+                    let activeArray = ecgData;
+                    if (currentRhythm === 'stemi') activeArray = stemiData;
+                    else if (currentRhythm === 'vt') activeArray = vtData;
+                    else if (currentRhythm === 'svt') activeArray = svtData;
+                    else if (currentRhythm === 'avb3') activeArray = avb3Data;
 
-        function sendVitals() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    type: "vital_update",
-                    heartRate: document.getElementById("hrInput").value,
-                    spo2: document.getElementById("spo2Input").value,
-                    sys: document.getElementById("sysInput").value,
-                    dia: document.getElementById("diaInput").value,
-                    sensors: sensors,
-                    spo2Quality: currentSpO2Quality,
-                    rhythm: currentRhythm,
-                    isHDMActive: isHDMActive,
-                    etco2: document.getElementById("co2Input").value, 
-                    af: document.getElementById("afInput").value     
-                }));
+                    if (ecgComplexIndex < activeArray.length) { 
+                        yECG = baseECG - (activeArray[ecgComplexIndex] * 3); 
+                    } 
+                    ecgComplexIndex++; 
+                    if (ecgComplexIndex >= activeArray.length) isDrawingECG = false; 
+                } 
             }
+
+            if (isHDMActive && (currentRhythm === 'vfib' || currentRhythm === 'asystole' || currentRhythm === 'torsades')) { 
+                const cprFramesPerBeat = (60 / 105) * 60; cprFrameCounter++; 
+                if (cprFrameCounter >= cprFramesPerBeat && !isDrawingCPR) { isDrawingCPR = true; cprComplexIndex = 0; cprFrameCounter = 0; } 
+                if (isDrawingCPR) { 
+                    if (cprComplexIndex < cprArtifactData.length) { yECG -= (cprArtifactData[cprComplexIndex] * 1.6); } 
+                    cprComplexIndex++; if (cprComplexIndex >= cprArtifactData.length) isDrawingCPR = false; 
+                } 
+            }
+
+            if (!['nsr', 'stemi', 'svt', 'afib', 'avb3'].includes(currentRhythm)) { 
+                ySpO2 = baseSpO2 + (Math.random() * 2 - 1); 
+            } else { 
+                spo2FrameCounter++; 
+                if (currentHR > 0 && spo2FrameCounter >= framesPerBeat && !isDrawingSpO2) { isDrawingSpO2 = true; spo2ComplexIndex = 0; spo2FrameCounter = 0; } 
+                if (isDrawingSpO2) { 
+                    let currentSpo2Wave = spo2Waves[spo2Quality] || spo2Waves['good']; 
+                    if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2ComplexIndex] * 4); } 
+                    spo2ComplexIndex++; if (spo2ComplexIndex >= currentSpo2Wave.length) isDrawingSpO2 = false; 
+                } 
+            }
+
+            if (isEcgConnected || isDefiConnected) { ctxECG.beginPath(); ctxECG.moveTo(x, lastYECG); ctxECG.lineTo(x + 2, yECG); ctxECG.strokeStyle = '#47d670'; ctxECG.lineWidth = 2.5; ctxECG.stroke(); }
+            if (isSpO2Connected) { ctxSpO2.beginPath(); ctxSpO2.moveTo(x, lastYSpO2); ctxSpO2.lineTo(x + 2, ySpO2); ctxSpO2.strokeStyle = '#38b6ff'; ctxSpO2.lineWidth = 2.5; ctxSpO2.stroke(); }
+            lastYECG = yECG; lastYSpO2 = ySpO2; x += 2; if (x >= canvasECG.width) { x = 0; lastYECG = yECG; lastYSpO2 = ySpO2; }
+            requestAnimationFrame(drawWaveforms);
         }
+        drawWaveforms();
     </script>
 </body>
 </html>
