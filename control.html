@@ -199,11 +199,17 @@
     <div id="ekg-overlay">
         <div id="ekg-screen">
             <h3 style="color: #a855f7; margin-top: 0; font-size: 20px;">🩻 12-Kanal EKG Auswählen</h3>
-            <p style="font-size: 14px; color: #ccc; margin-bottom: 20px;">12-Kanal EKG angefordert! Welches Bild soll gesendet werden?</p>
+            <p style="font-size: 14px; color: #ccc; margin-bottom: 20px;">Welches EKG soll gesendet werden?</p>
             
             <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-                <button id="btn-modal-sample" style="background: #7000ff; padding: 12px; font-size: 15px;">
-                    📄 Normalbefund (ekg_sample.png)
+                <button id="btn-modal-sinus" style="background: #7000ff; padding: 12px; font-size: 15px;">
+                    📄 Normalbefund (ekg_sinus.png)
+                </button>
+                <button id="btn-modal-rbbb" style="background: #007bff; padding: 12px; font-size: 15px;">
+                    ⚡ RSB (ekg_rbbb.png)
+                </button>
+                <button id="btn-modal-lbbb" style="background: #007bff; padding: 12px; font-size: 15px;">
+                    ⚡ LSB (ekg_lbbb.png)
                 </button>
             </div>
             
@@ -426,7 +432,10 @@
             document.getElementById('btn-open-12lead').addEventListener('click', openEkgModal);
             document.getElementById('btn-modal-close').addEventListener('click', closeEkgModal);
             document.getElementById('ekg-overlay').addEventListener('click', closeEkgModal);
-            document.getElementById('btn-modal-sample').addEventListener('click', () => confirmEkgSelection('ekg_sample.png'));
+
+            document.getElementById('btn-modal-sinus').addEventListener('click', () => confirmEkgSelection('ekg_sinus.png'));
+            document.getElementById('btn-modal-rbbb').addEventListener('click', () => confirmEkgSelection('ekg_rbbb.png'));
+            document.getElementById('btn-modal-lbbb').addEventListener('click', () => confirmEkgSelection('ekg_lbbb.png'));
 
             document.getElementById('btn-shock-nsr').addEventListener('click', () => selectShockRhythm('nsr'));
             document.getElementById('btn-shock-vfib').addEventListener('click', () => selectShockRhythm('vfib'));

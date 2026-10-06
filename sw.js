@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ekg-sim-v26';
+const CACHE_NAME = 'ekg-sim-v28';
 const ASSETS = [
   './', 
   './index.html', 
@@ -6,7 +6,9 @@ const ASSETS = [
   './observer.html', 
   './control.html', 
   './manifest.json',
-  './ekg_sample.png'
+  './ekg_sinus.png',
+  './ekg_rbbb.png',
+  './ekg_lbbb.png'
 ];
 
 self.addEventListener('install', (e) => {

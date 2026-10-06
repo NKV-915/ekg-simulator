@@ -227,7 +227,7 @@
     <div id="ekg-image-overlay" onclick="closeEkgImage()">
         <div id="ekg-image-container" onclick="event.stopPropagation()">
             <button id="close-ekg-btn" onclick="closeEkgImage()">✕</button>
-            <img id="ekg-image" src="ekg_sample.png" alt="12-Kanal EKG Ausdruck" onerror="alert('FEHLER: Die Datei ekg_sample.png wurde auf GitHub nicht gefunden!');">
+            <img id="ekg-image" src="ekg_sinus.png" alt="12-Kanal EKG Ausdruck" onerror="alert('FEHLER: Die EKG-Bilddatei wurde auf GitHub nicht gefunden!');">
         </div>
     </div>
 
@@ -407,7 +407,7 @@
                 else if (data.type === "analysis_started_sync") { startAnalysis(true); }
                 else if (data.type === "shock_delivered_sync") { deliverShock(true); }
                 else if (data.type === "12lead_show") { 
-                    showEkgImage(data.image || "ekg_sample.png"); 
+                    showEkgImage(data.image || "ekg_sinus.png"); 
                 }
                 else if (data.type === "12lead_close") { 
                     closeEkgImage(true); 
@@ -434,7 +434,7 @@
             if (ecgWarningActive) activeWarnings.push("EKG-Kabel pruefen");
             if (nibdWarningActive) activeWarnings.push("RR-Manschette pruefen");
             if (defiWarningActive) activeWarnings.push("Defi-Elektroden pruefen");
-            if (activeWarnings.length > 0) { banner.style.display = "block"; banner.innerText = "⚠️️ " + activeWarnings.join("  |  ").toUpperCase(); } else { banner.style.display = "none"; }
+            if (activeWarnings.length > 0) { banner.style.display = "block"; banner.innerText = "⚠️ " + activeWarnings.join("  |  ").toUpperCase(); } else { banner.style.display = "none"; }
         }
 
         function updateTimerDisplay() {
@@ -675,7 +675,7 @@
                 if (currentHR > 0 && spo2FrameCounter >= framesPerBeat && !isDrawingSpO2) { isDrawingSpO2 = true; spo2ComplexIndex = 0; spo2FrameCounter = 0; } 
                 if (isDrawingSpO2) { 
                     let currentSpo2Wave = spo2Waves[spo2Quality]; 
-                    if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2ComplexIndex] * 4); } 
+                    if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2Quality].length); } 
                     spo2ComplexIndex++; if (spo2ComplexIndex >= currentSpo2Wave.length) isDrawingSpO2 = false; 
                 } 
             }

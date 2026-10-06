@@ -96,7 +96,7 @@
     <div id="ekg-image-overlay" onclick="closeEkgImage()">
         <div id="ekg-image-container" onclick="event.stopPropagation()">
             <button id="close-ekg-btn" onclick="closeEkgImage()">✕</button>
-            <img id="ekg-image" src="ekg_sample.png" alt="12-Kanal EKG Ausdruck" onerror="alert('FEHLER: Die Datei ekg_sample.png wurde auf GitHub nicht gefunden!');">
+            <img id="ekg-image" src="ekg_sinus.png" alt="12-Kanal EKG Ausdruck" onerror="alert('FEHLER: Die EKG-Bilddatei wurde auf GitHub nicht gefunden!');">
         </div>
     </div>
 
@@ -268,7 +268,7 @@
                 else if (data.type === "12lead_show") {
                     clearTimeout(window.infoBannerTimeout);
                     document.getElementById("info-area").style.display = "none";
-                    document.getElementById("ekg-image").src = data.image || "ekg_sample.png";
+                    document.getElementById("ekg-image").src = data.image || "ekg_sinus.png";
                     showEkgImage();
                 }
                 else if (data.type === "12lead_close") {
