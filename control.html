@@ -222,10 +222,10 @@
     <div id="measure-val-overlay">
         <div id="measure-val-screen">
             <h3 id="measure-modal-title" style="color: #ffaa00; margin-top: 0; font-size: 20px;">Messwert freigeben</h3>
-            <p style="font-size: 14px; color: #ccc; margin-bottom: 15px;">Wert für Monitor &amp; Observer festlegen:</p>
+            <p style="font-size: 14px; color: #ccc; margin-bottom: 15px;">Wert für Monitor &amp; Observer anpassen:</p>
             
             <div style="margin-bottom: 20px;">
-                <input type="text" id="measureValInput" value="100 mg/dl" style="font-size: 22px; width: 80%; text-align: center; padding: 8px; border-radius: 8px; border: 2px solid #555; background: #222; color: #fff; font-weight: bold;">
+                <input type="text" id="measureValInput" value="100 mg/dl" style="font-size: 22px; width: 85%; text-align: center; padding: 8px; border-radius: 8px; border: 2px solid #555; background: #222; color: #fff; font-weight: bold;">
             </div>
             
             <div style="display: flex; gap: 10px;">
@@ -287,6 +287,16 @@
             <button id="btn-open-12lead" style="background: #7000ff; margin-top: 12px; width: 100%; font-size: 15px; padding: 12px;">
                 🩻 12-KANAL EKG DRUCKEN
             </button>
+
+            <!-- Direkt-Buttons zum Senden von BZ & Temp vom Controller -->
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+                <button id="btn-send-bz" style="background: #ffcc00; color: #000; flex: 1; font-size: 14px; padding: 10px;">
+                    🩸 BZ Senden
+                </button>
+                <button id="btn-send-temp" style="background: #dc3545; color: #fff; flex: 1; font-size: 14px; padding: 10px;">
+                    🌡️ Temp Senden
+                </button>
+            </div>
 
             <button id="btn-hdm" class="sensor-btn" style="background: var(--secondary); margin-top: 8px;">HDM: INAKTIV</button>
             <button id="btn-ecg" class="sensor-btn sensor-off" style="margin-top: 8px;">EKG KABEL: GETRENNT</button>
@@ -462,6 +472,9 @@
             document.getElementById('btn-modal-close').addEventListener('click', closeEkgModal);
             document.getElementById('ekg-overlay').addEventListener('click', closeEkgModal);
 
+            document.getElementById('btn-send-bz').addEventListener('click', () => openMeasureValModal("BLUTZUCKER", "100 mg/dl", "#ffcc00"));
+            document.getElementById('btn-send-temp').addEventListener('click', () => openMeasureValModal("TEMPERATUR", "36.9 °C", "#dc3545"));
+
             document.getElementById('btn-modal-sinus').addEventListener('click', () => confirmEkgSelection('ekg_sinus.png'));
             document.getElementById('btn-modal-rbbb').addEventListener('click', () => confirmEkgSelection('ekg_rbbb.png'));
             document.getElementById('btn-modal-lbbb').addEventListener('click', () => confirmEkgSelection('ekg_lbbb.png'));
@@ -541,7 +554,7 @@
             currentMeasureTitle = title;
             currentMeasureColor = color;
             const titleElem = document.getElementById("measure-modal-title");
-            titleElem.innerText = (title === "BLUTZUCKER" ? "🩸 " : "🌡️ ") + title + " freigeben";
+            titleElem.innerText = (title === "BLUTZUCKER" ? "🩸 " : "🌡️ ") + title + " anpassen";
             titleElem.style.color = color;
             document.getElementById("measure-val-screen").style.borderColor = color;
             document.getElementById("measureValInput").value = defaultVal;
@@ -566,7 +579,7 @@
                 }));
                 addLogEntry(`[${time}] - Messwert freigegeben: ${currentMeasureTitle} = ${val}`);
             } else {
-                addLogEntry(`[${time}] - ⚠️️ FEHLER: Keine Netzverbindung!`);
+                addLogEntry(`[${time}] - ⚠️ FEHLER: Keine Netzverbindung!`);
             }
         }
 

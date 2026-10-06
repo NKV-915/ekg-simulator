@@ -435,6 +435,7 @@
                 if (ecgFrameCounter >= afibNextInterval && !isDrawingECG) {
                     isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0;
                     afibNextInterval = Math.floor(Math.random() * (framesPerBeat * 0.8)) + (framesPerBeat * 0.6);
+                    if ((isEcgConnected || isDefiConnected || isSpO2Connected) && !isAudioMuted) playHeartbeatTone();
                 }
                 if (isDrawingECG) {
                     if (ecgComplexIndex < afibData.length) yECG = baseECG - (afibData[ecgComplexIndex] * 3);
@@ -473,8 +474,8 @@
                 spo2FrameCounter++; 
                 if (currentHR > 0 && spo2FrameCounter >= framesPerBeat && !isDrawingSpO2) { isDrawingSpO2 = true; spo2ComplexIndex = 0; spo2FrameCounter = 0; } 
                 if (isDrawingSpO2) { 
-                    let currentSpo2Wave = spo2Waves[spo2Quality]; 
-                    if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2Quality].length); } 
+                    let currentSpo2Wave = spo2Waves[spo2Quality] || spo2Waves['good']; 
+                    if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2ComplexIndex] * 4); } 
                     spo2ComplexIndex++; if (spo2ComplexIndex >= currentSpo2Wave.length) isDrawingSpO2 = false; 
                 } 
             }
