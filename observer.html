@@ -195,7 +195,10 @@
             <canvas id="spo2Canvas"></canvas>
             <div id="nibp-center-area">
                 <div class="nibp-header-bar">
-                    <span id="nibp-status-lbl">NIBP</span>
+                    <div>
+                        <span id="nibp-status-lbl">NIBP</span>
+                        <span id="nibp-timer-display" style="font-size: 14px; color: #00ff00; margin-left: 10px; font-family: monospace; display: none;">⏱ 03:00</span>
+                    </div>
                     <span style="font-size: 13px; color: #aaa;">mmHg</span>
                 </div>
                 <div class="nibp-body">
@@ -280,6 +283,17 @@
                         const secs = (data.timeLeft % 60).toString().padStart(2, '0');
                         document.getElementById("cpr-timer-val").innerText = `${mins}:${secs}`;
                     } else { timerBox.style.display = "none"; }
+                }
+                else if (data.type === "nibp_timer_sync") {
+                    const timerSpan = document.getElementById("nibp-timer-display");
+                    if (data.active && data.timeLeft > 0) {
+                        timerSpan.style.display = "inline";
+                        const mins = Math.floor(data.timeLeft / 60).toString().padStart(2, '0');
+                        const secs = (data.timeLeft % 60).toString().padStart(2, '0');
+                        timerSpan.innerText = `⏱ ${mins}:${secs}`;
+                    } else {
+                        timerSpan.style.display = "none";
+                    }
                 }
                 else if (data.type === "command" && data.action === "clear_nibd") { 
                     document.getElementById("sysDisplay").innerText = "--"; 

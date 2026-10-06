@@ -40,13 +40,8 @@
             display: grid;
             grid-template-columns: 1fr;
             gap: 12px;
-            max-width: 600px;
+            max-width: 900px;
             margin: 0 auto;
-        }
-
-        @media (min-width: 480px) {
-            .dashboard { grid-template-columns: 1fr 1fr; }
-            .full-width { grid-column: span 2; }
         }
 
         .control-panel { 
@@ -196,6 +191,32 @@
         .log-container { text-align: left !important; font-family: monospace; background: #222 !important; color: #fff !important; }
         .log-list { max-height: 150px; overflow-y: auto; font-size: 13px; line-height: 1.5; border-top: 1px solid #444; padding-top: 8px; margin-top: 8px; width: 100%; }
         .log-entry { border-bottom: 1px solid #333; padding: 2px 0; }
+
+        @media (min-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .panel-status     { order: 1; grid-column: span 2; }
+            .panel-alerts     { order: 2; grid-column: span 2; }
+            .panel-audio      { order: 3; grid-column: span 2; }
+            .panel-hr         { order: 4; grid-column: 1; }
+            .panel-spo2       { order: 5; grid-column: 2; }
+            .panel-bp         { order: 6; grid-column: 1; }
+            .panel-co2        { order: 7; grid-column: 2; }
+            .panel-rhythm     { order: 8; grid-column: span 2; }
+            .panel-bz         { order: 9; grid-column: 1; }
+            .panel-temp       { order: 10; grid-column: 2; }
+            .panel-log        { order: 11; grid-column: span 2; }
+
+            .btn-sound-text {
+                display: none;
+            }
+            .panel-audio .grid-3 button {
+                font-size: 22px;
+                padding: 8px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -240,7 +261,7 @@
     </div>
 
     <div class="dashboard">
-        <div class="status-header full-width">
+        <div class="status-header panel-status">
             <span>RAUM: <strong id="room-name-display" style="color: var(--warning);">---</strong></span>
             <span style="display: flex; align-items: center;">
                 <span id="net-dot" class="status-dot status-offline"></span>
@@ -248,33 +269,91 @@
             </span>
         </div>
 
-        <div id="shock-prompt-card" class="full-width">
-            <div style="color: #ff4d4d; font-size: 18px; font-weight: bold; margin-bottom: 10px;">
-                ⚡ SCHOCK ABGEGEBEN! Welcher Rhythmus folgt?
+        <div class="panel-alerts">
+            <div id="shock-prompt-card">
+                <div style="color: #ff4d4d; font-size: 18px; font-weight: bold; margin-bottom: 10px;">
+                    ⚡ SCHOCK ABGEGEBEN! Welcher Rhythmus folgt?
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                    <button id="btn-shock-nsr" style="background: var(--success);">Sinus</button>
+                    <button id="btn-shock-vfib" style="background: #ff5500;">K-Flimmern</button>
+                    <button id="btn-shock-asy" style="background: #333; border: 1px solid #666;">Asystolie</button>
+                </div>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
-                <button id="btn-shock-nsr" style="background: var(--success);">Sinus</button>
-                <button id="btn-shock-vfib" style="background: #ff5500;">K-Flimmern</button>
-                <button id="btn-shock-asy" style="background: #333; border: 1px solid #666;">Asystolie</button>
+
+            <div id="nibd-alert" class="top-alert">⚠️ WERT FUER NAECHSTE NIBP-MESSUNG AENDERN!</div>
+
+            <div id="timer-panel" class="control-panel border-timer" style="display: none;">
+                <h3 style="color: #aaa; margin-bottom: 5px;">CPR-Timer (Vom Monitor)</h3>
+                <div id="trainer-cpr-timer" style="font-size: 36px; font-weight: bold; font-family: monospace; color: #444; letter-spacing: 1px;">00:00</div>
             </div>
         </div>
 
-        <div id="nibd-alert" class="top-alert full-width">⚠️ WERT FUER NAECHSTE NIBP-MESSUNG AENDERN!</div>
-
-        <div id="timer-panel" class="control-panel border-timer full-width" style="display: none;">
-            <h3 style="color: #aaa; margin-bottom: 5px;">CPR-Timer (Vom Monitor)</h3>
-            <div id="trainer-cpr-timer" style="font-size: 36px; font-weight: bold; font-family: monospace; color: #444; letter-spacing: 1px;">00:00</div>
-        </div>
-
-        <div class="control-panel border-audio full-width">
+        <div class="control-panel border-audio panel-audio">
             <h3>Monitor Sounds &amp; Töne</h3>
             <div class="grid-3" style="grid-template-columns: 1fr 1fr;">
-                <button id="btn-sound-on" style="background: var(--success);">🔊 Töne EIN</button>
-                <button id="btn-sound-off" style="background: var(--secondary);">🔕 Töne AUS</button>
+                <button id="btn-sound-on" style="background: var(--success);">
+                    🔊<span class="btn-sound-text"> Töne EIN</span>
+                </button>
+                <button id="btn-sound-off" style="background: var(--secondary);">
+                    🔕<span class="btn-sound-text"> Töne AUS</span>
+                </button>
             </div>
         </div>
 
-        <div class="control-panel border-rhythm full-width">
+        <div class="control-panel border-ecg panel-hr">
+            <h3>Herzfrequenz (HF)</h3>
+            <div class="stepper-container" style="margin-bottom: 0;">
+                <button id="btn-hr-m10" class="btn-small">-10</button>
+                <button id="btn-hr-m1">-</button>
+                <input type="number" id="hrInput" value="80">
+                <button id="btn-hr-p1">+</button>
+                <button id="btn-hr-p10" class="btn-small">+10</button>
+            </div>
+        </div>
+
+        <div class="control-panel border-spo2 panel-spo2">
+            <h3>Saettigung (SpO2)</h3>
+            <div class="stepper-container">
+                <button id="btn-spo2-m5" class="btn-small">-5</button>
+                <button id="btn-spo2-m1">-</button>
+                <input type="number" id="spo2Input" value="98">
+                <button id="btn-spo2-p1">+</button>
+                <button id="btn-spo2-p5" class="btn-small">+5</button>
+            </div>
+            <div class="grid-3">
+                <button id="q-good" class="btn-outline active-quality">Gut</button>
+                <button id="q-medium" class="btn-outline">Mittel</button>
+                <button id="q-poor" class="btn-outline">Schlecht</button>
+            </div>
+            <button id="btn-spo2" class="sensor-btn sensor-off" style="margin-top: 10px;">SpO2 SENSOR: GETRENNT</button>
+        </div>
+
+        <div class="control-panel border-bp panel-bp">
+            <h3>NIBP</h3>
+            <div class="stepper-container" style="margin-bottom: 10px;">
+                <span style="font-weight: bold; margin-right: 4px;">Sys:</span>
+                <input type="number" id="sysInput" value="120">&nbsp;
+                <span style="font-weight: bold; margin-right: 4px;">Dia:</span>
+                <input type="number" id="diaInput" value="80">
+            </div>
+            <button id="btn-nibd" class="sensor-btn sensor-off">MANSCHETTE: GETRENNT</button>
+        </div>
+
+        <div class="control-panel border-co2 panel-co2">
+            <h3>Kapnografie (etCO2 / AF)</h3>
+            <div class="stepper-container" style="margin-bottom: 5px;">
+                <span style="font-weight: bold; margin-right: 4px;">CO2:</span>
+                <input type="number" id="co2Input" value="40"> mmHg
+            </div>
+            <div class="stepper-container" style="margin-bottom: 10px;">
+                <span style="font-weight: bold; margin-right: 12px;">AF:</span>
+                <input type="number" id="afInput" value="12"> / min
+            </div>
+            <button id="btn-co2" class="sensor-btn sensor-off">CO2 SENSOR: GETRENNT</button>
+        </div>
+
+        <div class="control-panel border-rhythm panel-rhythm">
             <h3>EKG Rhythmus &amp; Reanimation</h3>
             <div class="grid-rhythms">
                 <button id="r-nsr" class="btn-outline active-rhythm" style="background:var(--success); border-color:var(--success);">Sinus</button>
@@ -297,8 +376,7 @@
             <button id="btn-defi" class="sensor-btn sensor-off" style="margin-top: 6px;">DEFI-ELEKTRODEN: GETRENNT</button>
         </div>
 
-        <!-- Neuer BZ-Bedienbereich im Controller -->
-        <div class="control-panel border-bz">
+        <div class="control-panel border-bz panel-bz">
             <h3>Blutzucker (BZ)</h3>
             <div class="stepper-container" style="margin-bottom: 5px;">
                 <button id="btn-bz-m10" class="btn-small">-10</button>
@@ -313,8 +391,7 @@
             </button>
         </div>
 
-        <!-- Neuer Temp-Bedienbereich im Controller -->
-        <div class="control-panel border-temp">
+        <div class="control-panel border-temp panel-temp">
             <h3>Temperatur (Temp)</h3>
             <div class="stepper-container" style="margin-bottom: 5px;">
                 <button id="btn-temp-m05" class="btn-small">-0.5</button>
@@ -329,59 +406,7 @@
             </button>
         </div>
 
-        <div class="control-panel border-ecg">
-            <h3>Herzfrequenz (HF)</h3>
-            <div class="stepper-container" style="margin-bottom: 0;">
-                <button id="btn-hr-m10" class="btn-small">-10</button>
-                <button id="btn-hr-m1">-</button>
-                <input type="number" id="hrInput" value="80">
-                <button id="btn-hr-p1">+</button>
-                <button id="btn-hr-p10" class="btn-small">+10</button>
-            </div>
-        </div>
-
-        <div class="control-panel border-spo2">
-            <h3>Saettigung (SpO2)</h3>
-            <div class="stepper-container">
-                <button id="btn-spo2-m5" class="btn-small">-5</button>
-                <button id="btn-spo2-m1">-</button>
-                <input type="number" id="spo2Input" value="98">
-                <button id="btn-spo2-p1">+</button>
-                <button id="btn-spo2-p5" class="btn-small">+5</button>
-            </div>
-            <div class="grid-3">
-                <button id="q-good" class="btn-outline active-quality">Gut</button>
-                <button id="q-medium" class="btn-outline">Mittel</button>
-                <button id="q-poor" class="btn-outline">Schlecht</button>
-            </div>
-            <button id="btn-spo2" class="sensor-btn sensor-off" style="margin-top: 10px;">SpO2 SENSOR: GETRENNT</button>
-        </div>
-
-        <div class="control-panel border-co2">
-            <h3>Kapnografie (etCO2 / AF)</h3>
-            <div class="stepper-container" style="margin-bottom: 5px;">
-                <span style="font-weight: bold; margin-right: 4px;">CO2:</span>
-                <input type="number" id="co2Input" value="40"> mmHg
-            </div>
-            <div class="stepper-container" style="margin-bottom: 10px;">
-                <span style="font-weight: bold; margin-right: 12px;">AF:</span>
-                <input type="number" id="afInput" value="12"> / min
-            </div>
-            <button id="btn-co2" class="sensor-btn sensor-off">CO2 SENSOR: GETRENNT</button>
-        </div>
-
-        <div class="control-panel border-bp">
-            <h3>NIBP</h3>
-            <div class="stepper-container" style="margin-bottom: 10px;">
-                <span style="font-weight: bold; margin-right: 4px;">Sys:</span>
-                <input type="number" id="sysInput" value="120">&nbsp;
-                <span style="font-weight: bold; margin-right: 4px;">Dia:</span>
-                <input type="number" id="diaInput" value="80">
-            </div>
-            <button id="btn-nibd" class="sensor-btn sensor-off">MANSCHETTE: GETRENNT</button>
-        </div>
-
-        <div class="control-panel full-width log-container">
+        <div class="control-panel log-container panel-log">
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                 <span style="font-weight: bold; color: #fff;">📋 EINSATZ-PROTOKOLL (LIVE):</span>
                 <button id="btn-clear-log" class="btn-small" style="background:#444; padding: 4px 8px; font-size:11px;">Log loeschen</button>
@@ -530,19 +555,16 @@
             document.getElementById('btn-co2').addEventListener('click', () => toggleSensor('co2'));
             document.getElementById('btn-nibd').addEventListener('click', () => toggleSensor('nibd'));
 
-            // Stepper Event Listener für BZ
             document.getElementById('btn-bz-m10').addEventListener('click', () => changeValue('bzInput', -10, 0, 999));
             document.getElementById('btn-bz-m1').addEventListener('click', () => changeValue('bzInput', -1, 0, 999));
             document.getElementById('btn-bz-p1').addEventListener('click', () => changeValue('bzInput', 1, 0, 999));
             document.getElementById('btn-bz-p10').addEventListener('click', () => changeValue('bzInput', 10, 0, 999));
 
-            // Stepper Event Listener für Temp
             document.getElementById('btn-temp-m05').addEventListener('click', () => changeFloatValue('tempInput', -0.5, 20.0, 45.0));
             document.getElementById('btn-temp-m01').addEventListener('click', () => changeFloatValue('tempInput', -0.1, 20.0, 45.0));
             document.getElementById('btn-temp-p01').addEventListener('click', () => changeFloatValue('tempInput', 0.1, 20.0, 45.0));
             document.getElementById('btn-temp-p05').addEventListener('click', () => changeFloatValue('tempInput', 0.5, 20.0, 45.0));
 
-            // Vitalwert Stepper
             document.getElementById('btn-hr-m10').addEventListener('click', () => changeValue('hrInput', -10, 0, 300));
             document.getElementById('btn-hr-m1').addEventListener('click', () => changeValue('hrInput', -1, 0, 300));
             document.getElementById('btn-hr-p1').addEventListener('click', () => changeValue('hrInput', 1, 0, 300));
@@ -635,7 +657,6 @@
             const val = document.getElementById("measureValInput").value;
             closeMeasureValModal();
 
-            // Synchronisiere geänderten Wert zurück ins Controller-Dashboard
             if (currentMeasureTitle === "BLUTZUCKER") {
                 const num = parseFloat(val);
                 if (!isNaN(num)) document.getElementById("bzInput").value = num;
