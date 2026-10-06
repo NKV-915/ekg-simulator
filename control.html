@@ -23,6 +23,8 @@
             --warning: #ffaa00;
             --info: #00ffff;
             --co2-color: #ffff00;
+            --bz-color: #ffcc00;
+            --temp-color: #dc3545;
         }
 
         body { 
@@ -104,11 +106,13 @@
         .border-rhythm { border-top: 4px solid var(--danger); }
         .border-audio { border-top: 4px solid #7000ff; }
         .border-co2 { border-top: 4px solid var(--co2-color); }
+        .border-bz { border-top: 4px solid var(--bz-color); }
+        .border-temp { border-top: 4px solid var(--temp-color); }
         .border-timer { border-top: 4px solid #00ff00; background: #111; color: #fff; }
 
-        input[type="number"] { 
+        input[type="number"], input[type="text"] { 
             font-size: 20px; 
-            width: 60px; 
+            width: 75px; 
             text-align: center; 
             padding: 6px; 
             border: 2px solid #ccc; 
@@ -222,7 +226,7 @@
     <div id="measure-val-overlay">
         <div id="measure-val-screen">
             <h3 id="measure-modal-title" style="color: #ffaa00; margin-top: 0; font-size: 20px;">Messwert freigeben</h3>
-            <p style="font-size: 14px; color: #ccc; margin-bottom: 15px;">Wert für Monitor &amp; Observer anpassen:</p>
+            <p style="font-size: 14px; color: #ccc; margin-bottom: 15px;">Wert für Monitor &amp; Observer freigeben:</p>
             
             <div style="margin-bottom: 20px;">
                 <input type="text" id="measureValInput" value="100 mg/dl" style="font-size: 22px; width: 85%; text-align: center; padding: 8px; border-radius: 8px; border: 2px solid #555; background: #222; color: #fff; font-weight: bold;">
@@ -288,19 +292,41 @@
                 🩻 12-KANAL EKG DRUCKEN
             </button>
 
-            <!-- Direkt-Buttons zum Senden von BZ & Temp vom Controller -->
-            <div style="display: flex; gap: 8px; margin-top: 8px;">
-                <button id="btn-send-bz" style="background: #ffcc00; color: #000; flex: 1; font-size: 14px; padding: 10px;">
-                    🩸 BZ Senden
-                </button>
-                <button id="btn-send-temp" style="background: #dc3545; color: #fff; flex: 1; font-size: 14px; padding: 10px;">
-                    🌡️ Temp Senden
-                </button>
-            </div>
-
             <button id="btn-hdm" class="sensor-btn" style="background: var(--secondary); margin-top: 8px;">HDM: INAKTIV</button>
             <button id="btn-ecg" class="sensor-btn sensor-off" style="margin-top: 8px;">EKG KABEL: GETRENNT</button>
             <button id="btn-defi" class="sensor-btn sensor-off" style="margin-top: 6px;">DEFI-ELEKTRODEN: GETRENNT</button>
+        </div>
+
+        <!-- Neuer BZ-Bedienbereich im Controller -->
+        <div class="control-panel border-bz">
+            <h3>Blutzucker (BZ)</h3>
+            <div class="stepper-container" style="margin-bottom: 5px;">
+                <button id="btn-bz-m10" class="btn-small">-10</button>
+                <button id="btn-bz-m1">-1</button>
+                <input type="number" id="bzInput" value="100">
+                <button id="btn-bz-p1">+1</button>
+                <button id="btn-bz-p10" class="btn-small">+10</button>
+            </div>
+            <span style="font-size: 12px; color: #777; margin-bottom: 8px; display: block;">Einheit: mg/dl</span>
+            <button id="btn-send-bz-main" style="background: var(--bz-color); color: #000; width: 100%; font-size: 14px; padding: 10px; font-weight: bold;">
+                🩸 BZ Freigeben / Senden
+            </button>
+        </div>
+
+        <!-- Neuer Temp-Bedienbereich im Controller -->
+        <div class="control-panel border-temp">
+            <h3>Temperatur (Temp)</h3>
+            <div class="stepper-container" style="margin-bottom: 5px;">
+                <button id="btn-temp-m05" class="btn-small">-0.5</button>
+                <button id="btn-temp-m01">-0.1</button>
+                <input type="number" id="tempInput" value="36.9" step="0.1">
+                <button id="btn-temp-p01">+0.1</button>
+                <button id="btn-temp-p05" class="btn-small">+0.5</button>
+            </div>
+            <span style="font-size: 12px; color: #777; margin-bottom: 8px; display: block;">Einheit: °C</span>
+            <button id="btn-send-temp-main" style="background: var(--temp-color); color: #fff; width: 100%; font-size: 14px; padding: 10px; font-weight: bold;">
+                🌡️ Temp Freigeben / Senden
+            </button>
         </div>
 
         <div class="control-panel border-ecg">
@@ -421,11 +447,13 @@
                     addLogEntry(`[${time}] - 🩻 12-Kanal EKG vom Monitor angefordert!`);
                 }
                 else if (data.type === "bz_requested") {
-                    openMeasureValModal("BLUTZUCKER", "100 mg/dl", "#ffcc00");
+                    const currentBz = document.getElementById("bzInput").value + " mg/dl";
+                    openMeasureValModal("BLUTZUCKER", currentBz, "#ffcc00");
                     addLogEntry(`[${time}] - 🩸 BZ-Messung vom Monitor angefordert!`);
                 }
                 else if (data.type === "temp_requested") {
-                    openMeasureValModal("TEMPERATUR", "36.9 °C", "#dc3545");
+                    const currentTemp = document.getElementById("tempInput").value + " °C";
+                    openMeasureValModal("TEMPERATUR", currentTemp, "#dc3545");
                     addLogEntry(`[${time}] - 🌡️ Temperaturmessung vom Monitor angefordert!`);
                 }
                 else if (data.type === "cpr_timer_update") {
@@ -472,8 +500,8 @@
             document.getElementById('btn-modal-close').addEventListener('click', closeEkgModal);
             document.getElementById('ekg-overlay').addEventListener('click', closeEkgModal);
 
-            document.getElementById('btn-send-bz').addEventListener('click', () => openMeasureValModal("BLUTZUCKER", "100 mg/dl", "#ffcc00"));
-            document.getElementById('btn-send-temp').addEventListener('click', () => openMeasureValModal("TEMPERATUR", "36.9 °C", "#dc3545"));
+            document.getElementById('btn-send-bz-main').addEventListener('click', sendBzDirect);
+            document.getElementById('btn-send-temp-main').addEventListener('click', sendTempDirect);
 
             document.getElementById('btn-modal-sinus').addEventListener('click', () => confirmEkgSelection('ekg_sinus.png'));
             document.getElementById('btn-modal-rbbb').addEventListener('click', () => confirmEkgSelection('ekg_rbbb.png'));
@@ -502,6 +530,19 @@
             document.getElementById('btn-co2').addEventListener('click', () => toggleSensor('co2'));
             document.getElementById('btn-nibd').addEventListener('click', () => toggleSensor('nibd'));
 
+            // Stepper Event Listener für BZ
+            document.getElementById('btn-bz-m10').addEventListener('click', () => changeValue('bzInput', -10, 0, 999));
+            document.getElementById('btn-bz-m1').addEventListener('click', () => changeValue('bzInput', -1, 0, 999));
+            document.getElementById('btn-bz-p1').addEventListener('click', () => changeValue('bzInput', 1, 0, 999));
+            document.getElementById('btn-bz-p10').addEventListener('click', () => changeValue('bzInput', 10, 0, 999));
+
+            // Stepper Event Listener für Temp
+            document.getElementById('btn-temp-m05').addEventListener('click', () => changeFloatValue('tempInput', -0.5, 20.0, 45.0));
+            document.getElementById('btn-temp-m01').addEventListener('click', () => changeFloatValue('tempInput', -0.1, 20.0, 45.0));
+            document.getElementById('btn-temp-p01').addEventListener('click', () => changeFloatValue('tempInput', 0.1, 20.0, 45.0));
+            document.getElementById('btn-temp-p05').addEventListener('click', () => changeFloatValue('tempInput', 0.5, 20.0, 45.0));
+
+            // Vitalwert Stepper
             document.getElementById('btn-hr-m10').addEventListener('click', () => changeValue('hrInput', -10, 0, 300));
             document.getElementById('btn-hr-m1').addEventListener('click', () => changeValue('hrInput', -1, 0, 300));
             document.getElementById('btn-hr-p1').addEventListener('click', () => changeValue('hrInput', 1, 0, 300));
@@ -550,11 +591,36 @@
             }
         }
 
+        function sendBzDirect() {
+            const val = document.getElementById("bzInput").value + " mg/dl";
+            sendValueShow("BLUTZUCKER", val, "#ffcc00");
+        }
+
+        function sendTempDirect() {
+            const val = document.getElementById("tempInput").value + " °C";
+            sendValueShow("TEMPERATUR", val, "#dc3545");
+        }
+
+        function sendValueShow(title, val, color) {
+            const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ 
+                    type: "value_show", 
+                    title: title,
+                    value: val,
+                    color: color
+                }));
+                addLogEntry(`[${time}] - Messwert freigegeben: ${title} = ${val}`);
+            } else {
+                addLogEntry(`[${time}] - ⚠️ FEHLER: Keine Netzverbindung!`);
+            }
+        }
+
         function openMeasureValModal(title, defaultVal, color) {
             currentMeasureTitle = title;
             currentMeasureColor = color;
             const titleElem = document.getElementById("measure-modal-title");
-            titleElem.innerText = (title === "BLUTZUCKER" ? "🩸 " : "🌡️ ") + title + " anpassen";
+            titleElem.innerText = (title === "BLUTZUCKER" ? "🩸 " : "🌡️ ") + title + " freigeben";
             titleElem.style.color = color;
             document.getElementById("measure-val-screen").style.borderColor = color;
             document.getElementById("measureValInput").value = defaultVal;
@@ -568,19 +634,17 @@
         function confirmMeasureValue() {
             const val = document.getElementById("measureValInput").value;
             closeMeasureValModal();
-            const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
 
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ 
-                    type: "value_show", 
-                    title: currentMeasureTitle,
-                    value: val,
-                    color: currentMeasureColor
-                }));
-                addLogEntry(`[${time}] - Messwert freigegeben: ${currentMeasureTitle} = ${val}`);
-            } else {
-                addLogEntry(`[${time}] - ⚠️ FEHLER: Keine Netzverbindung!`);
+            // Synchronisiere geänderten Wert zurück ins Controller-Dashboard
+            if (currentMeasureTitle === "BLUTZUCKER") {
+                const num = parseFloat(val);
+                if (!isNaN(num)) document.getElementById("bzInput").value = num;
+            } else if (currentMeasureTitle === "TEMPERATUR") {
+                const num = parseFloat(val);
+                if (!isNaN(num)) document.getElementById("tempInput").value = num;
             }
+
+            sendValueShow(currentMeasureTitle, val, currentMeasureColor);
         }
 
         function selectShockRhythm(rhythm) {
@@ -702,6 +766,14 @@
             const input = document.getElementById(inputId);
             let val = parseInt(input.value) + amount;
             input.value = Math.min(max, Math.max(min, val));
+            sendVitals();
+        }
+
+        function changeFloatValue(inputId, amount, min, max) {
+            const input = document.getElementById(inputId);
+            let val = parseFloat(input.value) + amount;
+            val = Math.min(max, Math.max(min, val));
+            input.value = val.toFixed(1);
             sendVitals();
         }
 

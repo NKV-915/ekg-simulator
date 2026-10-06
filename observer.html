@@ -31,7 +31,7 @@
         #ekg-image-container img {
             max-width: 100%; max-height: 80vh; display: block; border-radius: 4px;
         }
-        #close-ekg-btn, #close-value-btn {
+        #close-ekg-btn {
             position: absolute; top: -14px; right: -14px;
             width: 36px; height: 36px; background: #dc3545; color: #fff;
             border: 2px solid #fff; border-radius: 50%; font-size: 20px;
@@ -39,25 +39,44 @@
             justify-content: center; align-items: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.5); z-index: 8001;
         }
-        #close-ekg-btn:active, #close-value-btn:active { transform: scale(0.9); }
 
         #value-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-color: rgba(0, 0, 0, 0.85); z-index: 8000; display: none;
+            background-color: rgba(0, 0, 0, 0.90); z-index: 8000; display: none;
             justify-content: center; align-items: center;
         }
         #value-card-container {
-            position: relative; width: 340px; max-width: 85vw;
-            background: #111; color: #fff; padding: 25px 20px; border-radius: 12px;
-            border: 3px solid #ffcc00; text-align: center;
-            box-shadow: 0 0 30px rgba(0,0,0,0.9);
+            position: relative; width: 520px; max-width: 90vw;
+            background: #111; color: #fff; padding: 45px 30px 35px 30px; border-radius: 18px;
+            border: 5px solid #ffcc00; text-align: center;
+            box-shadow: 0 0 50px rgba(0,0,0,0.95);
         }
         #value-card-title {
-            font-size: 20px; font-weight: bold; color: #aaa; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px;
+            font-size: clamp(24px, 3.5vw, 36px); font-weight: bold; color: #aaa; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 2px;
         }
         #value-card-val {
-            font-size: 42px; font-weight: bold; color: #fff; font-family: Arial, sans-serif;
+            font-size: clamp(60px, 9vw, 110px); font-weight: bold; color: #fff; font-family: Arial, sans-serif; line-height: 1; margin-bottom: 10px;
         }
+        #close-value-btn {
+            position: absolute; 
+            top: -20px; 
+            right: -20px;
+            width: 48px; 
+            height: 48px; 
+            background: #dc3545; 
+            color: #fff;
+            border: 3px solid #fff; 
+            border-radius: 50%; 
+            font-size: 26px;
+            font-weight: bold; 
+            cursor: pointer; 
+            display: flex;
+            justify-content: center; 
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.7); 
+            z-index: 8001;
+        }
+        #close-ekg-btn:active, #close-value-btn:active { transform: scale(0.9); }
 
         #top-header { height: 36px; background-color: #222; border-bottom: 2px solid #333; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; box-sizing: border-box; z-index: 5500; }
         #top-clock { font-family: 'Courier New', Courier, monospace; font-size: 22px; font-weight: bold; color: #ffcc00; letter-spacing: 1px; }
@@ -118,8 +137,8 @@
         </div>
     </div>
 
-    <div id="value-overlay" onclick="closeValueOverlay()">
-        <div id="value-card-container" onclick="event.stopPropagation()">
+    <div id="value-overlay">
+        <div id="value-card-container">
             <button id="close-value-btn" onclick="closeValueOverlay()">✕</button>
             <div id="value-card-title">BLUTZUCKER</div>
             <div id="value-card-val">100 mg/dl</div>
@@ -435,7 +454,6 @@
                 if (ecgFrameCounter >= afibNextInterval && !isDrawingECG) {
                     isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0;
                     afibNextInterval = Math.floor(Math.random() * (framesPerBeat * 0.8)) + (framesPerBeat * 0.6);
-                    if ((isEcgConnected || isDefiConnected || isSpO2Connected) && !isAudioMuted) playHeartbeatTone();
                 }
                 if (isDrawingECG) {
                     if (ecgComplexIndex < afibData.length) yECG = baseECG - (afibData[ecgComplexIndex] * 3);
