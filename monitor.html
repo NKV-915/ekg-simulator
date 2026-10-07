@@ -126,7 +126,6 @@
             z-index: 8001;
         }
 
-        /* BZ / Temp Messwert Overlay */
         #value-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background-color: rgba(0, 0, 0, 0.90); z-index: 8000; display: none;
@@ -209,7 +208,7 @@
             border-right: 2px solid #222; 
         }
         #center-content { flex-grow: 1; display: flex; flex-direction: column; border-right: 2px solid #333; background-color: #000; }
-        #aed-panel { width: 150px; background-color: #1a1a1a; display: flex; flex-direction: column; padding: 12px; align-items: center; justify-content: flex-start; gap: 10px; box-sizing: border-box; }
+        #aed-panel { width: 150px; background-color: #1a1a1a; display: flex; flex-direction: column; padding: 12px; align-items: center; justify-content: flex-start; gap: 8px; box-sizing: border-box; }
         
         .vital-box { background: #000; border: 1px solid #1c1c1c; padding: 6px 10px; border-radius: 6px; display: flex; flex-direction: column; justify-content: space-between; flex: 1; margin-bottom: 4px; box-sizing: border-box; overflow: hidden; }
         .vital-box:last-child { margin-bottom: 0; }
@@ -233,13 +232,13 @@
         .nibp-history-container { width: 48%; max-width: 420px; height: 100%; border-left: 1px solid #333; padding-left: 15px; display: flex; flex-direction: column; justify-content: flex-start; box-sizing: border-box; }
         .history-header { font-size: 16px; font-weight: bold; color: #ffaa00; letter-spacing: 0.5px; margin-bottom: 6px; border-bottom: 1px solid #222; padding-bottom: 3px; }
 
-        .aed-btn { width: 100%; padding: 14px 8px; font-size: 16px; font-weight: bold; border-radius: 50px; border: none; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .aed-btn { width: 100%; padding: 12px 6px; font-size: 14px; font-weight: bold; border-radius: 50px; border: none; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         #btn-analyse { background-color: #ffcc00; color: #000; }
         #btn-analyse:active { background-color: #e6b800; transform: scale(0.95); }
         #btn-shock { background-color: #dc3545; color: #fff; opacity: 0.3; pointer-events: none; }
         #btn-nibp-start { background-color: #28a745; color: #ffffff; }
         #btn-12lead { background-color: #7000ff; color: #fff; }
-        #btn-stop-cpr { background-color: #ff6600; color: #ffffff; display: none; margin-bottom: 4px; padding: 12px 6px; font-size: 13px; border-radius: 20px; }
+        #btn-stop-cpr { background-color: #ff6600; color: #ffffff; display: none; margin-bottom: 4px; padding: 10px 4px; font-size: 12px; border-radius: 20px; }
         
         .analyse-measuring { animation: analyse-blink 1s infinite alternate !important; }
         @keyframes analyse-blink { from { background-color: #ffcc00; color: #000; } to { background-color: #997a00; color: #fff; } }
@@ -389,20 +388,20 @@
         </div>
 
         <div id="aed-panel">
-            <button id="btn-mute" onclick="toggleMute()" style="padding: 10px 6px; font-size: 13px; font-weight: bold; border-radius: 20px; border: none; cursor: pointer; width: 100%;">🔕 SOUND AN</button>
-            <hr style="width:100%; border: 1px solid #444; margin: 2px 0;">
-            <button id="btn-stop-cpr" class="aed-btn" onclick="stopCprMode()">CPR BEENDEN</button>
+            <button id="btn-mute" onclick="toggleMute()" style="padding: 10px 6px; font-size: 12px; font-weight: bold; border-radius: 20px; border: none; cursor: pointer; width: 100%; background: #28a745; color: #fff;">🔊 TÖNE EIN</button>
+            <button id="btn-qrs-toggle" onclick="toggleQrsMute()" style="padding: 10px 6px; font-size: 12px; font-weight: bold; border-radius: 20px; border: none; cursor: pointer; width: 100%; background: #dc3545; color: #fff; margin-top: 4px;">🔕 QRS-TON AUS</button>
+            <hr style="width:100%; border: 1px solid #444; margin: 4px 0;">
+            <button id="btn-stop-cpr" class="aed-btn" style="background-color: #ff6600; color: #ffffff;" onclick="stopCprMode()">CPR BEENDEN</button>
             <div id="cpr-timer">00:00</div>
             <button id="btn-analyse" class="aed-btn" onclick="startAnalysis()">ANALYSE</button>
             <button id="btn-shock" class="aed-btn" onclick="deliverShock()">SCHOCK</button>
             <button id="btn-nibp-start" class="aed-btn" onclick="openNibpIntervalModal()">NIBP</button>
             <button id="btn-12lead" class="aed-btn" onclick="trigger12LeadPrint()">12-KANAL</button>
 
-            <!-- BZ & Temp Buttons mit Alarm-Quittierungsbutton -->
-            <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 25px;">
+            <div style="width: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 20px;">
                 <button id="btn-bz" class="aed-btn" style="background-color: #ffc0cb; color: #000;" onclick="triggerBzRequest()">BZ</button>
                 <button id="btn-temp" class="aed-btn" style="background-color: #e0b0ff; color: #000;" onclick="triggerTempRequest()">Temp.</button>
-                <button id="btn-alarm-quit" class="aed-btn" style="background-color: #444; color: #fff; margin-top: 6px; font-size: 13px; padding: 10px 4px;" onclick="quittierenAlarm()">Alarme aus</button>
+                <button id="btn-alarm-quit" class="aed-btn" style="background-color: #444; color: #fff; margin-top: 4px; font-size: 12px; padding: 8px 4px;" onclick="quittierenAlarm()">Alarme aus</button>
             </div>
         </div>
     </div>
@@ -422,7 +421,9 @@
         
         let ecgWarningActive = false; let nibdWarningActive = false; let defiWarningActive = false;
         let ecgTimeout = null; let nibdTimeout = null; let defiTimeout = null;
-        let isAudioMuted = true; 
+        
+        // Ton-Einstellungen: Alle Töne standardmäßig AN, QRS-Ton standardmäßig AUS
+        let isAudioMuted = false; 
         let isQrsAudioEnabled = false;
         let isAlarmQuitted = false;
         
@@ -432,6 +433,7 @@
         let nibpTimerInterval = null;
         let nibpTimeLeft = 0;
 
+        let shockChargeAudio = null;
         let shockReadyAudio = null;
         let alarmAudio = null;
 
@@ -490,10 +492,10 @@
                 if (data.type === "pong") return;
                 
                 if (data.type === "audio_control") { 
-                    if (data.action === "alarms_on") isAudioMuted = false; 
-                    if (data.action === "alarms_off") isAudioMuted = true; 
-                    if (data.action === "qrs_on") isQrsAudioEnabled = true;
-                    if (data.action === "qrs_off") isQrsAudioEnabled = false;
+                    if (data.action === "alarms_on") { isAudioMuted = false; updateGeneralSoundUI(); } 
+                    if (data.action === "alarms_off") { isAudioMuted = true; updateGeneralSoundUI(); } 
+                    if (data.action === "qrs_on") { isQrsAudioEnabled = true; updateQrsSoundUI(); }
+                    if (data.action === "qrs_off") { isQrsAudioEnabled = false; updateQrsSoundUI(); }
                 } 
                 else if (data.type === "command" && data.action === "clear_nibd") { 
                     document.getElementById("sysDisplay").innerText = "--"; 
@@ -737,7 +739,43 @@
             }, 30000); 
         }
 
-        function toggleMute() { isAudioMuted = !isAudioMuted; const btn = document.getElementById("btn-mute"); if (isAudioMuted) { btn.style.background = "#dc3545"; btn.innerText = "🔊 SOUND AUS"; } else { btn.style.background = "#444"; btn.innerText = "🔕 SOUND AN"; } }
+        function toggleMute() { 
+            isAudioMuted = !isAudioMuted; 
+            updateGeneralSoundUI();
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "audio_control", action: isAudioMuted ? "alarms_off" : "alarms_on" }));
+            }
+        }
+
+        function updateGeneralSoundUI() {
+            const btn = document.getElementById("btn-mute"); 
+            if (isAudioMuted) { 
+                btn.style.background = "#dc3545"; 
+                btn.innerText = "🔕 TÖNE AUS"; 
+            } else { 
+                btn.style.background = "#28a745"; 
+                btn.innerText = "🔊 TÖNE EIN"; 
+            } 
+        }
+
+        function toggleQrsMute() {
+            isQrsAudioEnabled = !isQrsAudioEnabled;
+            updateQrsSoundUI();
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "audio_control", action: isQrsAudioEnabled ? "qrs_on" : "qrs_off" }));
+            }
+        }
+
+        function updateQrsSoundUI() {
+            const btn = document.getElementById("btn-qrs-toggle");
+            if (isQrsAudioEnabled) {
+                btn.style.background = "#28a745";
+                btn.innerText = "🔊 QRS-TON EIN";
+            } else {
+                btn.style.background = "#dc3545";
+                btn.innerText = "🔕 QRS-TON AUS";
+            }
+        }
 
         function trigger12LeadPrint() {
             if (!isEcgConnected) { ecgWarningActive = true; updateWarningBanner(); clearTimeout(ecgTimeout); ecgTimeout = setTimeout(function() { ecgWarningActive = false; updateWarningBanner(); }, 5000); return; }
@@ -833,8 +871,9 @@
             updateWarningBanner(); checkAlarms(currentHR, currentSpO2Display);
         }
 
+        // QRS-Ton NUR bei EKG und NUR wenn QRS-Ton aktiviert ist & KEIN Alarm schlägt
         function triggerQrsBeep() {
-            if (isQrsAudioEnabled && !isAudioMuted && !alarmAudio && (isEcgConnected || isDefiConnected || isSpO2Connected)) {
+            if (isQrsAudioEnabled && !isAudioMuted && !alarmAudio && (isEcgConnected || isDefiConnected)) {
                 playAudioFile("beep.mp3");
             }
         }
@@ -900,9 +939,6 @@
                 spo2FrameCounter++; 
                 if (currentHR > 0 && spo2FrameCounter >= framesPerBeat && !isDrawingSpO2) { 
                     isDrawingSpO2 = true; spo2ComplexIndex = 0; spo2FrameCounter = 0; 
-                    if (!isEcgConnected && !isDefiConnected) {
-                        triggerQrsBeep();
-                    }
                 } 
                 if (isDrawingSpO2) { 
                     let currentSpo2Wave = spo2Waves[spo2Quality] || spo2Waves['good']; 
@@ -939,13 +975,18 @@
                     setTimeout(function() {
                         announceState.style.display = "none"; loadState.style.display = "flex"; fill.style.width = "0%";
                         
-                        playAudioFile("shock_charge.mp3");
+                        shockChargeAudio = playAudioFile("shock_charge.mp3");
 
                         let elapsed = 0; const duration = 3000;
                         const chargeInterval = setInterval(function() {
                             elapsed += 50; fill.style.width = ((elapsed / duration) * 100) + "%";
                             if (elapsed >= duration) {
                                 clearInterval(chargeInterval); 
+                                // Punktgenaues Beenden des Lade-Sounds
+                                if (shockChargeAudio) { 
+                                    try { shockChargeAudio.pause(); shockChargeAudio.currentTime = 0; } catch(e){} 
+                                    shockChargeAudio = null;
+                                }
                                 shockReadyAudio = playAudioFile("shock_ready.mp3", true);
                                 loadState.style.display = "none"; rdyState.style.display = "flex";
                                 btnAnalyse.innerText = "BEREIT"; document.getElementById('btn-shock').classList.add('shock-ready');
@@ -961,6 +1002,7 @@
         }
 
         function deliverShock(fromNetwork = false) {
+            if (shockChargeAudio) { try { shockChargeAudio.pause(); shockChargeAudio.currentTime = 0; } catch(e){} shockChargeAudio = null; }
             if (shockReadyAudio) { try { shockReadyAudio.pause(); shockReadyAudio.currentTime = 0; } catch(e){} shockReadyAudio = null; }
             document.getElementById('btn-shock').classList.remove('shock-ready'); document.getElementById("defib-overlay").style.display = "none"; 
             playAudioFile("shock_admitted.mp3");
@@ -971,6 +1013,7 @@
         }
 
         function resetAED() { 
+            if (shockChargeAudio) { try { shockChargeAudio.pause(); shockChargeAudio.currentTime = 0; } catch(e){} shockChargeAudio = null; }
             if (shockReadyAudio) { try { shockReadyAudio.pause(); shockReadyAudio.currentTime = 0; } catch(e){} shockReadyAudio = null; }
             document.getElementById("defib-overlay").style.display = "none"; document.getElementById('btn-shock').classList.remove('shock-ready'); const btnAnalyse = document.getElementById("btn-analyse"); btnAnalyse.style.background = "#ffcc00"; btnAnalyse.style.color = "#000"; btnAnalyse.innerText = "ANALYSE"; btnAnalyse.style.pointerEvents = "auto"; btnAnalyse.style.opacity = "1"; 
         }

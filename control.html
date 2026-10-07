@@ -290,7 +290,6 @@
                 <button id="btn-sound-off" style="background: var(--secondary);">
                     🔕<span class="btn-sound-text"> Töne AUS</span>
                 </button>
-                <!-- Neue QRS-Ton Schaltfläche -->
                 <button id="btn-qrs-sound" style="background: var(--danger); color: white;">
                     🔕<span class="btn-sound-text"> QRS-Ton: AUS</span>
                 </button>
@@ -491,6 +490,10 @@
                     document.getElementById("timer-panel").style.display = "none";
                     addLogEntry(`[${time}] - 🛑 CPR am Monitor beendet`);
                 }
+                else if (data.type === "audio_control") {
+                    if (data.action === "qrs_on") updateQrsButtonUI(true);
+                    if (data.action === "qrs_off") updateQrsButtonUI(false);
+                }
                 else if (data.type === "monitor_initialized") {
                     addLogEntry(`[${time}] - 💻 Monitor eingeschaltet`);
                 }
@@ -593,15 +596,19 @@
 
         function toggleQrsSound() {
             isQrsAudioEnabled = !isQrsAudioEnabled;
+            updateQrsButtonUI(isQrsAudioEnabled);
+            sendAudioCommand(isQrsAudioEnabled ? 'qrs_on' : 'qrs_off');
+        }
+
+        function updateQrsButtonUI(enabled) {
+            isQrsAudioEnabled = enabled;
             const btn = document.getElementById("btn-qrs-sound");
-            if (isQrsAudioEnabled) {
+            if (enabled) {
                 btn.style.background = "var(--success)";
                 btn.innerHTML = '🔊<span class="btn-sound-text"> QRS-Ton: EIN</span>';
-                sendAudioCommand('qrs_on');
             } else {
                 btn.style.background = "var(--danger)";
                 btn.innerHTML = '🔕<span class="btn-sound-text"> QRS-Ton: AUS</span>';
-                sendAudioCommand('qrs_off');
             }
         }
 
