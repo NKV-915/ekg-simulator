@@ -437,6 +437,7 @@
         let shockChargeAudio = null;
         let shockReadyAudio = null;
         let alarmAudio = null;
+        let audioCtx = null;
 
         function playAudioFile(filename, loop = false) {
             if (isAudioMuted) return null;
@@ -444,6 +445,34 @@
             audio.loop = loop;
             audio.play().catch(e => console.log("Audio-Wiedergabefehler:", e));
             return audio;
+        }
+
+        // Web Audio API Heartbeat (Systeminterner QRS-Piepton)
+        function playHeartbeatTone() {
+            if (isAudioMuted || !isQrsAudioEnabled || alarmAudio) return;
+            if (!isEcgConnected && !isDefiConnected) return; // QRS-Ton NUR bei EKG oder Defi
+            
+            try {
+                if (!audioCtx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    audioCtx = new AudioContext();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1);
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + 0.1);
+            } catch(e) {
+                console.log("QRS Tone synthesis error:", e);
+            }
         }
 
         const canvasECG = document.getElementById("ecgCanvas"); const ctxECG = canvasECG.getContext("2d"); 
@@ -547,6 +576,8 @@
 
         function initMonitor() { 
             document.getElementById("startOverlay").style.display = "none"; 
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
             setTimeout(function() { 
                 if (ws && ws.readyState === WebSocket.OPEN) { 
                     ws.send(JSON.stringify({ type: "monitor_initialized" })); 
@@ -876,13 +907,6 @@
             updateWarningBanner(); checkAlarms(currentHR, currentSpO2Display);
         }
 
-        // QRS-Ton NUR bei EKG / Defi (nicht bei SpO2 allein)
-        function triggerQrsBeep() {
-            if (isQrsAudioEnabled && !isAudioMuted && !alarmAudio && (isEcgConnected || isDefiConnected)) {
-                playAudioFile("beep.mp3");
-            }
-        }
-
         function drawWaveforms() {
             if (!canvasECG) return;
             const safeHR = currentHR > 0 ? currentHR : 60; const framesPerBeat = (60 / safeHR) * 60; const baseECG = canvasECG.height / 2; const baseSpO2 = canvasSpO2.height / 2;
@@ -896,12 +920,11 @@
             } else if (currentRhythm === 'asystole') { 
                 yECG = baseECG + (Math.random() * 1.5 - 0.75); 
             } else if (currentRhythm === 'afib') {
-                yECG = baseECG + (Math.random() * 4 - 2) + Math.sin(x * 0.1) * 3;
                 ecgFrameCounter++;
                 if (ecgFrameCounter >= afibNextInterval && !isDrawingECG) {
                     isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0;
                     afibNextInterval = Math.floor(Math.random() * (framesPerBeat * 0.8)) + (framesPerBeat * 0.6);
-                    triggerQrsBeep();
+                    playHeartbeatTone();
                 }
                 if (isDrawingECG) {
                     if (ecgComplexIndex < afibData.length) yECG = baseECG - (afibData[ecgComplexIndex] * 3);
@@ -912,7 +935,7 @@
                 ecgFrameCounter++; 
                 if (currentHR > 0 && ecgFrameCounter >= framesPerBeat && !isDrawingECG) { 
                     isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0; 
-                    triggerQrsBeep();
+                    playHeartbeatTone();
                 } 
                 if (isDrawingECG) { 
                     let activeArray = ecgData;
@@ -987,7 +1010,6 @@
                             elapsed += 50; fill.style.width = ((elapsed / duration) * 100) + "%";
                             if (elapsed >= duration) {
                                 clearInterval(chargeInterval); 
-                                // Punktgenaues Beenden des Lade-Sounds
                                 if (shockChargeAudio) { 
                                     try { shockChargeAudio.pause(); shockChargeAudio.currentTime = 0; } catch(e){} 
                                     shockChargeAudio = null;
