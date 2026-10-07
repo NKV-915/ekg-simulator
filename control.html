@@ -122,7 +122,7 @@
             margin-top: 8px; 
         }
         
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 8px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 8px; }
         .btn-outline { background: white; color: #333; border: 2px solid #ccc; font-size: 12px; padding: 8px 2px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         
         .active-rhythm { background: var(--danger); color: #fff; border-color: var(--danger); }
@@ -203,8 +203,8 @@
                 display: none;
             }
             .panel-audio .grid-3 button {
-                font-size: 22px;
-                padding: 8px;
+                font-size: 16px;
+                padding: 10px;
             }
         }
     </style>
@@ -283,12 +283,16 @@
 
         <div class="control-panel border-audio panel-audio">
             <h3>Monitor Sounds &amp; Töne</h3>
-            <div class="grid-3" style="grid-template-columns: 1fr 1fr;">
+            <div class="grid-3" style="grid-template-columns: 1fr 1fr 1.2fr;">
                 <button id="btn-sound-on" style="background: var(--success);">
                     🔊<span class="btn-sound-text"> Töne EIN</span>
                 </button>
                 <button id="btn-sound-off" style="background: var(--secondary);">
                     🔕<span class="btn-sound-text"> Töne AUS</span>
+                </button>
+                <!-- Neue QRS-Ton Schaltfläche -->
+                <button id="btn-qrs-sound" style="background: var(--danger); color: white;">
+                    🔕<span class="btn-sound-text"> QRS-Ton: AUS</span>
                 </button>
             </div>
         </div>
@@ -419,6 +423,7 @@
         let currentRhythm = 'nsr';
         let isHDMActive = false;
         let masterLog = [];
+        let isQrsAudioEnabled = false;
 
         let currentMeasureTitle = 'BLUTZUCKER';
         let currentMeasureColor = '#ffc0cb';
@@ -538,6 +543,7 @@
 
             document.getElementById('btn-sound-on').addEventListener('click', () => sendAudioCommand('alarms_on'));
             document.getElementById('btn-sound-off').addEventListener('click', () => sendAudioCommand('alarms_off'));
+            document.getElementById('btn-qrs-sound').addEventListener('click', toggleQrsSound);
 
             rhythmIds.forEach(id => {
                 const btn = document.getElementById('r-' + id);
@@ -584,6 +590,20 @@
 
             document.getElementById('btn-clear-log').addEventListener('click', clearLog);
         });
+
+        function toggleQrsSound() {
+            isQrsAudioEnabled = !isQrsAudioEnabled;
+            const btn = document.getElementById("btn-qrs-sound");
+            if (isQrsAudioEnabled) {
+                btn.style.background = "var(--success)";
+                btn.innerHTML = '🔊<span class="btn-sound-text"> QRS-Ton: EIN</span>';
+                sendAudioCommand('qrs_on');
+            } else {
+                btn.style.background = "var(--danger)";
+                btn.innerHTML = '🔕<span class="btn-sound-text"> QRS-Ton: AUS</span>';
+                sendAudioCommand('qrs_off');
+            }
+        }
 
         function openEkgModal() {
             document.getElementById("ekg-overlay").style.display = "flex";
@@ -701,7 +721,7 @@
             if (status === 'alarms_on') {
                 document.getElementById('btn-sound-on').style.background = 'var(--success)';
                 document.getElementById('btn-sound-off').style.background = 'var(--secondary)';
-            } else {
+            } else if (status === 'alarms_off') {
                 document.getElementById('btn-sound-on').style.background = 'var(--secondary)';
                 document.getElementById('btn-sound-off').style.background = 'var(--danger)';
             }
