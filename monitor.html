@@ -126,7 +126,7 @@
             z-index: 8001;
         }
 
-        /* BZ / Temp Messwert Overlay */
+        /* BZ / Temp Messwert Overlay - Extra Groß & Gut Lesbar */
         #value-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background-color: rgba(0, 0, 0, 0.90); z-index: 8000; display: none;
@@ -135,7 +135,7 @@
         #value-card-container {
             position: relative; width: 520px; max-width: 90vw;
             background: #111; color: #fff; padding: 45px 30px 35px 30px; border-radius: 18px;
-            border: 5px solid #ffcc00; text-align: center;
+            border: 5px solid #ffc0cb; text-align: center;
             box-shadow: 0 0 50px rgba(0,0,0,0.95);
         }
         #value-card-title {
@@ -398,10 +398,10 @@
             <button id="btn-nibp-start" class="aed-btn" onclick="openNibpIntervalModal()">NIBP</button>
             <button id="btn-12lead" class="aed-btn" onclick="trigger12LeadPrint()">12-KANAL</button>
 
-            <!-- BZ & Temp Buttons -->
-            <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 15px;">
-                <button id="btn-bz" class="aed-btn" style="background-color: #ffcc00; color: #000;" onclick="triggerBzRequest()">BZ</button>
-                <button id="btn-temp" class="aed-btn" style="background-color: #dc3545; color: #fff;" onclick="triggerTempRequest()">Temp.</button>
+            <!-- BZ & Temp Buttons mit größerem Abstand und neuen Farben -->
+            <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 30px;">
+                <button id="btn-bz" class="aed-btn" style="background-color: #ffc0cb; color: #000;" onclick="triggerBzRequest()">BZ</button>
+                <button id="btn-temp" class="aed-btn" style="background-color: #e0b0ff; color: #000;" onclick="triggerTempRequest()">Temp.</button>
             </div>
         </div>
     </div>
@@ -425,7 +425,6 @@
         let audioCtx = null; let chargeOsc = null; let chargeGain = null; let quartIntervalTimer = null; let quartToggle = false;
         let cprTimerInterval = null; let cprTimeLeft = 0; let isCurrentlyMeasuringNIBP = false;
 
-        // NIBP Intervall Variablen
         let nibpIntervalSeconds = 0;
         let nibpTimerInterval = null;
         let nibpTimeLeft = 0;
@@ -563,7 +562,7 @@
             document.getElementById("info-area").style.display = "none";
             document.getElementById("value-card-title").innerText = title;
             document.getElementById("value-card-val").innerText = val;
-            document.getElementById("value-card-container").style.borderColor = color || "#ffaa00";
+            document.getElementById("value-card-container").style.borderColor = color || "#ffc0cb";
             document.getElementById("value-overlay").style.display = "flex";
         }
 
@@ -589,18 +588,14 @@
             nibpIntervalSeconds = seconds;
 
             clearInterval(nibpTimerInterval);
+            document.getElementById("nibp-timer-display").style.display = "none";
+            sendNibpTimerSync(0, false);
 
-            if (seconds === 0) {
-                document.getElementById("nibp-timer-display").style.display = "none";
-                sendNibpTimerSync(0, false);
-                startMonitorNibd();
-            } else {
-                startMonitorNibd();
-                startNibpCountdown(seconds);
-            }
+            startMonitorNibd();
         }
 
         function startNibpCountdown(seconds) {
+            clearInterval(nibpTimerInterval);
             nibpTimeLeft = seconds;
             updateNibpTimerUI();
 
@@ -609,8 +604,8 @@
                 updateNibpTimerUI();
 
                 if (nibpTimeLeft <= 0) {
+                    clearInterval(nibpTimerInterval);
                     startMonitorNibd();
-                    nibpTimeLeft = nibpIntervalSeconds;
                 }
             }, 1000);
         }
@@ -659,6 +654,10 @@
         }
 
         function triggerLocalNibdStart() {
+            clearInterval(nibpTimerInterval);
+            document.getElementById("nibp-timer-display").style.display = "none";
+            sendNibpTimerSync(0, false);
+
             nibdWarningActive = false; updateWarningBanner(); isCurrentlyMeasuringNIBP = true;
             const btn = document.getElementById("btn-nibp-start"); btn.classList.add("nibd-measuring"); btn.innerText = "MESSUNG..."; btn.style.pointerEvents = "none";
             document.getElementById("sysDisplay").innerText = "---"; document.getElementById("diaDisplay").innerText = "---";
@@ -669,6 +668,11 @@
             document.getElementById("sysDisplay").innerText = sys; document.getElementById("diaDisplay").innerText = dia; document.getElementById("mapDisplay").innerText = map; document.getElementById("nibdPulseDisplay").innerText = pulse;
             updateHistoryDisplay(); 
             const btn = document.getElementById("btn-nibp-start"); btn.classList.remove("nibd-measuring"); btn.innerText = "NIBP"; btn.style.pointerEvents = "auto"; isCurrentlyMeasuringNIBP = false;
+
+            // Timer startet erst JETZT, nachdem der Blutdruckwert angezeigt wurde!
+            if (nibpIntervalSeconds > 0) {
+                startNibpCountdown(nibpIntervalSeconds);
+            }
         }
 
         function startMonitorNibd() {

@@ -23,8 +23,8 @@
             --warning: #ffaa00;
             --info: #00ffff;
             --co2-color: #ffff00;
-            --bz-color: #ffcc00;
-            --temp-color: #dc3545;
+            --bz-color: #ffc0cb;
+            --temp-color: #e0b0ff;
         }
 
         body { 
@@ -130,18 +130,8 @@
 
         .top-alert { display: none; padding: 12px; font-weight: bold; border-radius: 8px; text-align: center; margin-bottom: 5px; }
         #nibd-alert { background: var(--warning); color: #000; animation: pulse 1s infinite alternate; }
-        
-        #shock-prompt-card { 
-            display: none; 
-            background: #111; 
-            border: 3px solid var(--danger); 
-            padding: 15px; 
-            border-radius: 12px; 
-            text-align: center; 
-            box-shadow: 0 0 20px rgba(220, 53, 69, 0.6);
-        }
 
-        #ekg-overlay, #measure-val-overlay {
+        #ekg-overlay, #measure-val-overlay, #shock-overlay {
             position: fixed; 
             top: 0; left: 0; 
             width: 100vw; height: 100vh; 
@@ -151,7 +141,7 @@
             align-items: center; 
             z-index: 9500;
         }
-        #ekg-screen, #measure-val-screen {
+        #ekg-screen, #measure-val-screen, #shock-screen {
             width: 380px; 
             max-width: 90vw;
             background-color: #111; 
@@ -160,7 +150,7 @@
             display: flex; 
             flex-direction: column; 
             overflow: hidden; 
-            box-shadow: 0 15px 40px rgba(112, 0, 255, 0.5);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8);
             padding: 20px;
             box-sizing: border-box;
             text-align: center;
@@ -243,6 +233,19 @@
         </div>
     </div>
 
+    <!-- Schock Folge-Rhythmus Modal Pop-Up -->
+    <div id="shock-overlay">
+        <div id="shock-screen">
+            <h3 style="color: #ff4d4d; margin-top: 0; font-size: 20px;">⚡ SCHOCK ABGEGEBEN!</h3>
+            <p style="font-size: 14px; color: #ccc; margin-bottom: 20px;">Welcher Rhythmus soll jetzt folgen?</p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button id="btn-shock-nsr" style="background: var(--success); padding: 14px; font-size: 16px;">Sinusrhythmus</button>
+                <button id="btn-shock-vfib" style="background: #ff5500; padding: 14px; font-size: 16px;">Kammerflimmern (VF)</button>
+                <button id="btn-shock-asy" style="background: #333; border: 1px solid #666; padding: 14px; font-size: 16px;">Asystolie</button>
+            </div>
+        </div>
+    </div>
+
     <!-- BZ / Temp Messwert Freigabe Modal -->
     <div id="measure-val-overlay">
         <div id="measure-val-screen">
@@ -270,17 +273,6 @@
         </div>
 
         <div class="panel-alerts">
-            <div id="shock-prompt-card">
-                <div style="color: #ff4d4d; font-size: 18px; font-weight: bold; margin-bottom: 10px;">
-                    ⚡ SCHOCK ABGEGEBEN! Welcher Rhythmus folgt?
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
-                    <button id="btn-shock-nsr" style="background: var(--success);">Sinus</button>
-                    <button id="btn-shock-vfib" style="background: #ff5500;">K-Flimmern</button>
-                    <button id="btn-shock-asy" style="background: #333; border: 1px solid #666;">Asystolie</button>
-                </div>
-            </div>
-
             <div id="nibd-alert" class="top-alert">⚠️ WERT FUER NAECHSTE NIBP-MESSUNG AENDERN!</div>
 
             <div id="timer-panel" class="control-panel border-timer" style="display: none;">
@@ -401,7 +393,7 @@
                 <button id="btn-temp-p05" class="btn-small">+0.5</button>
             </div>
             <span style="font-size: 12px; color: #777; margin-bottom: 8px; display: block;">Einheit: °C</span>
-            <button id="btn-send-temp-main" style="background: var(--temp-color); color: #fff; width: 100%; font-size: 14px; padding: 10px; font-weight: bold;">
+            <button id="btn-send-temp-main" style="background: var(--temp-color); color: #000; width: 100%; font-size: 14px; padding: 10px; font-weight: bold;">
                 🌡️ Temp Freigeben / Senden
             </button>
         </div>
@@ -429,7 +421,7 @@
         let masterLog = [];
 
         let currentMeasureTitle = 'BLUTZUCKER';
-        let currentMeasureColor = '#ffcc00';
+        let currentMeasureColor = '#ffc0cb';
 
         const rhythmIds = ['nsr', 'stemi', 'vt', 'svt', 'afib', 'vfib', 'torsades', 'avb3', 'asystole'];
 
@@ -473,12 +465,12 @@
                 }
                 else if (data.type === "bz_requested") {
                     const currentBz = document.getElementById("bzInput").value + " mg/dl";
-                    openMeasureValModal("BLUTZUCKER", currentBz, "#ffcc00");
+                    openMeasureValModal("BLUTZUCKER", currentBz, "#ffc0cb");
                     addLogEntry(`[${time}] - 🩸 BZ-Messung vom Monitor angefordert!`);
                 }
                 else if (data.type === "temp_requested") {
                     const currentTemp = document.getElementById("tempInput").value + " °C";
-                    openMeasureValModal("TEMPERATUR", currentTemp, "#dc3545");
+                    openMeasureValModal("TEMPERATUR", currentTemp, "#e0b0ff");
                     addLogEntry(`[${time}] - 🌡️ Temperaturmessung vom Monitor angefordert!`);
                 }
                 else if (data.type === "cpr_timer_update") {
@@ -497,7 +489,7 @@
                     addLogEntry(`[${time}] - 🔍 AED Analyse gestartet`);
                 }
                 else if (data.type === "shock_delivered") {
-                    document.getElementById("shock-prompt-card").style.display = "block";
+                    document.getElementById("shock-overlay").style.display = "flex";
                     addLogEntry(`[${time}] - ⚡ Schock abgegeben`);
                 }
                 else if (data.type === "nibd_finished") {
@@ -555,16 +547,19 @@
             document.getElementById('btn-co2').addEventListener('click', () => toggleSensor('co2'));
             document.getElementById('btn-nibd').addEventListener('click', () => toggleSensor('nibd'));
 
+            // Stepper Event Listener für BZ
             document.getElementById('btn-bz-m10').addEventListener('click', () => changeValue('bzInput', -10, 0, 999));
             document.getElementById('btn-bz-m1').addEventListener('click', () => changeValue('bzInput', -1, 0, 999));
             document.getElementById('btn-bz-p1').addEventListener('click', () => changeValue('bzInput', 1, 0, 999));
             document.getElementById('btn-bz-p10').addEventListener('click', () => changeValue('bzInput', 10, 0, 999));
 
+            // Stepper Event Listener für Temp
             document.getElementById('btn-temp-m05').addEventListener('click', () => changeFloatValue('tempInput', -0.5, 20.0, 45.0));
             document.getElementById('btn-temp-m01').addEventListener('click', () => changeFloatValue('tempInput', -0.1, 20.0, 45.0));
             document.getElementById('btn-temp-p01').addEventListener('click', () => changeFloatValue('tempInput', 0.1, 20.0, 45.0));
             document.getElementById('btn-temp-p05').addEventListener('click', () => changeFloatValue('tempInput', 0.5, 20.0, 45.0));
 
+            // Vitalwert Stepper
             document.getElementById('btn-hr-m10').addEventListener('click', () => changeValue('hrInput', -10, 0, 300));
             document.getElementById('btn-hr-m1').addEventListener('click', () => changeValue('hrInput', -1, 0, 300));
             document.getElementById('btn-hr-p1').addEventListener('click', () => changeValue('hrInput', 1, 0, 300));
@@ -615,12 +610,12 @@
 
         function sendBzDirect() {
             const val = document.getElementById("bzInput").value + " mg/dl";
-            sendValueShow("BLUTZUCKER", val, "#ffcc00");
+            sendValueShow("BLUTZUCKER", val, "#ffc0cb");
         }
 
         function sendTempDirect() {
             const val = document.getElementById("tempInput").value + " °C";
-            sendValueShow("TEMPERATUR", val, "#dc3545");
+            sendValueShow("TEMPERATUR", val, "#e0b0ff");
         }
 
         function sendValueShow(title, val, color) {
@@ -669,7 +664,7 @@
         }
 
         function selectShockRhythm(rhythm) {
-            document.getElementById("shock-prompt-card").style.display = "none";
+            document.getElementById("shock-overlay").style.display = "none";
             setRhythm(rhythm);
         }
 
