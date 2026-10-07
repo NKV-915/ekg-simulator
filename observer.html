@@ -444,7 +444,7 @@
             if (!canvasECG) return;
             const hrBox = document.getElementById("box-hr"); const hrValue = document.getElementById("hrDisplay"); const spo2Value = document.getElementById("spo2Display"); hrBox.classList.remove("ecg-color", "spo2-color");
             if (isEcgConnected || isDefiConnected) { 
-                if (currentRhythm === 'asystole') hrValue.innerText = "ASY"; else hrValue.innerText = currentHR; hrBox.classList.add("ecg-color"); 
+                if (currentRhythm === 'asystole') hrValue.innerText = "--"; else hrValue.innerText = currentHR; hrBox.classList.add("ecg-color"); 
             } else if (isSpO2Connected) { 
                 if (['vfib', 'asystole', 'vt', 'torsades'].includes(currentRhythm)) hrValue.innerText = "--"; else hrValue.innerText = currentHR; hrBox.classList.add("spo2-color"); 
             } else { hrValue.innerText = "--"; hrBox.classList.add("ecg-color"); }
@@ -510,7 +510,7 @@
                 if (currentHR > 0 && spo2FrameCounter >= framesPerBeat && !isDrawingSpO2) { isDrawingSpO2 = true; spo2ComplexIndex = 0; spo2FrameCounter = 0; } 
                 if (isDrawingSpO2) { 
                     let currentSpo2Wave = spo2Waves[spo2Quality] || spo2Waves['good']; 
-                    if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2ComplexIndex] * 4); } 
+                    if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2Quality].length); } 
                     spo2ComplexIndex++; if (spo2ComplexIndex >= currentSpo2Wave.length) isDrawingSpO2 = false; 
                 } 
             }
