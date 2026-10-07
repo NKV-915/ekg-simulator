@@ -126,6 +126,7 @@
             z-index: 8001;
         }
 
+        /* BZ / Temp Messwert Overlay */
         #value-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background-color: rgba(0, 0, 0, 0.90); z-index: 8000; display: none;
@@ -536,7 +537,11 @@
                 }
             };
 
-            ws.onclose = () => { clearInterval(pingInterval); setTimeout(connectWebSocket, 3000); };
+            ws.onclose = () => {
+                setNetStatus(false);
+                clearInterval(pingInterval);
+                setTimeout(connectWebSocket, 3000);
+            };
         }
         connectWebSocket();
 
@@ -871,7 +876,7 @@
             updateWarningBanner(); checkAlarms(currentHR, currentSpO2Display);
         }
 
-        // QRS-Ton NUR bei EKG und NUR wenn QRS-Ton aktiviert ist & KEIN Alarm schlägt
+        // QRS-Ton NUR bei EKG / Defi (nicht bei SpO2 allein)
         function triggerQrsBeep() {
             if (isQrsAudioEnabled && !isAudioMuted && !alarmAudio && (isEcgConnected || isDefiConnected)) {
                 playAudioFile("beep.mp3");

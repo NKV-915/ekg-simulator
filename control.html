@@ -198,14 +198,6 @@
             .panel-bz         { order: 9; grid-column: 1; }
             .panel-temp       { order: 10; grid-column: 2; }
             .panel-log        { order: 11; grid-column: span 2; }
-
-            .btn-sound-text {
-                display: none;
-            }
-            .panel-audio .grid-3 button {
-                font-size: 16px;
-                padding: 10px;
-            }
         }
     </style>
 </head>
@@ -281,17 +273,15 @@
             </div>
         </div>
 
+        <!-- Neue Sound-Schaltflächen: Einzelne Toggle-Buttons -->
         <div class="control-panel border-audio panel-audio">
             <h3>Monitor Sounds &amp; Töne</h3>
-            <div class="grid-3" style="grid-template-columns: 1fr 1fr 1.2fr;">
-                <button id="btn-sound-on" style="background: var(--success);">
-                    🔊<span class="btn-sound-text"> Töne EIN</span>
+            <div style="display: flex; gap: 10px;">
+                <button id="btn-all-sounds" style="background: var(--success); color: white; flex: 1; padding: 12px; font-size: 15px; font-weight: bold;">
+                    🔊 Alle Töne
                 </button>
-                <button id="btn-sound-off" style="background: var(--secondary);">
-                    🔕<span class="btn-sound-text"> Töne AUS</span>
-                </button>
-                <button id="btn-qrs-sound" style="background: var(--danger); color: white;">
-                    🔕<span class="btn-sound-text"> QRS-Ton: AUS</span>
+                <button id="btn-qrs-sound" style="background: var(--danger); color: white; flex: 1; padding: 12px; font-size: 15px; font-weight: bold;">
+                    🔕 QRS-Ton
                 </button>
             </div>
         </div>
@@ -422,6 +412,9 @@
         let currentRhythm = 'nsr';
         let isHDMActive = false;
         let masterLog = [];
+
+        // Standard-Lautstärkezustände im Controller
+        let isAllSoundsEnabled = true;
         let isQrsAudioEnabled = false;
 
         let currentMeasureTitle = 'BLUTZUCKER';
@@ -491,6 +484,8 @@
                     addLogEntry(`[${time}] - 🛑 CPR am Monitor beendet`);
                 }
                 else if (data.type === "audio_control") {
+                    if (data.action === "alarms_on") updateAllSoundsButtonUI(true);
+                    if (data.action === "alarms_off") updateAllSoundsButtonUI(false);
                     if (data.action === "qrs_on") updateQrsButtonUI(true);
                     if (data.action === "qrs_off") updateQrsButtonUI(false);
                 }
@@ -544,8 +539,7 @@
             document.getElementById('btn-shock-vfib').addEventListener('click', () => selectShockRhythm('vfib'));
             document.getElementById('btn-shock-asy').addEventListener('click', () => selectShockRhythm('asystole'));
 
-            document.getElementById('btn-sound-on').addEventListener('click', () => sendAudioCommand('alarms_on'));
-            document.getElementById('btn-sound-off').addEventListener('click', () => sendAudioCommand('alarms_off'));
+            document.getElementById('btn-all-sounds').addEventListener('click', toggleAllSounds);
             document.getElementById('btn-qrs-sound').addEventListener('click', toggleQrsSound);
 
             rhythmIds.forEach(id => {
@@ -594,6 +588,24 @@
             document.getElementById('btn-clear-log').addEventListener('click', clearLog);
         });
 
+        function toggleAllSounds() {
+            isAllSoundsEnabled = !isAllSoundsEnabled;
+            updateAllSoundsButtonUI(isAllSoundsEnabled);
+            sendAudioCommand(isAllSoundsEnabled ? 'alarms_on' : 'alarms_off');
+        }
+
+        function updateAllSoundsButtonUI(enabled) {
+            isAllSoundsEnabled = enabled;
+            const btn = document.getElementById("btn-all-sounds");
+            if (enabled) {
+                btn.style.background = "var(--success)";
+                btn.innerText = "🔊 Alle Töne";
+            } else {
+                btn.style.background = "var(--danger)";
+                btn.innerText = "🔕 Alle Töne";
+            }
+        }
+
         function toggleQrsSound() {
             isQrsAudioEnabled = !isQrsAudioEnabled;
             updateQrsButtonUI(isQrsAudioEnabled);
@@ -605,10 +617,10 @@
             const btn = document.getElementById("btn-qrs-sound");
             if (enabled) {
                 btn.style.background = "var(--success)";
-                btn.innerHTML = '🔊<span class="btn-sound-text"> QRS-Ton: EIN</span>';
+                btn.innerText = "🔊 QRS-Ton";
             } else {
                 btn.style.background = "var(--danger)";
-                btn.innerHTML = '🔕<span class="btn-sound-text"> QRS-Ton: AUS</span>';
+                btn.innerText = "🔕 QRS-Ton";
             }
         }
 
@@ -725,13 +737,6 @@
         }
 
         function sendAudioCommand(status) {
-            if (status === 'alarms_on') {
-                document.getElementById('btn-sound-on').style.background = 'var(--success)';
-                document.getElementById('btn-sound-off').style.background = 'var(--secondary)';
-            } else if (status === 'alarms_off') {
-                document.getElementById('btn-sound-on').style.background = 'var(--secondary)';
-                document.getElementById('btn-sound-off').style.background = 'var(--danger)';
-            }
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: "audio_control", action: status }));
             }
