@@ -284,6 +284,9 @@
                         document.getElementById("cpr-timer-val").innerText = `${mins}:${secs}`;
                     } else { timerBox.style.display = "none"; }
                 }
+                else if (data.type === "cpr_stopped") {
+                    document.getElementById("cpr-timer-box").style.display = "none";
+                }
                 else if (data.type === "nibp_timer_sync") {
                     const timerSpan = document.getElementById("nibp-timer-display");
                     if (data.active && data.timeLeft > 0) {

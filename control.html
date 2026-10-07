@@ -482,6 +482,10 @@
                         timerPanel.style.display = "none";
                     }
                 }
+                else if (data.type === "cpr_stopped") {
+                    document.getElementById("timer-panel").style.display = "none";
+                    addLogEntry(`[${time}] - 🛑 CPR am Monitor beendet`);
+                }
                 else if (data.type === "monitor_initialized") {
                     addLogEntry(`[${time}] - 💻 Monitor eingeschaltet`);
                 }
@@ -547,19 +551,16 @@
             document.getElementById('btn-co2').addEventListener('click', () => toggleSensor('co2'));
             document.getElementById('btn-nibd').addEventListener('click', () => toggleSensor('nibd'));
 
-            // Stepper Event Listener für BZ
             document.getElementById('btn-bz-m10').addEventListener('click', () => changeValue('bzInput', -10, 0, 999));
             document.getElementById('btn-bz-m1').addEventListener('click', () => changeValue('bzInput', -1, 0, 999));
             document.getElementById('btn-bz-p1').addEventListener('click', () => changeValue('bzInput', 1, 0, 999));
             document.getElementById('btn-bz-p10').addEventListener('click', () => changeValue('bzInput', 10, 0, 999));
 
-            // Stepper Event Listener für Temp
             document.getElementById('btn-temp-m05').addEventListener('click', () => changeFloatValue('tempInput', -0.5, 20.0, 45.0));
             document.getElementById('btn-temp-m01').addEventListener('click', () => changeFloatValue('tempInput', -0.1, 20.0, 45.0));
             document.getElementById('btn-temp-p01').addEventListener('click', () => changeFloatValue('tempInput', 0.1, 20.0, 45.0));
             document.getElementById('btn-temp-p05').addEventListener('click', () => changeFloatValue('tempInput', 0.5, 20.0, 45.0));
 
-            // Vitalwert Stepper
             document.getElementById('btn-hr-m10').addEventListener('click', () => changeValue('hrInput', -10, 0, 300));
             document.getElementById('btn-hr-m1').addEventListener('click', () => changeValue('hrInput', -1, 0, 300));
             document.getElementById('btn-hr-p1').addEventListener('click', () => changeValue('hrInput', 1, 0, 300));

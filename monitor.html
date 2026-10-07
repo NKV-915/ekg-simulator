@@ -126,7 +126,7 @@
             z-index: 8001;
         }
 
-        /* BZ / Temp Messwert Overlay - Extra Groß & Gut Lesbar */
+        /* BZ / Temp Messwert Overlay */
         #value-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background-color: rgba(0, 0, 0, 0.90); z-index: 8000; display: none;
@@ -240,6 +240,7 @@
         #btn-shock { background-color: #dc3545; color: #fff; opacity: 0.3; pointer-events: none; }
         #btn-nibp-start { background-color: #28a745; color: #ffffff; }
         #btn-12lead { background-color: #7000ff; color: #fff; }
+        #btn-stop-cpr { background-color: #ffcc00; color: #000; display: none; margin-bottom: 4px; padding: 12px 6px; font-size: 13px; border-radius: 20px; }
         
         .analyse-measuring { animation: analyse-blink 1s infinite alternate !important; }
         @keyframes analyse-blink { from { background-color: #ffcc00; color: #000; } to { background-color: #997a00; color: #fff; } }
@@ -392,13 +393,14 @@
         <div id="aed-panel">
             <button id="btn-mute" onclick="toggleMute()" style="padding: 10px 6px; font-size: 13px; font-weight: bold; border-radius: 20px; border: none; cursor: pointer; width: 100%;">🔕 SOUND AN</button>
             <hr style="width:100%; border: 1px solid #444; margin: 2px 0;">
+            <button id="btn-stop-cpr" class="aed-btn" onclick="stopCprMode()">CPR BEENDEN</button>
             <div id="cpr-timer">00:00</div>
             <button id="btn-analyse" class="aed-btn" onclick="startAnalysis()">ANALYSE</button>
             <button id="btn-shock" class="aed-btn" onclick="deliverShock()">SCHOCK</button>
             <button id="btn-nibp-start" class="aed-btn" onclick="openNibpIntervalModal()">NIBP</button>
             <button id="btn-12lead" class="aed-btn" onclick="trigger12LeadPrint()">12-KANAL</button>
 
-            <!-- BZ & Temp Buttons mit größerem Abstand und neuen Farben -->
+            <!-- BZ & Temp Buttons -->
             <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 30px;">
                 <button id="btn-bz" class="aed-btn" style="background-color: #ffc0cb; color: #000;" onclick="triggerBzRequest()">BZ</button>
                 <button id="btn-temp" class="aed-btn" style="background-color: #e0b0ff; color: #000;" onclick="triggerTempRequest()">Temp.</button>
@@ -514,7 +516,7 @@
                     baseHR = parseInt(data.heartRate); baseSpO2 = parseInt(data.spo2); baseEtco2 = parseInt(data.etco2); baseAF = parseInt(data.af); standbySys = data.sys; standbyDia = data.dia; isNibdConnected = data.sensors.nibd; isHDMActive = data.isHDMActive; isEcgConnected = data.sensors.ecg; isSpO2Connected = data.sensors.spo2; isCo2Connected = data.sensors.co2; isDefiConnected = data.sensors.defi; 
                     if (isEcgConnected) { ecgWarningActive = false; clearTimeout(ecgTimeout); } if (isNibdConnected) { nibdWarningActive = false; clearTimeout(nibdTimeout); } if (isDefiConnected) { defiWarningActive = false; clearTimeout(defiTimeout); }
                     if (!isNibdConnected && !isCurrentlyMeasuringNIBP) { document.getElementById("sysDisplay").innerText = "--"; document.getElementById("diaDisplay").innerText = "--"; document.getElementById("mapDisplay").innerText = "--"; document.getElementById("nibdPulseDisplay").innerText = "--"; }
-                    if (data.rhythm === 'nsr' || data.rhythm === 'stemi') { forceStopCprTimer(); resetAED(); } currentRhythm = data.rhythm || 'nsr'; spo2Quality = data.spo2Quality; fluctuateVitals(); 
+                    if (data.rhythm === 'nsr' || data.rhythm === 'stemi') { forceStopCprTimer(); resetAED(); document.getElementById("btn-stop-cpr").style.display = "none"; } currentRhythm = data.rhythm || 'nsr'; spo2Quality = data.spo2Quality; fluctuateVitals(); 
                 }
             };
 
@@ -634,6 +636,15 @@
             }
         }
 
+        function stopCprMode() {
+            forceStopCprTimer();
+            resetAED();
+            document.getElementById("btn-stop-cpr").style.display = "none";
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "cpr_stopped" }));
+            }
+        }
+
         function updateTimerDisplay() {
             const timerDiv = document.getElementById("cpr-timer");
             if (cprTimeLeft <= 0) { timerDiv.innerText = "00:00"; timerDiv.style.display = "none"; return; }
@@ -669,7 +680,6 @@
             updateHistoryDisplay(); 
             const btn = document.getElementById("btn-nibp-start"); btn.classList.remove("nibd-measuring"); btn.innerText = "NIBP"; btn.style.pointerEvents = "auto"; isCurrentlyMeasuringNIBP = false;
 
-            // Timer startet erst JETZT, nachdem der Blutdruckwert angezeigt wurde!
             if (nibpIntervalSeconds > 0) {
                 startNibpCountdown(nibpIntervalSeconds);
             }
@@ -689,7 +699,7 @@
 
         function toggleMute() { isAudioMuted = !isAudioMuted; const btn = document.getElementById("btn-mute"); if (isAudioMuted) { btn.style.background = "#dc3545"; btn.innerText = "🔊 SOUND AUS"; } else { btn.style.background = "#444"; btn.innerText = "🔕 SOUND AN"; } }
         function playChargingTone(duration) { if (!audioCtx) return; chargeOsc = audioCtx.createOscillator(); chargeGain = audioCtx.createGain(); chargeOsc.type = 'sine'; chargeOsc.frequency.setValueAtTime(440, audioCtx.currentTime); chargeOsc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + duration); chargeOsc.connect(chargeGain); chargeGain.connect(audioCtx.destination); chargeGain.gain.setValueAtTime(0.2, audioCtx.currentTime); chargeOsc.start(audioCtx.currentTime); }
-        function playFinalBeep() { if (!audioCtx) return; const beepOsc = audioCtx.createOscillator(); const beepGain = audioCtx.createGain(); beepOsc.type = 'sine'; beepOsc.frequency.setValueAtTime(880, audioCtx.currentTime); beepGain.gain.setValueAtTime(0.4, audioCtx.currentTime); beepGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15); beepOsc.connect(beepGain); beepGain.connect(audioCtx.destination); beepOsc.start(); beepOsc.stop(audioCtx.currentTime + 0.15); }
+        function playFinalBeep() { if (!audioCtx) return; const beepOsc = audioCtx.createOscillator(); const beepGain = audioCtx.createGain(); beepOsc.type = 'sine'; beepOsc.frequency.setValueAtTime(880, audioCtx.currentTime); beepGain.gain.setValueAtTime(0.4, audioCtx.currentTime); beepGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15); beepOsc.start(); beepOsc.stop(audioCtx.currentTime + 0.15); }
 
         function trigger12LeadPrint() {
             if (!isEcgConnected) { ecgWarningActive = true; updateWarningBanner(); clearTimeout(ecgTimeout); ecgTimeout = setTimeout(function() { ecgWarningActive = false; updateWarningBanner(); }, 5000); return; }
@@ -739,6 +749,9 @@
                 const overlay = document.getElementById("defib-overlay"); const announceState = document.getElementById("announcement-state"); const announceText = document.getElementById("announcement-text"); const loadState = document.getElementById("loading-state"); const rdyState = document.getElementById("ready-state"); const fill = document.getElementById("progress-fill");
                 overlay.style.display = "flex"; announceState.style.display = "flex"; loadState.style.display = "none"; rdyState.style.display = "none";
                 
+                // Einblenden des "CPR BEENDEN"-Buttons erst nach der ersten Analyse-Auswertung
+                document.getElementById("btn-stop-cpr").style.display = "block";
+
                 if (currentRhythm === 'vfib' || currentRhythm === 'vt' || currentRhythm === 'torsades') {
                     btnAnalyse.style.background = "#6c757d"; btnAnalyse.style.color = "#fff"; btnAnalyse.innerText = "LADEN...";
                     announceText.innerText = "Schock empfohlen"; announceText.style.color = "#dc3545"; 
