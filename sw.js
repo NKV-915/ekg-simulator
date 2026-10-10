@@ -11,7 +11,6 @@ const ASSETS = [
   './ekg_lbbb.png',
   './alarm.mp3',
   './stat.mp3',
-  './beep.mp3',
   './blutdruck.mp3',
   './shock_charge.mp3',
   './shock_ready.mp3',

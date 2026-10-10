@@ -423,7 +423,6 @@
         let ecgWarningActive = false; let nibdWarningActive = false; let defiWarningActive = false;
         let ecgTimeout = null; let nibdTimeout = null; let defiTimeout = null;
         
-        // Ton-Einstellungen: Alle Töne standardmäßig AN, QRS-Ton standardmäßig AUS
         let isAudioMuted = false; 
         let isQrsAudioEnabled = false;
         let isAlarmQuitted = false;
@@ -439,11 +438,23 @@
         let alarmAudio = null;
         let audioCtx = null;
 
-        function playAudioFile(filename, loop = false) {
+        // Vorab geladene Audio-Objekte, um Autoplay-Sperren zu umgehen
+        const audioAssets = {
+            alarm: new Audio("alarm.mp3"),
+            stat: new Audio("stat.mp3"),
+            blutdruck: new Audio("blutdruck.mp3"),
+            shock_charge: new Audio("shock_charge.mp3"),
+            shock_ready: new Audio("shock_ready.mp3"),
+            shock_admitted: new Audio("shock_admitted.mp3")
+        };
+
+        function playAudioFile(key, loop = false) {
             if (isAudioMuted) return null;
-            const audio = new Audio(filename);
+            const cleanKey = key.replace('.mp3', '');
+            let audio = audioAssets[cleanKey] || new Audio(key);
             audio.loop = loop;
-            audio.play().catch(e => console.log("Audio-Wiedergabefehler:", e));
+            audio.currentTime = 0;
+            audio.play().catch(e => console.log("Audio-Wiedergabefehler (" + key + "):", e));
             return audio;
         }
 
@@ -578,6 +589,15 @@
             document.getElementById("startOverlay").style.display = "none"; 
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
+
+            // Freischalten ("Unlocking") aller MP3-Dateien beim Startklick
+            Object.values(audioAssets).forEach(audio => {
+                audio.play().then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }).catch(e => console.log("Audio unlock:", e));
+            });
+
             setTimeout(function() { 
                 if (ws && ws.readyState === WebSocket.OPEN) { 
                     ws.send(JSON.stringify({ type: "monitor_initialized" })); 
@@ -1010,6 +1030,7 @@
                             elapsed += 50; fill.style.width = ((elapsed / duration) * 100) + "%";
                             if (elapsed >= duration) {
                                 clearInterval(chargeInterval); 
+                                // Punktgenaues Beenden des Lade-Sounds
                                 if (shockChargeAudio) { 
                                     try { shockChargeAudio.pause(); shockChargeAudio.currentTime = 0; } catch(e){} 
                                     shockChargeAudio = null;
