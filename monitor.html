@@ -126,7 +126,6 @@
             z-index: 8001;
         }
 
-        /* BZ / Temp Messwert Overlay */
         #value-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background-color: rgba(0, 0, 0, 0.90); z-index: 8000; display: none;
@@ -438,8 +437,8 @@
         let alarmAudio = null;
         let audioCtx = null;
 
-        // Vorab geladene Audio-Objekte, um Autoplay-Sperren zu umgehen
-        const audioAssets = {
+        // Vorab geladene Audio-Objekte
+        const sounds = {
             alarm: new Audio("alarm.mp3"),
             stat: new Audio("stat.mp3"),
             blutdruck: new Audio("blutdruck.mp3"),
@@ -451,17 +450,33 @@
         function playAudioFile(key, loop = false) {
             if (isAudioMuted) return null;
             const cleanKey = key.replace('.mp3', '');
-            let audio = audioAssets[cleanKey] || new Audio(key);
-            audio.loop = loop;
-            audio.currentTime = 0;
-            audio.play().catch(e => console.log("Audio-Wiedergabefehler (" + key + "):", e));
+            const audio = sounds[cleanKey];
+            if (!audio) return null;
+
+            try {
+                audio.loop = loop;
+                audio.currentTime = 0;
+                audio.play().catch(e => console.log("Wiedergabefehler (" + key + "):", e));
+            } catch(e) {
+                console.log("Audio play exception:", e);
+            }
             return audio;
         }
 
-        // Web Audio API Heartbeat (Systeminterner QRS-Piepton)
+        function stopAudioFile(key) {
+            const cleanKey = key.replace('.mp3', '');
+            const audio = sounds[cleanKey];
+            if (audio) {
+                try {
+                    audio.pause();
+                    audio.currentTime = 0;
+                } catch(e){}
+            }
+        }
+
         function playHeartbeatTone() {
             if (isAudioMuted || !isQrsAudioEnabled || alarmAudio) return;
-            if (!isEcgConnected && !isDefiConnected) return; // QRS-Ton NUR bei EKG oder Defi
+            if (!isEcgConnected && !isDefiConnected) return; 
             
             try {
                 if (!audioCtx) {
@@ -590,12 +605,20 @@
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
 
-            // Freischalten ("Unlocking") aller MP3-Dateien beim Startklick
-            Object.values(audioAssets).forEach(audio => {
-                audio.play().then(() => {
-                    audio.pause();
-                    audio.currentTime = 0;
-                }).catch(e => console.log("Audio unlock:", e));
+            // Unlocking aller HTML5 Audio-Dateien beim Klick auf "Monitor einschalten"
+            Object.keys(sounds).forEach(key => {
+                const a = sounds[key];
+                a.muted = true;
+                const p = a.play();
+                if (p !== undefined) {
+                    p.then(() => {
+                        a.pause();
+                        a.currentTime = 0;
+                        a.muted = false;
+                    }).catch(e => {
+                        a.muted = false;
+                    });
+                }
             });
 
             setTimeout(function() { 
@@ -863,10 +886,8 @@
 
         function quittierenAlarm() {
             isAlarmQuitted = true;
-            if (alarmAudio) {
-                try { alarmAudio.pause(); alarmAudio.currentTime = 0; } catch(e){}
-                alarmAudio = null;
-            }
+            stopAudioFile("alarm.mp3");
+            alarmAudio = null;
             const btn = document.getElementById("btn-alarm-quit");
             btn.style.background = "#28a745";
             btn.style.color = "#fff";
@@ -879,14 +900,12 @@
             if (isSpO2Connected && (isNonSinus || spo2 < 90)) { document.getElementById("box-spo2").classList.add("alarm-active"); alarm = true; } else { document.getElementById("box-spo2").classList.remove("alarm-active"); }
             
             if (alarm) {
-                if (!isAlarmQuitted && !alarmAudio) {
+                if (!isAlarmQuitted && (!alarmAudio || alarmAudio.paused)) {
                     alarmAudio = playAudioFile("alarm.mp3", true);
                 }
             } else {
-                if (alarmAudio) {
-                    try { alarmAudio.pause(); alarmAudio.currentTime = 0; } catch(e){}
-                    alarmAudio = null;
-                }
+                stopAudioFile("alarm.mp3");
+                alarmAudio = null;
                 isAlarmQuitted = false;
                 const btn = document.getElementById("btn-alarm-quit");
                 btn.style.background = "#444";
@@ -1023,19 +1042,15 @@
                     setTimeout(function() {
                         announceState.style.display = "none"; loadState.style.display = "flex"; fill.style.width = "0%";
                         
-                        shockChargeAudio = playAudioFile("shock_charge.mp3");
+                        playAudioFile("shock_charge.mp3");
 
                         let elapsed = 0; const duration = 3000;
                         const chargeInterval = setInterval(function() {
                             elapsed += 50; fill.style.width = ((elapsed / duration) * 100) + "%";
                             if (elapsed >= duration) {
                                 clearInterval(chargeInterval); 
-                                // Punktgenaues Beenden des Lade-Sounds
-                                if (shockChargeAudio) { 
-                                    try { shockChargeAudio.pause(); shockChargeAudio.currentTime = 0; } catch(e){} 
-                                    shockChargeAudio = null;
-                                }
-                                shockReadyAudio = playAudioFile("shock_ready.mp3", true);
+                                stopAudioFile("shock_charge.mp3");
+                                playAudioFile("shock_ready.mp3", true);
                                 loadState.style.display = "none"; rdyState.style.display = "flex";
                                 btnAnalyse.innerText = "BEREIT"; document.getElementById('btn-shock').classList.add('shock-ready');
                             }
@@ -1050,8 +1065,8 @@
         }
 
         function deliverShock(fromNetwork = false) {
-            if (shockChargeAudio) { try { shockChargeAudio.pause(); shockChargeAudio.currentTime = 0; } catch(e){} shockChargeAudio = null; }
-            if (shockReadyAudio) { try { shockReadyAudio.pause(); shockReadyAudio.currentTime = 0; } catch(e){} shockReadyAudio = null; }
+            stopAudioFile("shock_charge.mp3");
+            stopAudioFile("shock_ready.mp3");
             document.getElementById('btn-shock').classList.remove('shock-ready'); document.getElementById("defib-overlay").style.display = "none"; 
             playAudioFile("shock_admitted.mp3");
             const flash = document.getElementById('flash-overlay'); flash.style.display = 'block'; flash.style.opacity = '1';
@@ -1061,8 +1076,8 @@
         }
 
         function resetAED() { 
-            if (shockChargeAudio) { try { shockChargeAudio.pause(); shockChargeAudio.currentTime = 0; } catch(e){} shockChargeAudio = null; }
-            if (shockReadyAudio) { try { shockReadyAudio.pause(); shockReadyAudio.currentTime = 0; } catch(e){} shockReadyAudio = null; }
+            stopAudioFile("shock_charge.mp3");
+            stopAudioFile("shock_ready.mp3");
             document.getElementById("defib-overlay").style.display = "none"; document.getElementById('btn-shock').classList.remove('shock-ready'); const btnAnalyse = document.getElementById("btn-analyse"); btnAnalyse.style.background = "#ffcc00"; btnAnalyse.style.color = "#000"; btnAnalyse.innerText = "ANALYSE"; btnAnalyse.style.pointerEvents = "auto"; btnAnalyse.style.opacity = "1"; 
         }
     </script>
