@@ -273,7 +273,7 @@
             </div>
         </div>
 
-        <!-- Neue Sound-Schaltflächen: Einzelne Toggle-Buttons -->
+        <!-- Einzelne Toggle-Buttons für Alle Töne & QRS-Ton -->
         <div class="control-panel border-audio panel-audio">
             <h3>Monitor Sounds &amp; Töne</h3>
             <div style="display: flex; gap: 10px;">
@@ -322,6 +322,13 @@
                 <span style="font-weight: bold; margin-right: 4px;">Dia:</span>
                 <input type="number" id="diaInput" value="80">
             </div>
+            
+            <!-- NIBP Button mit Status-Kreis im Controller zum Starten & Abbrechen -->
+            <button id="btn-ctrl-nibp" style="background: #28a745; color: white; width: 100%; margin-bottom: 8px; padding: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px;">
+                <span id="ctrl-nibp-indicator" style="width: 14px; height: 14px; border-radius: 50%; background-color: #000; border: 2px solid #111; display: inline-block; transition: all 0.2s;"></span>
+                <span id="ctrl-nibp-text">NIBP START</span>
+            </button>
+
             <button id="btn-nibd" class="sensor-btn sensor-off">MANSCHETTE: GETRENNT</button>
         </div>
 
@@ -413,9 +420,9 @@
         let isHDMActive = false;
         let masterLog = [];
 
-        // Standard-Lautstärkezustände im Controller
         let isAllSoundsEnabled = true;
         let isQrsAudioEnabled = false;
+        let isCtrlMeasuringNibp = false;
 
         let currentMeasureTitle = 'BLUTZUCKER';
         let currentMeasureColor = '#ffc0cb';
@@ -431,6 +438,44 @@
             } else {
                 dot.className = "status-dot status-offline";
                 text.innerText = "OFFLINE";
+            }
+        }
+
+        function setCtrlNibpMeasuring(measuring) {
+            isCtrlMeasuringNibp = measuring;
+            const ind = document.getElementById("ctrl-nibp-indicator");
+            const txt = document.getElementById("ctrl-nibp-text");
+            const btn = document.getElementById("btn-ctrl-nibp");
+            if (!ind || !txt || !btn) return;
+
+            if (measuring) {
+                ind.style.backgroundColor = "#00ff00";
+                ind.style.borderColor = "#ffffff";
+                ind.style.boxShadow = "0 0 10px #00ff00";
+                txt.innerText = "NIBP ABBRECHEN";
+                btn.style.background = "#dc3545";
+            } else {
+                ind.style.backgroundColor = "#000000";
+                ind.style.borderColor = "#111111";
+                ind.style.boxShadow = "none";
+                txt.innerText = "NIBP START";
+                btn.style.background = "#28a745";
+            }
+        }
+
+        function toggleCtrlNibp() {
+            const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
+            if (isCtrlMeasuringNibp) {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: "nibd_cancelled" }));
+                }
+                setCtrlNibpMeasuring(false);
+                addLogEntry(`[${time}] - 🩺 NIBP-Messung vom Controller abgebrochen`);
+            } else {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: "nibd_start_req" }));
+                }
+                addLogEntry(`[${time}] - 🩺 NIBP-Messung vom Controller angefordert`);
             }
         }
 
@@ -499,7 +544,16 @@
                     document.getElementById("shock-overlay").style.display = "flex";
                     addLogEntry(`[${time}] - ⚡ Schock abgegeben`);
                 }
+                else if (data.type === "nibd_started") {
+                    setCtrlNibpMeasuring(true);
+                    addLogEntry(`[${time}] - 🩺 NIBP-Messung gestartet`);
+                }
+                else if (data.type === "nibd_cancelled") {
+                    setCtrlNibpMeasuring(false);
+                    addLogEntry(`[${time}] - 🩺 NIBP-Messung abgebrochen`);
+                }
                 else if (data.type === "nibd_finished") {
+                    setCtrlNibpMeasuring(false);
                     const nibdAlert = document.getElementById("nibd-alert");
                     nibdAlert.style.display = "block";
                     setTimeout(() => { nibdAlert.style.display = "none"; }, 8000);
@@ -541,6 +595,7 @@
 
             document.getElementById('btn-all-sounds').addEventListener('click', toggleAllSounds);
             document.getElementById('btn-qrs-sound').addEventListener('click', toggleQrsSound);
+            document.getElementById('btn-ctrl-nibp').addEventListener('click', toggleCtrlNibp);
 
             rhythmIds.forEach(id => {
                 const btn = document.getElementById('r-' + id);

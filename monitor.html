@@ -236,14 +236,12 @@
         #btn-analyse { background-color: #ffcc00; color: #000; }
         #btn-analyse:active { background-color: #e6b800; transform: scale(0.95); }
         #btn-shock { background-color: #dc3545; color: #fff; opacity: 0.3; pointer-events: none; }
-        #btn-nibp-start { background-color: #28a745; color: #ffffff; }
+        #btn-nibp-start { background-color: #28a745; color: #ffffff; display: flex; align-items: center; justify-content: center; gap: 8px; }
         #btn-12lead { background-color: #7000ff; color: #fff; }
         #btn-stop-cpr { background-color: #ff6600; color: #ffffff; display: none; margin-bottom: 4px; padding: 10px 4px; font-size: 12px; border-radius: 20px; }
         
         .analyse-measuring { animation: analyse-blink 1s infinite alternate !important; }
         @keyframes analyse-blink { from { background-color: #ffcc00; color: #000; } to { background-color: #997a00; color: #fff; } }
-        .nibd-measuring { animation: nibd-blink 1s infinite alternate !important; }
-        @keyframes nibd-blink { from { background-color: #28a745; color: #fff; } to { background-color: #155724; color: #fff; } }
 
         .shock-ready { opacity: 1 !important; pointer-events: auto !important; }
         #cpr-timer { display: none; font-size: 30px; font-weight: bold; color: #444; font-family: 'Courier New', Courier, monospace; text-align: center; letter-spacing: 1px; margin-bottom: 2px; }
@@ -331,7 +329,6 @@
         </div>
     </div>
 
-    <!-- Header mit Schock-Zähler, Einsatzuhr ab 00:00:00 und Batterieanzeige -->
     <div id="top-header">
         <div style="display: flex; align-items: center; gap: 12px;">
             <div style="color: #888; font-weight: bold; font-size: 13px; letter-spacing: 1px;">EKG Simulator</div>
@@ -412,7 +409,13 @@
             <div id="cpr-timer">00:00</div>
             <button id="btn-analyse" class="aed-btn" onclick="startAnalysis()">ANALYSE</button>
             <button id="btn-shock" class="aed-btn" onclick="deliverShock()">SCHOCK</button>
-            <button id="btn-nibp-start" class="aed-btn" onclick="openNibpIntervalModal()">NIBP</button>
+            
+            <!-- Neuer NIBP-Button mit Status-Kreis links -->
+            <button id="btn-nibp-start" class="aed-btn" onclick="handleNibpButtonClick()">
+                <span id="nibp-indicator" style="width: 14px; height: 14px; border-radius: 50%; background-color: #000; border: 2px solid #111; display: inline-block; transition: all 0.2s;"></span>
+                <span>NIBP</span>
+            </button>
+
             <button id="btn-12lead" class="aed-btn" onclick="trigger12LeadPrint()">12-KANAL</button>
 
             <div style="width: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 20px;">
@@ -443,10 +446,13 @@
         let isQrsAudioEnabled = false;
         let isAlarmQuitted = false;
         
-        let cprTimerInterval = null; let cprTimeLeft = 0; let isCurrentlyMeasuringNIBP = false;
+        let cprTimerInterval = null; let cprTimeLeft = 0; 
+        let isCurrentlyMeasuringNIBP = false;
+        let nibdMeasurementTimeout = null;
+        let lastValidSys = null;
+        let lastValidDia = null;
         let shockCount = 0;
 
-        // Hochlaufende Einsatz-Uhr ab 00:00:00
         let elapsedSeconds = 0;
         let timerRunning = false;
 
@@ -490,6 +496,28 @@
                     audio.pause();
                     audio.currentTime = 0;
                 } catch(e){}
+            }
+        }
+
+        function setNibpIndicator(measuring) {
+            const ind = document.getElementById("nibp-indicator");
+            if (!ind) return;
+            if (measuring) {
+                ind.style.backgroundColor = "#00ff00";
+                ind.style.borderColor = "#ffffff";
+                ind.style.boxShadow = "0 0 10px #00ff00";
+            } else {
+                ind.style.backgroundColor = "#000000";
+                ind.style.borderColor = "#111111";
+                ind.style.boxShadow = "none";
+            }
+        }
+
+        function handleNibpButtonClick() {
+            if (isCurrentlyMeasuringNIBP) {
+                abortMonitorNibd(false);
+            } else {
+                openNibpIntervalModal();
             }
         }
 
@@ -580,6 +608,8 @@
                     nibdHistory = []; updateHistoryDisplay(); 
                 } 
                 else if (data.type === "nibd_started") { triggerLocalNibdStart(); }
+                else if (data.type === "nibd_cancelled") { abortMonitorNibd(true); }
+                else if (data.type === "nibd_start_req") { if (!isCurrentlyMeasuringNIBP) startMonitorNibd(); }
                 else if (data.type === "nibd_finished") {
                     if (data.sys !== undefined) { triggerLocalNibdFinish(data.sys, data.dia, data.map, data.pulse, data.timestamp); }
                 }
@@ -624,10 +654,8 @@
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
 
-            // Stoppuhr starten
             timerRunning = true;
 
-            // Audio-Unlocking für alle Sounds beim Einschalten
             Object.keys(sounds).forEach(key => {
                 const a = sounds[key];
                 a.muted = true;
@@ -650,7 +678,6 @@
             }, 500); 
         }
 
-        // Timer läuft ab 00:00:00 hoch
         function updateElapsedTimer() {
             if (!timerRunning) return;
             elapsedSeconds++;
@@ -820,19 +847,49 @@
             sendNibpTimerSync(0, false);
 
             nibdWarningActive = false; updateWarningBanner(); isCurrentlyMeasuringNIBP = true;
+            setNibpIndicator(true);
             playAudioFile("blutdruck.mp3");
-            const btn = document.getElementById("btn-nibp-start"); btn.classList.add("nibd-measuring"); btn.innerText = "MESSUNG..."; btn.style.pointerEvents = "none";
             document.getElementById("sysDisplay").innerText = "---"; document.getElementById("diaDisplay").innerText = "---";
         }
 
         function triggerLocalNibdFinish(sys, dia, map, pulse, timestamp) {
+            lastValidSys = sys;
+            lastValidDia = dia;
             nibdHistory.unshift('<span>' + timestamp + '</span><span style="color:#fff;">' + sys + '/' + dia + '</span><span style="color:#aaa; font-size:16px;">(' + map + ')</span>');
             document.getElementById("sysDisplay").innerText = sys; document.getElementById("diaDisplay").innerText = dia; document.getElementById("mapDisplay").innerText = map; document.getElementById("nibdPulseDisplay").innerText = pulse;
             updateHistoryDisplay(); 
-            const btn = document.getElementById("btn-nibp-start"); btn.classList.remove("nibd-measuring"); btn.innerText = "NIBP"; btn.style.pointerEvents = "auto"; isCurrentlyMeasuringNIBP = false;
+            setNibpIndicator(false);
+            isCurrentlyMeasuringNIBP = false;
 
             if (nibpIntervalSeconds > 0) {
                 startNibpCountdown(nibpIntervalSeconds);
+            }
+        }
+
+        function abortMonitorNibd(fromNetwork = false) {
+            if (!isCurrentlyMeasuringNIBP) return;
+            isCurrentlyMeasuringNIBP = false;
+            if (nibdMeasurementTimeout) {
+                clearTimeout(nibdMeasurementTimeout);
+                nibdMeasurementTimeout = null;
+            }
+            stopAudioFile("blutdruck.mp3");
+            setNibpIndicator(false);
+
+            if (lastValidSys && lastValidDia) {
+                document.getElementById("sysDisplay").innerText = lastValidSys;
+                document.getElementById("diaDisplay").innerText = lastValidDia;
+            } else {
+                document.getElementById("sysDisplay").innerText = "--";
+                document.getElementById("diaDisplay").innerText = "--";
+            }
+
+            clearInterval(nibpTimerInterval);
+            document.getElementById("nibp-timer-display").style.display = "none";
+            sendNibpTimerSync(0, false);
+
+            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "nibd_cancelled" }));
             }
         }
 
@@ -841,7 +898,8 @@
             if (!isNibdConnected) { nibdWarningActive = true; updateWarningBanner(); clearTimeout(nibdTimeout); nibdTimeout = setTimeout(function() { nibdWarningActive = false; updateWarningBanner(); }, 5000); return; }
             if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "nibd_started" })); }
             triggerLocalNibdStart();
-            setTimeout(function() {
+            
+            nibdMeasurementTimeout = setTimeout(function() {
                 const sys = parseInt(standbySys); const dia = parseInt(standbyDia); const map = Math.round((sys + 2 * dia) / 3); const pulse = (currentRhythm === 'vfib' || currentRhythm === 'asystole') ? '--' : currentHR; const now = new Date(); const timestamp = now.toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', hour12: false});
                 triggerLocalNibdFinish(sys, dia, map, pulse, timestamp);
                 if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "nibd_finished", val: sys + '/' + dia, sys: sys, dia: dia, map: map, pulse: pulse, timestamp: timestamp })); }

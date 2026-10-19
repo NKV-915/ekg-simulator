@@ -248,6 +248,8 @@
         let isEcgConnected = false; let isSpO2Connected = false; let isCo2Connected = false; let isDefiConnected = false; 
         let isHDMActive = false; let spo2Quality = 'good'; let nibdHistory = []; 
         let shockCount = 0;
+        let lastValidSys = null;
+        let lastValidDia = null;
 
         let elapsedSeconds = 0;
         let timerRunning = true;
@@ -325,14 +327,27 @@
                     document.getElementById("mapDisplay").innerText = "--"; 
                     document.getElementById("nibdPulseDisplay").innerText = "--"; 
                     nibdHistory = []; updateHistoryDisplay(); 
-                }
+                } 
                 else if (data.type === "nibd_started") {
                     document.getElementById("sysDisplay").innerText = "---"; 
                     document.getElementById("diaDisplay").innerText = "---";
                     document.getElementById("nibp-status-lbl").innerText = "NIBP (MESSUNG...)";
                 }
+                else if (data.type === "nibd_cancelled") {
+                    document.getElementById("nibp-status-lbl").innerText = "NIBP";
+                    if (lastValidSys && lastValidDia) {
+                        document.getElementById("sysDisplay").innerText = lastValidSys;
+                        document.getElementById("diaDisplay").innerText = lastValidDia;
+                    } else {
+                        document.getElementById("sysDisplay").innerText = "--";
+                        document.getElementById("diaDisplay").innerText = "--";
+                    }
+                    document.getElementById("nibp-timer-display").style.display = "none";
+                }
                 else if (data.type === "nibd_finished") {
                     if (data.sys !== undefined) {
+                        lastValidSys = data.sys;
+                        lastValidDia = data.dia;
                         document.getElementById("nibp-status-lbl").innerText = "NIBP";
                         nibdHistory.unshift('<span>' + data.timestamp + '</span><span style="color:#fff;">' + data.sys + '/' + data.dia + '</span><span style="color:#aaa; font-size:16px;">(' + data.map + ')</span>');
                         document.getElementById("sysDisplay").innerText = data.sys; document.getElementById("diaDisplay").innerText = data.dia; document.getElementById("mapDisplay").innerText = data.map; document.getElementById("nibdPulseDisplay").innerText = data.pulse;
@@ -499,7 +514,6 @@
             } else if (currentRhythm === 'asystole') { 
                 yECG = baseECG + (Math.random() * 1.5 - 0.75); 
             } else if (currentRhythm === 'afib') {
-                yECG = baseECG + (Math.random() * 4 - 2) + Math.sin(x * 0.1) * 3;
                 ecgFrameCounter++;
                 if (ecgFrameCounter >= afibNextInterval && !isDrawingECG) {
                     isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0;
@@ -545,7 +559,7 @@
                 } 
                 if (isDrawingSpO2) { 
                     let currentSpo2Wave = spo2Waves[spo2Quality] || spo2Waves['good']; 
-                    if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2ComplexIndex] * 4); } 
+                    if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2Quality].length); } 
                     spo2ComplexIndex++; if (spo2ComplexIndex >= currentSpo2Wave.length) isDrawingSpO2 = false; 
                 } 
             }
