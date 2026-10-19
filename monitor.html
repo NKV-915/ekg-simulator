@@ -255,7 +255,7 @@
         #announcement-state { display: flex; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; padding: 20px; text-align: center; }
         #announcement-text { font-size: 30px; font-weight: bold; text-transform: uppercase; font-family: Arial, sans-serif; letter-spacing: 1px; line-height: 1.3; }
         #loading-state { display: none; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; padding: 20px; }
-        #energy-display { font-size: 30px; font-weight: bold; margin-bottom: 20px; color: #fff; font-family: monospace; }
+        #energy-display { font-size: 24px; font-weight: bold; margin-bottom: 20px; color: #ffcc00; font-family: Arial, sans-serif; letter-spacing: 1px; }
         #progress-container { width: 85%; height: 20px; background-color: #111; border: 2px solid #555; border-radius: 14px; overflow: hidden; }
         #progress-fill { height: 100%; width: 0%; background-color: #dc3545; }
         #loading-text { margin-top: 12px; font-size: 14px; color: #aaa; font-weight: bold; letter-spacing: 1px; }
@@ -310,9 +310,9 @@
                 <div id="announcement-text">EVALUIERE...</div>
             </div>
             <div id="loading-state">
-                <div id="energy-display">200 J</div>
+                <div id="energy-display">Schock wird geladen ...</div>
                 <div id="progress-container"><div id="progress-fill"></div></div>
-                <div id="loading-text">LÄDT... BITTE WARTEN</div>
+                <div id="loading-text">BITTE ABSTAND HALTEN</div>
             </div>
             <div id="ready-state">
                 <div id="ready-header">Halbautomatischer Modus</div>
@@ -331,10 +331,27 @@
         </div>
     </div>
 
+    <!-- Header mit Schock-Zähler, Einsatzuhr ab 00:00:00 und Batterieanzeige -->
     <div id="top-header">
-        <div style="color: #888; font-weight: bold; font-size: 13px; letter-spacing: 1px;">EKG Simulator</div>
-        <div id="top-clock">--:--:--</div>
-        <div class="header-right"></div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="color: #888; font-weight: bold; font-size: 13px; letter-spacing: 1px;">EKG Simulator</div>
+            <div id="shock-counter-badge" style="display: flex; align-items: center; gap: 4px; background: #1c1c1c; border: 1px solid #333; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: #ff4d4d;">
+                <span>⚡ SCHOCKS:</span>
+                <span id="shockCountVal">0</span>
+            </div>
+        </div>
+        
+        <div id="top-clock">00:00:00</div>
+
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 6px; background: #1c1c1c; padding: 2px 8px; border-radius: 4px; border: 1px solid #333;">
+                <span style="font-size: 12px; font-weight: bold; color: #47d670;">100%</span>
+                <div style="width: 20px; height: 10px; border: 1.5px solid #aaa; border-radius: 2px; padding: 1px; display: flex; align-items: center; position: relative;">
+                    <div style="width: 100%; height: 100%; background: #47d670; border-radius: 1px;"></div>
+                    <div style="position: absolute; right: -3px; top: 1.5px; width: 2px; height: 4px; background: #aaa; border-radius: 0 1px 1px 0;"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="monitor">
@@ -427,17 +444,19 @@
         let isAlarmQuitted = false;
         
         let cprTimerInterval = null; let cprTimeLeft = 0; let isCurrentlyMeasuringNIBP = false;
+        let shockCount = 0;
+
+        // Hochlaufende Einsatz-Uhr ab 00:00:00
+        let elapsedSeconds = 0;
+        let timerRunning = false;
 
         let nibpIntervalSeconds = 0;
         let nibpTimerInterval = null;
         let nibpTimeLeft = 0;
 
-        let shockChargeAudio = null;
-        let shockReadyAudio = null;
         let alarmAudio = null;
         let audioCtx = null;
 
-        // Vorab geladene Audio-Objekte
         const sounds = {
             alarm: new Audio("alarm.mp3"),
             stat: new Audio("stat.mp3"),
@@ -605,7 +624,10 @@
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
 
-            // Unlocking aller HTML5 Audio-Dateien beim Klick auf "Monitor einschalten"
+            // Stoppuhr starten
+            timerRunning = true;
+
+            // Audio-Unlocking für alle Sounds beim Einschalten
             Object.keys(sounds).forEach(key => {
                 const a = sounds[key];
                 a.muted = true;
@@ -627,8 +649,17 @@
                 } 
             }, 500); 
         }
-        function updateTopClock() { const now = new Date(); document.getElementById("top-clock").innerText = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false }); }
-        updateTopClock(); setInterval(updateTopClock, 1000);
+
+        // Timer läuft ab 00:00:00 hoch
+        function updateElapsedTimer() {
+            if (!timerRunning) return;
+            elapsedSeconds++;
+            const hrs = Math.floor(elapsedSeconds / 3600).toString().padStart(2, '0');
+            const mins = Math.floor((elapsedSeconds % 3600) / 60).toString().padStart(2, '0');
+            const secs = (elapsedSeconds % 60).toString().padStart(2, '0');
+            document.getElementById("top-clock").innerText = `${hrs}:${mins}:${secs}`;
+        }
+        setInterval(updateElapsedTimer, 1000);
 
         function updateWarningBanner() {
             const banner = document.getElementById("warning-area");
@@ -678,7 +709,6 @@
             }
         }
 
-        /* NIBP Intervall Logik */
         function openNibpIntervalModal() {
             if (isCurrentlyMeasuringNIBP) return;
             document.getElementById("nibp-interval-overlay").style.display = "flex";
@@ -1065,13 +1095,20 @@
         }
 
         function deliverShock(fromNetwork = false) {
+            shockCount++;
+            document.getElementById("shockCountVal").innerText = shockCount;
+
             stopAudioFile("shock_charge.mp3");
             stopAudioFile("shock_ready.mp3");
             document.getElementById('btn-shock').classList.remove('shock-ready'); document.getElementById("defib-overlay").style.display = "none"; 
             playAudioFile("shock_admitted.mp3");
             const flash = document.getElementById('flash-overlay'); flash.style.display = 'block'; flash.style.opacity = '1';
             setTimeout(function() { flash.style.opacity = '0'; setTimeout(() => { flash.style.display = 'none'; }, 200); }, 100);
-            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "shock_delivered_sync" })); ws.send(JSON.stringify({ type: "shock_delivered" })); }
+            
+            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) { 
+                ws.send(JSON.stringify({ type: "shock_delivered_sync", count: shockCount })); 
+                ws.send(JSON.stringify({ type: "shock_delivered", count: shockCount })); 
+            }
             setTimeout(function() { resetAED(); startCprTimer(); }, 3000);
         }
 

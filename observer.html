@@ -116,7 +116,7 @@
         #announcement-state { display: flex; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; padding: 20px; text-align: center; }
         #announcement-text { font-size: 30px; font-weight: bold; text-transform: uppercase; font-family: Arial, sans-serif; letter-spacing: 1px; line-height: 1.3; }
         #loading-state { display: none; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; padding: 20px; }
-        #energy-display { font-size: 30px; font-weight: bold; margin-bottom: 20px; color: #fff; font-family: monospace; }
+        #energy-display { font-size: 24px; font-weight: bold; margin-bottom: 20px; color: #ffcc00; font-family: Arial, sans-serif; letter-spacing: 1px; }
         #progress-container { width: 85%; height: 20px; background-color: #111; border: 2px solid #555; border-radius: 14px; overflow: hidden; }
         #progress-fill { height: 100%; width: 0%; background-color: #dc3545; }
         #loading-text { margin-top: 12px; font-size: 14px; color: #aaa; font-weight: bold; letter-spacing: 1px; }
@@ -151,9 +151,9 @@
         <div id="defib-screen">
             <div id="announcement-state"><div id="announcement-text">EVALUIERE...</div></div>
             <div id="loading-state">
-                <div id="energy-display">200 J</div>
+                <div id="energy-display">Schock wird geladen ...</div>
                 <div id="progress-container"><div id="progress-fill"></div></div>
-                <div id="loading-text">LÄDT... BITTE WARTEN</div>
+                <div id="loading-text">BITTE ABSTAND HALTEN</div>
             </div>
             <div id="ready-state">
                 <div id="ready-header">Halbautomatischer Modus</div>
@@ -166,9 +166,26 @@
     </div>
 
     <div id="top-header">
-        <div style="color: #888; font-weight: bold; font-size: 13px; letter-spacing: 1px;">EKG Simulator (Observer)</div>
-        <div id="cpr-timer-box">CPR: <span id="cpr-timer-val">00:00</span></div>
-        <div id="top-clock">--:--:--</div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="color: #888; font-weight: bold; font-size: 13px; letter-spacing: 1px;">EKG Simulator (Observer)</div>
+            <div id="shock-counter-badge" style="display: flex; align-items: center; gap: 4px; background: #1c1c1c; border: 1px solid #333; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: #ff4d4d;">
+                <span>⚡ SCHOCKS:</span>
+                <span id="shockCountVal">0</span>
+            </div>
+            <div id="cpr-timer-box">CPR: <span id="cpr-timer-val">00:00</span></div>
+        </div>
+
+        <div id="top-clock">00:00:00</div>
+
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 6px; background: #1c1c1c; padding: 2px 8px; border-radius: 4px; border: 1px solid #333;">
+                <span style="font-size: 12px; font-weight: bold; color: #47d670;">100%</span>
+                <div style="width: 20px; height: 10px; border: 1.5px solid #aaa; border-radius: 2px; padding: 1px; display: flex; align-items: center; position: relative;">
+                    <div style="width: 100%; height: 100%; background: #47d670; border-radius: 1px;"></div>
+                    <div style="position: absolute; right: -3px; top: 1.5px; width: 2px; height: 4px; background: #aaa; border-radius: 0 1px 1px 0;"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="monitor">
@@ -230,6 +247,10 @@
         let currentRhythm = 'nsr'; 
         let isEcgConnected = false; let isSpO2Connected = false; let isCo2Connected = false; let isDefiConnected = false; 
         let isHDMActive = false; let spo2Quality = 'good'; let nibdHistory = []; 
+        let shockCount = 0;
+
+        let elapsedSeconds = 0;
+        let timerRunning = true;
 
         const canvasECG = document.getElementById("ecgCanvas"); const ctxECG = canvasECG.getContext("2d"); 
         const canvasSpO2 = document.getElementById("spo2Canvas"); const ctxSpO2 = canvasSpO2.getContext("2d"); 
@@ -319,7 +340,15 @@
                     }
                 }
                 else if (data.type === "analysis_started_sync" || data.type === "analysis_started") { startAnalysisSequence(); }
-                else if (data.type === "shock_delivered_sync" || data.type === "shock_delivered") { deliverShockSequence(); }
+                else if (data.type === "shock_delivered_sync" || data.type === "shock_delivered") { 
+                    if (data.count !== undefined) {
+                        shockCount = data.count;
+                    } else {
+                        shockCount++;
+                    }
+                    document.getElementById("shockCountVal").innerText = shockCount;
+                    deliverShockSequence(); 
+                }
                 else if (data.type === "12lead_requested") {
                     showInfoBanner("🩻 12-Kanal-EKG wird angefordert ...");
                 }
@@ -354,6 +383,16 @@
 
         connectWebSocket();
 
+        function updateElapsedTimer() {
+            if (!timerRunning) return;
+            elapsedSeconds++;
+            const hrs = Math.floor(elapsedSeconds / 3600).toString().padStart(2, '0');
+            const mins = Math.floor((elapsedSeconds % 3600) / 60).toString().padStart(2, '0');
+            const secs = (elapsedSeconds % 60).toString().padStart(2, '0');
+            document.getElementById("top-clock").innerText = `${hrs}:${mins}:${secs}`;
+        }
+        setInterval(updateElapsedTimer, 1000);
+
         function showInfoBanner(text) {
             const infoBanner = document.getElementById("info-area"); 
             infoBanner.innerText = text;
@@ -382,12 +421,6 @@
         function closeEkgImage() {
             document.getElementById("ekg-image-overlay").style.display = "none";
         }
-
-        function updateTopClock() {
-            const now = new Date();
-            document.getElementById("top-clock").innerText = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false });
-        }
-        updateTopClock(); setInterval(updateTopClock, 1000);
 
         function updateHistoryDisplay() {
             const listDiv = document.getElementById("historyList");
@@ -507,10 +540,12 @@
                 ySpO2 = baseSpO2 + (Math.random() * 2 - 1); 
             } else { 
                 spo2FrameCounter++; 
-                if (currentHR > 0 && spo2FrameCounter >= framesPerBeat && !isDrawingSpO2) { isDrawingSpO2 = true; spo2ComplexIndex = 0; spo2FrameCounter = 0; } 
+                if (currentHR > 0 && spo2FrameCounter >= framesPerBeat && !isDrawingSpO2) { 
+                    isDrawingSpO2 = true; spo2ComplexIndex = 0; spo2FrameCounter = 0; 
+                } 
                 if (isDrawingSpO2) { 
                     let currentSpo2Wave = spo2Waves[spo2Quality] || spo2Waves['good']; 
-                    if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2Quality].length); } 
+                    if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2ComplexIndex] * 4); } 
                     spo2ComplexIndex++; if (spo2ComplexIndex >= currentSpo2Wave.length) isDrawingSpO2 = false; 
                 } 
             }
