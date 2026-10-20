@@ -280,31 +280,12 @@
             'poor': [0,0,0,0, 0,1,2,1,0,1,0,0,0,0,0,0,0,0,0] 
         };
 
-        async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                }
-            } catch (err) {
-                console.log("Wake Lock Fehler:", err);
-            }
-        }
-        document.addEventListener('visibilitychange', async () => {
-            if (wakeLock !== null && document.visibilityState === 'visible') {
-                requestWakeLock();
-            }
-        });
-
         function resize() { 
             if (canvasECG && canvasECG.clientWidth && canvasECG.clientHeight) {
-                canvasECG.width = canvasECG.clientWidth; 
-                canvasECG.height = canvasECG.clientHeight; 
-                lastYECG = canvasECG.height / 2;
+                canvasECG.width = canvasECG.clientWidth; canvasECG.height = canvasECG.clientHeight; lastYECG = canvasECG.height / 2;
             }
             if (canvasSpO2 && canvasSpO2.clientWidth && canvasSpO2.clientHeight) {
-                canvasSpO2.width = canvasSpO2.clientWidth; 
-                canvasSpO2.height = canvasSpO2.clientHeight; 
-                lastYSpO2 = canvasSpO2.height / 2;
+                canvasSpO2.width = canvasSpO2.clientWidth; canvasSpO2.height = canvasSpO2.clientHeight; lastYSpO2 = canvasSpO2.height / 2;
             }
         }
         window.addEventListener('resize', resize);
@@ -393,7 +374,9 @@
                         updateHistoryDisplay();
                     }
                 }
-                else if (data.type === "analysis_started_sync" || data.type === "analysis_started") { startAnalysisSequence(); }
+                else if (data.type === "analysis_started_sync" || data.type === "analysis_started") { 
+                    startAnalysisSequence(); 
+                }
                 else if (data.type === "shock_delivered_sync" || data.type === "shock_delivered") { 
                     if (data.count !== undefined) {
                         shockCount = data.count;
@@ -403,17 +386,11 @@
                     document.getElementById("shockCountVal").innerText = shockCount;
                     deliverShockSequence(); 
                 }
-                else if (data.type === "12lead_requested") {
-                    showInfoBanner("🩻 12-Kanal-EKG wird angefordert ...");
+                else if (data.type === "12lead_show") { 
+                    showEkgImage(data.image || "ekg_sinus.png"); 
                 }
-                else if (data.type === "12lead_show") {
-                    clearTimeout(window.infoBannerTimeout);
-                    document.getElementById("info-area").style.display = "none";
-                    document.getElementById("ekg-image").src = data.image || "ekg_sinus.png";
-                    showEkgImage();
-                }
-                else if (data.type === "12lead_close") {
-                    closeEkgImage();
+                else if (data.type === "12lead_close") { 
+                    closeEkgImage(true); 
                 }
                 else if (data.type === "bz_requested") {
                     showInfoBanner("🩸 BZ-Messung angefordert ...");
@@ -447,11 +424,6 @@
         }
 
         connectWebSocket();
-
-        function initMonitor() {
-            document.getElementById("startOverlay").style.display = "none";
-            document.body.addEventListener('click', requestWakeLock, { once: true });
-        }
 
         function updateElapsedTimer() {
             if (!timerRunning) return;
@@ -660,7 +632,6 @@
             requestAnimationFrame(drawWaveforms);
         }
         
-        // Starten der Zeichenschleife
         resize();
         requestAnimationFrame(drawWaveforms);
     </script>
