@@ -126,7 +126,6 @@
             z-index: 8001;
         }
 
-        /* BZ / Temp Messwert Overlay */
         #value-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background-color: rgba(0, 0, 0, 0.90); z-index: 8000; display: none;
@@ -642,17 +641,15 @@
                 else if (data.type === "nibd_finished") {
                     if (data.sys !== undefined) { triggerLocalNibdFinish(data.sys, data.dia, data.map, data.pulse, data.timestamp); }
                 }
-                else if (data.type === "analysis_started_sync" || data.type === "analysis_started") { 
-                    startAnalysisSequence(); 
+                else if (data.type === "analysis_started_sync") { 
+                    startAnalysis(true); 
                 }
-                else if (data.type === "shock_delivered_sync" || data.type === "shock_delivered") { 
+                else if (data.type === "shock_delivered_sync") { 
                     if (data.count !== undefined) {
                         shockCount = data.count;
-                    } else {
-                        shockCount++;
+                        document.getElementById("shockCountVal").innerText = shockCount;
                     }
-                    document.getElementById("shockCountVal").innerText = shockCount;
-                    deliverShockSequence(); 
+                    deliverShock(true); 
                 }
                 else if (data.type === "12lead_show") { 
                     showEkgImage(data.image || "ekg_sinus.png"); 
@@ -681,7 +678,6 @@
             };
 
             ws.onclose = () => {
-                setNetStatus(false);
                 clearInterval(pingInterval);
                 clearTimeout(pongTimeout);
                 setTimeout(connectWebSocket, 2000);
@@ -784,7 +780,6 @@
             }
         }
 
-        /* NIBP Intervall Logik */
         function openNibpIntervalModal() {
             if (isCurrentlyMeasuringNIBP) return;
             document.getElementById("nibp-interval-overlay").style.display = "flex";
@@ -1190,77 +1185,105 @@
             requestAnimationFrame(drawWaveforms);
         }
         
-        // Starten der Zeichenschleife
         resize();
         requestAnimationFrame(drawWaveforms);
 
-        // Separierte Ablauf-Routinen für Netzwerk und Button
-        function startAnalysis() {
-            if (!isDefiConnected) { 
+        function startAnalysis(fromNetwork = false) {
+            const btnAnalyse = document.getElementById("btn-analyse");
+            if (btnAnalyse.classList.contains("analyse-measuring")) return;
+
+            if (!fromNetwork && !isDefiConnected) { 
                 defiWarningActive = true; 
                 updateWarningBanner(); 
                 clearTimeout(defiTimeout); 
                 defiTimeout = setTimeout(function() { defiWarningActive = false; updateWarningBanner(); }, 5000); 
                 return; 
             }
-            defiWarningActive = false; updateWarningBanner(); 
+            defiWarningActive = false; 
+            updateWarningBanner(); 
+            forceStopCprTimer();
 
-            if (ws && ws.readyState === WebSocket.OPEN) { 
+            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) { 
                 ws.send(JSON.stringify({ type: "analysis_started_sync" })); 
                 ws.send(JSON.stringify({ type: "analysis_started" })); 
             }
+
+            startAnalysisSequence();
         }
 
         function startAnalysisSequence() {
             const btnAnalyse = document.getElementById("btn-analyse");
-            forceStopCprTimer();
             btnAnalyse.classList.add("analyse-measuring"); 
             btnAnalyse.innerText = "ANALYSE..."; 
             btnAnalyse.style.pointerEvents = "none";
             
             setTimeout(function() {
                 btnAnalyse.classList.remove("analyse-measuring");
-                const overlay = document.getElementById("defib-overlay"); const announceState = document.getElementById("announcement-state"); const announceText = document.getElementById("announcement-text"); const loadState = document.getElementById("loading-state"); const rdyState = document.getElementById("ready-state"); const fill = document.getElementById("progress-fill");
-                overlay.style.display = "flex"; announceState.style.display = "flex"; loadState.style.display = "none"; rdyState.style.display = "none";
+                const overlay = document.getElementById("defib-overlay"); 
+                const announceState = document.getElementById("announcement-state"); 
+                const announceText = document.getElementById("announcement-text"); 
+                const loadState = document.getElementById("loading-state"); 
+                const rdyState = document.getElementById("ready-state"); 
+                const fill = document.getElementById("progress-fill");
+                
+                overlay.style.display = "flex"; 
+                announceState.style.display = "flex"; 
+                loadState.style.display = "none"; 
+                rdyState.style.display = "none";
                 
                 document.getElementById("btn-stop-cpr").style.display = "block";
 
                 if (currentRhythm === 'vfib' || currentRhythm === 'vt' || currentRhythm === 'torsades') {
-                    btnAnalyse.style.background = "#6c757d"; btnAnalyse.style.color = "#fff"; btnAnalyse.innerText = "LADEN...";
-                    announceText.innerText = "Schock empfohlen"; announceText.style.color = "#dc3545"; 
+                    btnAnalyse.style.background = "#6c757d"; 
+                    btnAnalyse.style.color = "#fff"; 
+                    btnAnalyse.innerText = "LADEN...";
+                    announceText.innerText = "Schock empfohlen"; 
+                    announceText.style.color = "#dc3545"; 
+                    
                     setTimeout(function() {
-                        announceState.style.display = "none"; loadState.style.display = "flex"; fill.style.width = "0%";
+                        announceState.style.display = "none"; 
+                        loadState.style.display = "flex"; 
+                        fill.style.width = "0%";
                         
                         playAudioFile("shock_charge.mp3");
 
-                        let elapsed = 0; const duration = 3000;
+                        let elapsed = 0; 
+                        const duration = 3000;
                         const chargeInterval = setInterval(function() {
-                            elapsed += 50; fill.style.width = ((elapsed / duration) * 100) + "%";
+                            elapsed += 50; 
+                            fill.style.width = ((elapsed / duration) * 100) + "%";
                             if (elapsed >= duration) {
                                 clearInterval(chargeInterval); 
                                 stopAudioFile("shock_charge.mp3");
                                 playAudioFile("shock_ready.mp3", true);
-                                loadState.style.display = "none"; rdyState.style.display = "flex";
-                                btnAnalyse.innerText = "BEREIT"; document.getElementById('btn-shock').classList.add('shock-ready');
+                                loadState.style.display = "none"; 
+                                rdyState.style.display = "flex";
+                                btnAnalyse.innerText = "BEREIT"; 
+                                document.getElementById('btn-shock').classList.add('shock-ready');
                             }
                         }, 50);
                     }, 2000);
                 } else {
-                    btnAnalyse.style.background = "#28a745"; btnAnalyse.style.color = "#fff"; btnAnalyse.innerText = "KEIN SCHOCK";
-                    announceText.innerText = "Kein Schock empfohlen"; announceText.style.color = "#28a745"; 
+                    btnAnalyse.style.background = "#28a745"; 
+                    btnAnalyse.style.color = "#fff"; 
+                    btnAnalyse.innerText = "KEIN SCHOCK";
+                    announceText.innerText = "Kein Schock empfohlen"; 
+                    announceText.style.color = "#28a745"; 
                     setTimeout(function() { resetAED(); startCprTimer(); }, 4000);
                 }
             }, 4000);
         }
 
-        function deliverShock() {
+        function deliverShock(fromNetwork = false) {
             shockCount++;
             document.getElementById("shockCountVal").innerText = shockCount;
 
-            if (ws && ws.readyState === WebSocket.OPEN) { 
+            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) { 
                 ws.send(JSON.stringify({ type: "shock_delivered_sync", count: shockCount })); 
                 ws.send(JSON.stringify({ type: "shock_delivered", count: shockCount })); 
             }
+
+            deliverShockSequence();
         }
 
         function deliverShockSequence() {
@@ -1285,7 +1308,11 @@
             document.getElementById("defib-overlay").style.display = "none"; 
             document.getElementById('btn-shock').classList.remove('shock-ready'); 
             const btnAnalyse = document.getElementById("btn-analyse"); 
-            btnAnalyse.style.background = "#ffcc00"; btnAnalyse.style.color = "#000"; btnAnalyse.innerText = "ANALYSE"; btnAnalyse.style.pointerEvents = "auto"; btnAnalyse.style.opacity = "1"; 
+            btnAnalyse.style.background = "#ffcc00"; 
+            btnAnalyse.style.color = "#000"; 
+            btnAnalyse.innerText = "ANALYSE"; 
+            btnAnalyse.style.pointerEvents = "auto"; 
+            btnAnalyse.style.opacity = "1"; 
         }
     </script>
 </body>
