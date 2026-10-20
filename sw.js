@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ekg-sim-v46';
+const CACHE_NAME = 'ekg-sim-v47';
 const ASSETS = [
   './', 
   './index.html', 

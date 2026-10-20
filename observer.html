@@ -277,11 +277,20 @@
         };
 
         function resize() { 
-            canvasECG.width = canvasECG.clientWidth; canvasECG.height = canvasECG.clientHeight; 
-            canvasSpO2.width = canvasSpO2.clientWidth; canvasSpO2.height = canvasSpO2.clientHeight; 
+            if (canvasECG && canvasECG.clientWidth && canvasECG.clientHeight) {
+                canvasECG.width = canvasECG.clientWidth; 
+                canvasECG.height = canvasECG.clientHeight; 
+                lastYECG = canvasECG.height / 2;
+            }
+            if (canvasSpO2 && canvasSpO2.clientWidth && canvasSpO2.clientHeight) {
+                canvasSpO2.width = canvasSpO2.clientWidth; 
+                canvasSpO2.height = canvasSpO2.clientHeight; 
+                lastYSpO2 = canvasSpO2.height / 2;
+            }
         }
-        resize();
         window.addEventListener('resize', resize);
+        window.addEventListener('load', resize);
+        document.addEventListener('DOMContentLoaded', resize);
 
         function connectWebSocket() {
             ws = new WebSocket("wss://ekg-simulator.onrender.com");
@@ -389,8 +398,18 @@
                     closeValueOverlay();
                 }
                 else if (data.type === "vital_update") {
-                    baseHR = parseInt(data.heartRate); baseSpO2 = parseInt(data.spo2); baseEtco2 = parseInt(data.etco2); baseAF = parseInt(data.af); isHDMActive = data.isHDMActive; isEcgConnected = data.sensors.ecg; isSpO2Connected = data.sensors.spo2; isCo2Connected = data.sensors.co2; isDefiConnected = data.sensors.defi; 
-                    currentRhythm = data.rhythm || 'nsr'; spo2Quality = data.spo2Quality; fluctuateVitals(); 
+                    baseHR = parseInt(data.heartRate); 
+                    baseSpO2 = parseInt(data.spo2); 
+                    baseEtco2 = parseInt(data.etco2); 
+                    baseAF = parseInt(data.af); 
+                    isHDMActive = data.isHDMActive; 
+                    isEcgConnected = data.sensors ? data.sensors.ecg : false; 
+                    isSpO2Connected = data.sensors ? data.sensors.spo2 : false; 
+                    isCo2Connected = data.sensors ? data.sensors.co2 : false; 
+                    isDefiConnected = data.sensors ? data.sensors.defi : false; 
+                    currentRhythm = data.rhythm || 'nsr'; 
+                    spo2Quality = data.spo2Quality || 'good'; 
+                    fluctuateVitals(); 
                 }
             };
             ws.onclose = () => { clearInterval(pingInterval); setTimeout(connectWebSocket, 3000); };
@@ -502,7 +521,11 @@
         }
 
         function drawWaveforms() {
-            if (!canvasECG) return;
+            if (!canvasECG || canvasECG.width === 0 || canvasECG.height === 0) {
+                resize();
+                requestAnimationFrame(drawWaveforms);
+                return;
+            }
             const safeHR = currentHR > 0 ? currentHR : 60; const framesPerBeat = (60 / safeHR) * 60; const baseECG = canvasECG.height / 2; const baseSpO2 = canvasSpO2.height / 2;
             ctxECG.clearRect(x, 0, 25, canvasECG.height); ctxSpO2.clearRect(x, 0, 25, canvasSpO2.height); let yECG = baseECG; let ySpO2 = baseSpO2;
 
@@ -514,6 +537,7 @@
             } else if (currentRhythm === 'asystole') { 
                 yECG = baseECG + (Math.random() * 1.5 - 0.75); 
             } else if (currentRhythm === 'afib') {
+                yECG = baseECG + (Math.random() * 4 - 2) + Math.sin(x * 0.1) * 3;
                 ecgFrameCounter++;
                 if (ecgFrameCounter >= afibNextInterval && !isDrawingECG) {
                     isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0;
@@ -555,21 +579,51 @@
             } else { 
                 spo2FrameCounter++; 
                 if (currentHR > 0 && spo2FrameCounter >= framesPerBeat && !isDrawingSpO2) { 
-                    isDrawingSpO2 = true; spo2ComplexIndex = 0; spo2FrameCounter = 0; 
+                    isDrawingSpO2 = true; 
+                    spo2ComplexIndex = 0; 
+                    spo2FrameCounter = 0; 
                 } 
                 if (isDrawingSpO2) { 
                     let currentSpo2Wave = spo2Waves[spo2Quality] || spo2Waves['good']; 
-                    if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2Quality].length); } 
-                    spo2ComplexIndex++; if (spo2ComplexIndex >= currentSpo2Wave.length) isDrawingSpO2 = false; 
+                    if (spo2ComplexIndex < currentSpo2Wave.length) { 
+                        ySpO2 = baseSpO2 - (currentSpo2Wave[spo2ComplexIndex] * 4); 
+                    } 
+                    spo2ComplexIndex++; 
+                    if (spo2ComplexIndex >= currentSpo2Wave.length) isDrawingSpO2 = false; 
                 } 
             }
 
-            if (isEcgConnected || isDefiConnected) { ctxECG.beginPath(); ctxECG.moveTo(x, lastYECG); ctxECG.lineTo(x + 2, yECG); ctxECG.strokeStyle = '#47d670'; ctxECG.lineWidth = 2.5; ctxECG.stroke(); }
-            if (isSpO2Connected) { ctxSpO2.beginPath(); ctxSpO2.moveTo(x, lastYSpO2); ctxSpO2.lineTo(x + 2, ySpO2); ctxSpO2.strokeStyle = '#38b6ff'; ctxSpO2.lineWidth = 2.5; ctxSpO2.stroke(); }
-            lastYECG = yECG; lastYSpO2 = ySpO2; x += 2; if (x >= canvasECG.width) { x = 0; lastYECG = yECG; lastYSpO2 = ySpO2; }
+            if (isEcgConnected || isDefiConnected) { 
+                ctxECG.beginPath(); 
+                ctxECG.moveTo(x, lastYECG); 
+                ctxECG.lineTo(x + 2, yECG); 
+                ctxECG.strokeStyle = '#47d670'; 
+                ctxECG.lineWidth = 2.5; 
+                ctxECG.stroke(); 
+            }
+            if (isSpO2Connected) { 
+                ctxSpO2.beginPath(); 
+                ctxSpO2.moveTo(x, lastYSpO2); 
+                ctxSpO2.lineTo(x + 2, ySpO2); 
+                ctxSpO2.strokeStyle = '#38b6ff'; 
+                ctxSpO2.lineWidth = 2.5; 
+                ctxSpO2.stroke(); 
+            }
+
+            lastYECG = yECG; 
+            lastYSpO2 = ySpO2; 
+            x += 2; 
+            if (x >= canvasECG.width) { 
+                x = 0; 
+                lastYECG = yECG; 
+                lastYSpO2 = ySpO2; 
+            }
             requestAnimationFrame(drawWaveforms);
         }
-        drawWaveforms();
+        
+        // Starten der Zeichenschleife
+        resize();
+        requestAnimationFrame(drawWaveforms);
     </script>
 </body>
 </html>
