@@ -658,6 +658,12 @@
                 else if (data.type === "12lead_close") { 
                     closeEkgImage(true); 
                 }
+                else if (data.type === "bz_requested") {
+                    showInfoBanner("🩸 BZ-Messung angefordert ...");
+                }
+                else if (data.type === "temp_requested") {
+                    showInfoBanner("🌡️ Temperaturmessung angefordert ...");
+                }
                 else if (data.type === "value_show") {
                     showValueOverlay(data.title, data.value, data.color);
                 }
@@ -665,14 +671,29 @@
                     closeValueOverlay(true);
                 }
                 else if (data.type === "vital_update") {
-                    baseHR = parseInt(data.heartRate); baseSpO2 = parseInt(data.spo2); baseEtco2 = parseInt(data.etco2); baseAF = parseInt(data.af); standbySys = data.sys; standbyDia = data.dia; isNibdConnected = data.sensors.nibd; isHDMActive = data.isHDMActive; isEcgConnected = data.sensors.ecg; isSpO2Connected = data.sensors.spo2; isCo2Connected = data.sensors.co2; isDefiConnected = data.sensors.defi; 
-                    if (isEcgConnected) { ecgWarningActive = false; clearTimeout(ecgTimeout); } if (isNibdConnected) { nibdWarningActive = false; clearTimeout(nibdTimeout); } if (isDefiConnected) { defiWarningActive = false; clearTimeout(defiTimeout); }
+                    // WICHTIG: Defensive Programmierung, falls data.sensors fehlt (Cache-Issue)
+                    baseHR = parseInt(data.heartRate); 
+                    baseSpO2 = parseInt(data.spo2); 
+                    baseEtco2 = parseInt(data.etco2); 
+                    baseAF = parseInt(data.af); 
+                    isHDMActive = data.isHDMActive; 
+                    
+                    isNibdConnected = data.sensors ? data.sensors.nibd : false;
+                    isEcgConnected = data.sensors ? data.sensors.ecg : false; 
+                    isSpO2Connected = data.sensors ? data.sensors.spo2 : false; 
+                    isCo2Connected = data.sensors ? data.sensors.co2 : false; 
+                    isDefiConnected = data.sensors ? data.sensors.defi : false; 
+                    
+                    if (isEcgConnected) { ecgWarningActive = false; clearTimeout(ecgTimeout); } 
+                    if (isNibdConnected) { nibdWarningActive = false; clearTimeout(nibdTimeout); } 
+                    if (isDefiConnected) { defiWarningActive = false; clearTimeout(defiTimeout); }
                     if (!isNibdConnected && !isCurrentlyMeasuringNIBP) { document.getElementById("sysDisplay").innerText = "--"; document.getElementById("diaDisplay").innerText = "--"; document.getElementById("mapDisplay").innerText = "--"; document.getElementById("nibdPulseDisplay").innerText = "--"; }
-                    currentRhythm = data.rhythm || 'nsr'; spo2Quality = data.spo2Quality; fluctuateVitals(); 
+                    currentRhythm = data.rhythm || 'nsr'; spo2Quality = data.spo2Quality || 'good'; fluctuateVitals(); 
                 }
             };
 
             ws.onclose = () => {
+                setNetStatus(false);
                 clearInterval(pingInterval);
                 clearTimeout(pongTimeout);
                 setTimeout(connectWebSocket, 2000);
@@ -1096,6 +1117,7 @@
                 if (ecgFrameCounter >= afibNextInterval && !isDrawingECG) {
                     isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0;
                     afibNextInterval = Math.floor(Math.random() * (framesPerBeat * 0.8)) + (framesPerBeat * 0.6);
+                    playHeartbeatTone();
                 }
                 if (isDrawingECG) {
                     if (ecgComplexIndex < afibData.length) yECG = baseECG - (afibData[ecgComplexIndex] * 3);
@@ -1106,6 +1128,7 @@
                 ecgFrameCounter++; 
                 if (currentHR > 0 && ecgFrameCounter >= framesPerBeat && !isDrawingECG) { 
                     isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0; 
+                    playHeartbeatTone();
                 } 
                 if (isDrawingECG) { 
                     let activeArray = ecgData;
@@ -1178,6 +1201,7 @@
             requestAnimationFrame(drawWaveforms);
         }
         
+        // Starten der Zeichenschleife
         resize();
         requestAnimationFrame(drawWaveforms);
     </script>

@@ -127,6 +127,10 @@
 </head>
 <body>
 
+    <div id="startOverlay" onclick="initMonitor()">
+        <h1>Monitor einschalten</h1>
+    </div>
+
     <div id="warning-area">⚠️ DISCONNECT</div>
     <div id="info-area">🩻 12-Kanal-EKG wird angefordert ...</div>
 
@@ -241,7 +245,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const currentRoom = urlParams.get('room') || 'SIM1';
 
-        let ws = null; let pingInterval = null;
+        let ws = null; let pingInterval = null; let pongTimeout = null; let wakeLock = null;
         let baseHR = 80; let baseSpO2 = 98; let baseEtco2 = 40; let baseAF = 12;     
         let currentHR = 80; let currentSpO2Display = 98; let currentEtco2Display = 40; 
         let currentRhythm = 'nsr'; 
@@ -276,6 +280,21 @@
             'poor': [0,0,0,0, 0,1,2,1,0,1,0,0,0,0,0,0,0,0,0] 
         };
 
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch (err) {
+                console.log("Wake Lock Fehler:", err);
+            }
+        }
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
+
         function resize() { 
             if (canvasECG && canvasECG.clientWidth && canvasECG.clientHeight) {
                 canvasECG.width = canvasECG.clientWidth; 
@@ -293,19 +312,30 @@
         document.addEventListener('DOMContentLoaded', resize);
 
         function connectWebSocket() {
+            if (ws) ws.close();
             ws = new WebSocket("wss://ekg-simulator.onrender.com");
 
             ws.onopen = () => { 
                 ws.send(JSON.stringify({ type: "join_room", room: currentRoom }));
                 clearInterval(pingInterval);
                 pingInterval = setInterval(() => {
-                    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "ping" }));
-                }, 15000);
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: "ping" }));
+                        clearTimeout(pongTimeout);
+                        pongTimeout = setTimeout(() => {
+                            console.log("Ping Timeout! Reconnecting...");
+                            ws.close();
+                        }, 5000);
+                    }
+                }, 10000);
             };
 
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data); 
-                if (data.type === "pong") return;
+                if (data.type === "pong") {
+                    clearTimeout(pongTimeout);
+                    return;
+                }
                 
                 if (data.type === "cpr_timer_update") {
                     const timerBox = document.getElementById("cpr-timer-box");
@@ -412,10 +442,16 @@
                     fluctuateVitals(); 
                 }
             };
-            ws.onclose = () => { clearInterval(pingInterval); setTimeout(connectWebSocket, 3000); };
+            ws.onclose = () => { clearInterval(pingInterval); clearTimeout(pongTimeout); setTimeout(connectWebSocket, 2000); };
+            ws.onerror = () => { ws.close(); };
         }
 
         connectWebSocket();
+
+        function initMonitor() {
+            document.getElementById("startOverlay").style.display = "none";
+            document.body.addEventListener('click', requestWakeLock, { once: true });
+        }
 
         function updateElapsedTimer() {
             if (!timerRunning) return;
@@ -560,8 +596,11 @@
                     else if (currentRhythm === 'svt') activeArray = svtData;
                     else if (currentRhythm === 'avb3') activeArray = avb3Data;
 
-                    if (ecgComplexIndex < activeArray.length) { yECG = baseECG - (activeArray[ecgComplexIndex] * 3); } 
-                    ecgComplexIndex++; if (ecgComplexIndex >= activeArray.length) isDrawingECG = false; 
+                    if (ecgComplexIndex < activeArray.length) { 
+                        yECG = baseECG - (activeArray[ecgComplexIndex] * 3); 
+                    } 
+                    ecgComplexIndex++; 
+                    if (ecgComplexIndex >= activeArray.length) isDrawingECG = false; 
                 } 
             }
 
