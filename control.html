@@ -142,18 +142,49 @@
             z-index: 9500;
         }
         #ekg-screen, #measure-val-screen, #shock-screen {
-            width: 380px; 
-            max-width: 90vw;
+            width: 440px; 
+            max-width: 92vw;
+            max-height: 88vh;
             background-color: #111; 
             border: 4px solid #7000ff; 
-            border-radius: 12px; 
+            border-radius: 14px; 
             display: flex; 
             flex-direction: column; 
             overflow: hidden; 
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8);
-            padding: 20px;
+            padding: 18px;
             box-sizing: border-box;
             text-align: center;
+        }
+
+        #ekg-scroll-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+            max-height: 52vh;
+            margin: 10px 0 15px 0;
+            padding-right: 4px;
+        }
+
+        .btn-ekg-item {
+            background: #1e1e24;
+            color: #ffffff;
+            border: 1px solid #333344;
+            padding: 12px 14px;
+            font-size: 15px;
+            border-radius: 8px;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-ekg-item:hover, .btn-ekg-item:active {
+            background: #7000ff;
+            border-color: #a855f7;
+            color: #ffffff;
         }
 
         .status-header {
@@ -203,25 +234,17 @@
 </head>
 <body>
     
-    <!-- 12-Kanal EKG Modal -->
+    <!-- 12-Kanal EKG Modal mit Suchfunktion & Reinnamen -->
     <div id="ekg-overlay">
         <div id="ekg-screen">
-            <h3 style="color: #a855f7; margin-top: 0; font-size: 20px;">🩻 12-Kanal EKG Auswählen</h3>
-            <p style="font-size: 14px; color: #ccc; margin-bottom: 20px;">Welches EKG soll gesendet werden?</p>
+            <h3 style="color: #a855f7; margin: 0 0 6px 0; font-size: 20px;">🩻 12-Kanal EKG Auswählen</h3>
+            <p style="font-size: 13px; color: #aaa; margin: 0 0 10px 0;">Befund auswählen, um ihn an die Monitore zu senden:</p>
             
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-                <button id="btn-modal-sinus" style="background: #7000ff; padding: 12px; font-size: 15px;">
-                    📄 Normalbefund (ekg_sinus.png)
-                </button>
-                <button id="btn-modal-rbbb" style="background: #007bff; padding: 12px; font-size: 15px;">
-                    ⚡ RSB (ekg_rbbb.png)
-                </button>
-                <button id="btn-modal-lbbb" style="background: #007bff; padding: 12px; font-size: 15px;">
-                    ⚡ LSB (ekg_lbbb.png)
-                </button>
-            </div>
+            <input type="text" id="ekg-search-input" placeholder="🔍 EKG suchen..." style="width: 100%; box-sizing: border-box; padding: 8px 12px; font-size: 15px; border-radius: 8px; border: 2px solid #444; background: #1a1a1a; color: #fff; text-align: left; margin-bottom: 5px;">
+
+            <div id="ekg-scroll-list"></div>
             
-            <button id="btn-modal-close" style="background: #444; width: 100%; padding: 12px;">Abbrechen</button>
+            <button id="btn-modal-close" style="background: #444; width: 100%; padding: 12px; border-radius: 8px;">Abbrechen</button>
         </div>
     </div>
 
@@ -273,7 +296,6 @@
             </div>
         </div>
 
-        <!-- Einzelne Toggle-Buttons für Alle Töne & QRS-Ton -->
         <div class="control-panel border-audio panel-audio">
             <h3>Monitor Sounds &amp; Töne</h3>
             <div style="display: flex; gap: 10px;">
@@ -323,7 +345,6 @@
                 <input type="number" id="diaInput" value="80">
             </div>
             
-            <!-- NIBP Button mit Status-Kreis im Controller zum Starten & Abbrechen -->
             <button id="btn-ctrl-nibp" style="background: #28a745; color: white; width: 100%; margin-bottom: 8px; padding: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px;">
                 <span id="ctrl-nibp-indicator" style="width: 14px; height: 14px; border-radius: 50%; background-color: #000; border: 2px solid #111; display: inline-block; transition: all 0.2s;"></span>
                 <span id="ctrl-nibp-text">NIBP START</span>
@@ -428,6 +449,54 @@
         let currentMeasureColor = '#ffc0cb';
 
         const rhythmIds = ['nsr', 'stemi', 'vt', 'svt', 'afib', 'vfib', 'torsades', 'avb3', 'asystole'];
+
+        // Katalog aller verfügbaren 12-Kanal EKGs (nur Titel im UI sichtbar)
+        const ekgCatalog = [
+            { name: "Normalbefund (Sinus)", file: "ekg_sinus.png" },
+            { name: "RSB (Rechtsschenkelblock)", file: "ekg_rbbb.png" },
+            { name: "LSB (Linksschenkelblock)", file: "ekg_lbbb.png" },
+            { name: "STEMI Hauptstamm", file: "ekg_stemi_haupt.png" },
+            { name: "STEMI rechts", file: "ekg_stemi_rechts.png" },
+            { name: "STEMI Hinterwand", file: "ekg_stemi_hinten.png" },
+            { name: "De-Winter", file: "ekg_dewinter.png" },
+            { name: "Wellens-Syndrom", file: "ekg_wellens.png" },
+            { name: "Hyperkaliämie", file: "ekg_hyperkaliaemie.png" },
+            { name: "Perikarditis", file: "ekg_perikarditis.png" },
+            { name: "Perikardtamponade", file: "ekg_perikardtamponade.png" },
+            { name: "WPW-Syndrom", file: "ekg_wpw.png" },
+            { name: "S1Q3T3 (Lungenembolie)", file: "ekg_s1_q3_t3.png" },
+            { name: "Long-QT-Syndrom", file: "ekg_long_qt.png" },
+            { name: "Sinustachykardie", file: "ekg_sinus_tachy.png" },
+            { name: "Sinusbradykardie", file: "ekg_sinus_brady.png" },
+            { name: "Vorhofflimmern (VHF)", file: "ekg_vhf.png" },
+            { name: "AV-Block I°", file: "ekg_av_l.png" },
+            { name: "AV-Block II° Wenckebach", file: "ekg_av_ll_wenckebach.png" },
+            { name: "AV-Block II° Mobitz", file: "ekg_av_ll_mobitz.png" },
+            { name: "AV-Block III°", file: "ekg_av_lll.png" },
+            { name: "Ventrikuläre Tachykardie (VT)", file: "ekg_vt.png" },
+            { name: "Supraventrikuläre Tachykardie (SVT)", file: "ekg_svt.png" }
+        ];
+
+        function renderEkgList(filterText = "") {
+            const listContainer = document.getElementById("ekg-scroll-list");
+            listContainer.innerHTML = "";
+            const search = filterText.toLowerCase().trim();
+
+            const filtered = ekgCatalog.filter(item => item.name.toLowerCase().includes(search));
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = `<div style="color: #777; padding: 15px;">Kein EKG gefunden</div>`;
+                return;
+            }
+
+            filtered.forEach(item => {
+                const btn = document.createElement("button");
+                btn.className = "btn-ekg-item";
+                btn.innerHTML = `<span>${item.name}</span> <span style="color:#a855f7; font-size:12px;">Senden ➔</span>`;
+                btn.onclick = () => confirmEkgSelection(item.file, item.name);
+                listContainer.appendChild(btn);
+            });
+        }
 
         function setNetStatus(isOnline) {
             const dot = document.getElementById("net-dot");
@@ -574,16 +643,18 @@
         connectWebSocket();
 
         document.addEventListener('DOMContentLoaded', () => {
+            renderEkgList();
+
             document.getElementById('btn-open-12lead').addEventListener('click', openEkgModal);
             document.getElementById('btn-modal-close').addEventListener('click', closeEkgModal);
             document.getElementById('ekg-overlay').addEventListener('click', closeEkgModal);
 
+            document.getElementById('ekg-search-input').addEventListener('input', (e) => {
+                renderEkgList(e.target.value);
+            });
+
             document.getElementById('btn-send-bz-main').addEventListener('click', sendBzDirect);
             document.getElementById('btn-send-temp-main').addEventListener('click', sendTempDirect);
-
-            document.getElementById('btn-modal-sinus').addEventListener('click', () => confirmEkgSelection('ekg_sinus.png'));
-            document.getElementById('btn-modal-rbbb').addEventListener('click', () => confirmEkgSelection('ekg_rbbb.png'));
-            document.getElementById('btn-modal-lbbb').addEventListener('click', () => confirmEkgSelection('ekg_lbbb.png'));
 
             document.getElementById('btn-confirm-measure').addEventListener('click', confirmMeasureValue);
             document.getElementById('btn-cancel-measure').addEventListener('click', closeMeasureValModal);
@@ -680,6 +751,8 @@
         }
 
         function openEkgModal() {
+            document.getElementById("ekg-search-input").value = "";
+            renderEkgList();
             document.getElementById("ekg-overlay").style.display = "flex";
         }
 
@@ -687,7 +760,7 @@
             document.getElementById("ekg-overlay").style.display = "none";
         }
 
-        function confirmEkgSelection(imageFilename) {
+        function confirmEkgSelection(imageFilename, displayName) {
             closeEkgModal();
             const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
 
@@ -697,7 +770,7 @@
                     image: imageFilename 
                 }));
                 ws.send(JSON.stringify({ type: "ekg_12_printed" }));
-                addLogEntry(`[${time}] - 🩻 12-Kanal EKG freigegeben (${imageFilename})`);
+                addLogEntry(`[${time}] - 🩻 12-Kanal EKG freigegeben: ${displayName}`);
             } else {
                 addLogEntry(`[${time}] - ⚠️ FEHLER: Keine Netzverbindung!`);
             }
