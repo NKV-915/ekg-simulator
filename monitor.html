@@ -126,6 +126,7 @@
             z-index: 8001;
         }
 
+        /* BZ / Temp Messwert Overlay */
         #value-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background-color: rgba(0, 0, 0, 0.90); z-index: 8000; display: none;
@@ -410,7 +411,6 @@
             <button id="btn-analyse" class="aed-btn" onclick="startAnalysis()">ANALYSE</button>
             <button id="btn-shock" class="aed-btn" onclick="deliverShock()">SCHOCK</button>
             
-            <!-- Neuer NIBP-Button mit Status-Kreis links -->
             <button id="btn-nibp-start" class="aed-btn" onclick="handleNibpButtonClick()">
                 <span id="nibp-indicator" style="width: 14px; height: 14px; border-radius: 50%; background-color: #000; border: 2px solid #111; display: inline-block; transition: all 0.2s;"></span>
                 <span>NIBP</span>
@@ -430,7 +430,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const currentRoom = urlParams.get('room') || 'SIM1';
 
-        let ws = null; let pingInterval = null;
+        let ws = null; let pingInterval = null; let pongTimeout = null; let wakeLock = null;
         let baseHR = 80; let baseSpO2 = 98; let baseEtco2 = 40; let baseAF = 12;     
         let currentHR = 80; let currentSpO2Display = 98; let currentEtco2Display = 40; 
         let standbySys = "120"; let standbyDia = "80"; let isNibdConnected = false; 
@@ -471,6 +471,21 @@
             shock_ready: new Audio("shock_ready.mp3"),
             shock_admitted: new Audio("shock_admitted.mp3")
         };
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch (err) {
+                console.log("Wake Lock Fehler:", err);
+            }
+        }
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
 
         function playAudioFile(key, loop = false) {
             if (isAudioMuted) return null;
@@ -571,13 +586,19 @@
         };
 
         function resize() { 
-            canvasECG.width = canvasECG.clientWidth; canvasECG.height = canvasECG.clientHeight; 
-            canvasSpO2.width = canvasSpO2.clientWidth; canvasSpO2.height = canvasSpO2.clientHeight; 
+            if (canvasECG && canvasECG.clientWidth && canvasECG.clientHeight) {
+                canvasECG.width = canvasECG.clientWidth; canvasECG.height = canvasECG.clientHeight; lastYECG = canvasECG.height / 2;
+            }
+            if (canvasSpO2 && canvasSpO2.clientWidth && canvasSpO2.clientHeight) {
+                canvasSpO2.width = canvasSpO2.clientWidth; canvasSpO2.height = canvasSpO2.clientHeight; lastYSpO2 = canvasSpO2.height / 2;
+            }
         }
-        resize();
         window.addEventListener('resize', resize);
+        window.addEventListener('load', resize);
+        document.addEventListener('DOMContentLoaded', resize);
 
         function connectWebSocket() {
+            if (ws) ws.close();
             ws = new WebSocket("wss://ekg-simulator.onrender.com");
 
             ws.onopen = () => { 
@@ -586,13 +607,21 @@
                 pingInterval = setInterval(() => {
                     if (ws && ws.readyState === WebSocket.OPEN) {
                         ws.send(JSON.stringify({ type: "ping" }));
+                        clearTimeout(pongTimeout);
+                        pongTimeout = setTimeout(() => {
+                            console.log("Ping Timeout! Reconnecting...");
+                            ws.close();
+                        }, 5000);
                     }
-                }, 15000);
+                }, 10000);
             };
 
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data); 
-                if (data.type === "pong") return;
+                if (data.type === "pong") {
+                    clearTimeout(pongTimeout);
+                    return;
+                }
                 
                 if (data.type === "audio_control") { 
                     if (data.action === "alarms_on") { isAudioMuted = false; updateGeneralSoundUI(); } 
@@ -614,18 +643,20 @@
                     if (data.sys !== undefined) { triggerLocalNibdFinish(data.sys, data.dia, data.map, data.pulse, data.timestamp); }
                 }
                 else if (data.type === "analysis_started_sync") { startAnalysis(true); }
-                else if (data.type === "shock_delivered_sync") { deliverShock(true); }
+                else if (data.type === "shock_delivered_sync") { 
+                    if (data.count !== undefined) {
+                        shockCount = data.count;
+                    } else {
+                        shockCount++;
+                    }
+                    document.getElementById("shockCountVal").innerText = shockCount;
+                    deliverShock(true); 
+                }
                 else if (data.type === "12lead_show") { 
                     showEkgImage(data.image || "ekg_sinus.png"); 
                 }
                 else if (data.type === "12lead_close") { 
                     closeEkgImage(true); 
-                }
-                else if (data.type === "bz_requested") {
-                    showInfoBanner("🩸 BZ-Messung angefordert ...");
-                }
-                else if (data.type === "temp_requested") {
-                    showInfoBanner("🌡️ Temperaturmessung angefordert ...");
                 }
                 else if (data.type === "value_show") {
                     showValueOverlay(data.title, data.value, data.color);
@@ -642,15 +673,22 @@
             };
 
             ws.onclose = () => {
-                setNetStatus(false);
                 clearInterval(pingInterval);
-                setTimeout(connectWebSocket, 3000);
+                clearTimeout(pongTimeout);
+                setTimeout(connectWebSocket, 2000);
+            };
+
+            ws.onerror = () => {
+                ws.close();
             };
         }
         connectWebSocket();
 
         function initMonitor() { 
             document.getElementById("startOverlay").style.display = "none"; 
+            
+            document.body.addEventListener('click', requestWakeLock, { once: true });
+
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
 
@@ -849,6 +887,7 @@
             nibdWarningActive = false; updateWarningBanner(); isCurrentlyMeasuringNIBP = true;
             setNibpIndicator(true);
             playAudioFile("blutdruck.mp3");
+            const btn = document.getElementById("btn-nibp-start"); btn.classList.add("nibd-measuring");
             document.getElementById("sysDisplay").innerText = "---"; document.getElementById("diaDisplay").innerText = "---";
         }
 
@@ -859,6 +898,7 @@
             document.getElementById("sysDisplay").innerText = sys; document.getElementById("diaDisplay").innerText = dia; document.getElementById("mapDisplay").innerText = map; document.getElementById("nibdPulseDisplay").innerText = pulse;
             updateHistoryDisplay(); 
             setNibpIndicator(false);
+            const btn = document.getElementById("btn-nibp-start"); btn.classList.remove("nibd-measuring");
             isCurrentlyMeasuringNIBP = false;
 
             if (nibpIntervalSeconds > 0) {
@@ -1035,7 +1075,11 @@
         }
 
         function drawWaveforms() {
-            if (!canvasECG) return;
+            if (!canvasECG || canvasECG.width === 0 || canvasECG.height === 0) {
+                resize();
+                requestAnimationFrame(drawWaveforms);
+                return;
+            }
             const safeHR = currentHR > 0 ? currentHR : 60; const framesPerBeat = (60 / safeHR) * 60; const baseECG = canvasECG.height / 2; const baseSpO2 = canvasSpO2.height / 2;
             ctxECG.clearRect(x, 0, 25, canvasECG.height); ctxSpO2.clearRect(x, 0, 25, canvasSpO2.height); let yECG = baseECG; let ySpO2 = baseSpO2;
 
@@ -1047,11 +1091,11 @@
             } else if (currentRhythm === 'asystole') { 
                 yECG = baseECG + (Math.random() * 1.5 - 0.75); 
             } else if (currentRhythm === 'afib') {
+                yECG = baseECG + (Math.random() * 4 - 2) + Math.sin(x * 0.1) * 3;
                 ecgFrameCounter++;
                 if (ecgFrameCounter >= afibNextInterval && !isDrawingECG) {
                     isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0;
                     afibNextInterval = Math.floor(Math.random() * (framesPerBeat * 0.8)) + (framesPerBeat * 0.6);
-                    playHeartbeatTone();
                 }
                 if (isDrawingECG) {
                     if (ecgComplexIndex < afibData.length) yECG = baseECG - (afibData[ecgComplexIndex] * 3);
@@ -1062,7 +1106,6 @@
                 ecgFrameCounter++; 
                 if (currentHR > 0 && ecgFrameCounter >= framesPerBeat && !isDrawingECG) { 
                     isDrawingECG = true; ecgComplexIndex = 0; ecgFrameCounter = 0; 
-                    playHeartbeatTone();
                 } 
                 if (isDrawingECG) { 
                     let activeArray = ecgData;
@@ -1093,88 +1136,50 @@
             } else { 
                 spo2FrameCounter++; 
                 if (currentHR > 0 && spo2FrameCounter >= framesPerBeat && !isDrawingSpO2) { 
-                    isDrawingSpO2 = true; spo2ComplexIndex = 0; spo2FrameCounter = 0; 
+                    isDrawingSpO2 = true; 
+                    spo2ComplexIndex = 0; 
+                    spo2FrameCounter = 0; 
                 } 
                 if (isDrawingSpO2) { 
                     let currentSpo2Wave = spo2Waves[spo2Quality] || spo2Waves['good']; 
-                    if (spo2ComplexIndex < currentSpo2Wave.length) { ySpO2 = baseSpO2 - (currentSpo2Wave[spo2ComplexIndex] * 4); } 
-                    spo2ComplexIndex++; if (spo2ComplexIndex >= currentSpo2Wave.length) isDrawingSpO2 = false; 
+                    if (spo2ComplexIndex < currentSpo2Wave.length) { 
+                        ySpO2 = baseSpO2 - (currentSpo2Wave[spo2ComplexIndex] * 4); 
+                    } 
+                    spo2ComplexIndex++; 
+                    if (spo2ComplexIndex >= currentSpo2Wave.length) isDrawingSpO2 = false; 
                 } 
             }
 
-            if (isEcgConnected || isDefiConnected) { ctxECG.beginPath(); ctxECG.moveTo(x, lastYECG); ctxECG.lineTo(x + 2, yECG); ctxECG.strokeStyle = '#47d670'; ctxECG.lineWidth = 2.5; ctxECG.stroke(); }
-            if (isSpO2Connected) { ctxSpO2.beginPath(); ctxSpO2.moveTo(x, lastYSpO2); ctxSpO2.lineTo(x + 2, ySpO2); ctxSpO2.strokeStyle = '#38b6ff'; ctxSpO2.lineWidth = 2.5; ctxSpO2.stroke(); }
-            lastYECG = yECG; lastYSpO2 = ySpO2; x += 2; if (x >= canvasECG.width) { x = 0; lastYECG = yECG; lastYSpO2 = ySpO2; }
+            if (isEcgConnected || isDefiConnected) { 
+                ctxECG.beginPath(); 
+                ctxECG.moveTo(x, lastYECG); 
+                ctxECG.lineTo(x + 2, yECG); 
+                ctxECG.strokeStyle = '#47d670'; 
+                ctxECG.lineWidth = 2.5; 
+                ctxECG.stroke(); 
+            }
+            if (isSpO2Connected) { 
+                ctxSpO2.beginPath(); 
+                ctxSpO2.moveTo(x, lastYSpO2); 
+                ctxSpO2.lineTo(x + 2, ySpO2); 
+                ctxSpO2.strokeStyle = '#38b6ff'; 
+                ctxSpO2.lineWidth = 2.5; 
+                ctxSpO2.stroke(); 
+            }
+
+            lastYECG = yECG; 
+            lastYSpO2 = ySpO2; 
+            x += 2; 
+            if (x >= canvasECG.width) { 
+                x = 0; 
+                lastYECG = yECG; 
+                lastYSpO2 = ySpO2; 
+            }
             requestAnimationFrame(drawWaveforms);
         }
-        drawWaveforms();
-
-        function startAnalysis(fromNetwork = false) {
-            const btnAnalyse = document.getElementById("btn-analyse");
-            if (!fromNetwork && !isDefiConnected) { defiWarningActive = true; updateWarningBanner(); clearTimeout(defiTimeout); defiTimeout = setTimeout(function() { defiWarningActive = false; updateWarningBanner(); }, 5000); return; }
-            defiWarningActive = false; updateWarningBanner(); forceStopCprTimer();
-
-            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: "analysis_started_sync" })); ws.send(JSON.stringify({ type: "analysis_started" })); }
-            btnAnalyse.classList.add("analyse-measuring"); btnAnalyse.innerText = "ANALYSE..."; btnAnalyse.style.pointerEvents = "none";
-            
-            setTimeout(function() {
-                btnAnalyse.classList.remove("analyse-measuring");
-                const overlay = document.getElementById("defib-overlay"); const announceState = document.getElementById("announcement-state"); const announceText = document.getElementById("announcement-text"); const loadState = document.getElementById("loading-state"); const rdyState = document.getElementById("ready-state"); const fill = document.getElementById("progress-fill");
-                overlay.style.display = "flex"; announceState.style.display = "flex"; loadState.style.display = "none"; rdyState.style.display = "none";
-                
-                document.getElementById("btn-stop-cpr").style.display = "block";
-
-                if (currentRhythm === 'vfib' || currentRhythm === 'vt' || currentRhythm === 'torsades') {
-                    btnAnalyse.style.background = "#6c757d"; btnAnalyse.style.color = "#fff"; btnAnalyse.innerText = "LADEN...";
-                    announceText.innerText = "Schock empfohlen"; announceText.style.color = "#dc3545"; 
-                    setTimeout(function() {
-                        announceState.style.display = "none"; loadState.style.display = "flex"; fill.style.width = "0%";
-                        
-                        playAudioFile("shock_charge.mp3");
-
-                        let elapsed = 0; const duration = 3000;
-                        const chargeInterval = setInterval(function() {
-                            elapsed += 50; fill.style.width = ((elapsed / duration) * 100) + "%";
-                            if (elapsed >= duration) {
-                                clearInterval(chargeInterval); 
-                                stopAudioFile("shock_charge.mp3");
-                                playAudioFile("shock_ready.mp3", true);
-                                loadState.style.display = "none"; rdyState.style.display = "flex";
-                                btnAnalyse.innerText = "BEREIT"; document.getElementById('btn-shock').classList.add('shock-ready');
-                            }
-                        }, 50);
-                    }, 2000);
-                } else {
-                    btnAnalyse.style.background = "#28a745"; btnAnalyse.style.color = "#fff"; btnAnalyse.innerText = "KEIN SCHOCK";
-                    announceText.innerText = "Kein Schock empfohlen"; announceText.style.color = "#28a745"; 
-                    setTimeout(function() { resetAED(); startCprTimer(); }, 4000);
-                }
-            }, 4000);
-        }
-
-        function deliverShock(fromNetwork = false) {
-            shockCount++;
-            document.getElementById("shockCountVal").innerText = shockCount;
-
-            stopAudioFile("shock_charge.mp3");
-            stopAudioFile("shock_ready.mp3");
-            document.getElementById('btn-shock').classList.remove('shock-ready'); document.getElementById("defib-overlay").style.display = "none"; 
-            playAudioFile("shock_admitted.mp3");
-            const flash = document.getElementById('flash-overlay'); flash.style.display = 'block'; flash.style.opacity = '1';
-            setTimeout(function() { flash.style.opacity = '0'; setTimeout(() => { flash.style.display = 'none'; }, 200); }, 100);
-            
-            if (!fromNetwork && ws && ws.readyState === WebSocket.OPEN) { 
-                ws.send(JSON.stringify({ type: "shock_delivered_sync", count: shockCount })); 
-                ws.send(JSON.stringify({ type: "shock_delivered", count: shockCount })); 
-            }
-            setTimeout(function() { resetAED(); startCprTimer(); }, 3000);
-        }
-
-        function resetAED() { 
-            stopAudioFile("shock_charge.mp3");
-            stopAudioFile("shock_ready.mp3");
-            document.getElementById("defib-overlay").style.display = "none"; document.getElementById('btn-shock').classList.remove('shock-ready'); const btnAnalyse = document.getElementById("btn-analyse"); btnAnalyse.style.background = "#ffcc00"; btnAnalyse.style.color = "#000"; btnAnalyse.innerText = "ANALYSE"; btnAnalyse.style.pointerEvents = "auto"; btnAnalyse.style.opacity = "1"; 
-        }
+        
+        resize();
+        requestAnimationFrame(drawWaveforms);
     </script>
 </body>
 </html>

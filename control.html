@@ -234,21 +234,16 @@
 </head>
 <body>
     
-    <!-- 12-Kanal EKG Modal mit Suchfunktion & Reinnamen -->
     <div id="ekg-overlay">
         <div id="ekg-screen">
             <h3 style="color: #a855f7; margin: 0 0 6px 0; font-size: 20px;">🩻 12-Kanal EKG Auswählen</h3>
             <p style="font-size: 13px; color: #aaa; margin: 0 0 10px 0;">Befund auswählen, um ihn an die Monitore zu senden:</p>
-            
             <input type="text" id="ekg-search-input" placeholder="🔍 EKG suchen..." style="width: 100%; box-sizing: border-box; padding: 8px 12px; font-size: 15px; border-radius: 8px; border: 2px solid #444; background: #1a1a1a; color: #fff; text-align: left; margin-bottom: 5px;">
-
             <div id="ekg-scroll-list"></div>
-            
             <button id="btn-modal-close" style="background: #444; width: 100%; padding: 12px; border-radius: 8px;">Abbrechen</button>
         </div>
     </div>
 
-    <!-- Schock Folge-Rhythmus Modal Pop-Up -->
     <div id="shock-overlay">
         <div id="shock-screen">
             <h3 style="color: #ff4d4d; margin-top: 0; font-size: 20px;">⚡ SCHOCK ABGEGEBEN!</h3>
@@ -261,16 +256,13 @@
         </div>
     </div>
 
-    <!-- BZ / Temp Messwert Freigabe Modal -->
     <div id="measure-val-overlay">
         <div id="measure-val-screen">
             <h3 id="measure-modal-title" style="color: #ffaa00; margin-top: 0; font-size: 20px;">Messwert freigeben</h3>
             <p style="font-size: 14px; color: #ccc; margin-bottom: 15px;">Wert für Monitor &amp; Observer freigeben:</p>
-            
             <div style="margin-bottom: 20px;">
                 <input type="text" id="measureValInput" value="100 mg/dl" style="font-size: 22px; width: 85%; text-align: center; padding: 8px; border-radius: 8px; border: 2px solid #555; background: #222; color: #fff; font-weight: bold;">
             </div>
-            
             <div style="display: flex; gap: 10px;">
                 <button id="btn-confirm-measure" style="background: var(--success); flex: 1; padding: 12px; font-size: 15px;">Freigeben</button>
                 <button id="btn-cancel-measure" style="background: #444; flex: 1; padding: 12px; font-size: 15px;">Abbrechen</button>
@@ -435,6 +427,9 @@
 
         let ws = null;
         let pingInterval = null;
+        let pongTimeout = null;
+        let wakeLock = null;
+
         let sensors = { ecg: false, spo2: false, nibd: false, co2: false, defi: false };
         let currentSpO2Quality = 'good';
         let currentRhythm = 'nsr';
@@ -450,7 +445,6 @@
 
         const rhythmIds = ['nsr', 'stemi', 'vt', 'svt', 'afib', 'vfib', 'torsades', 'avb3', 'asystole'];
 
-        // Katalog aller verfügbaren 12-Kanal EKGs (nur Titel im UI sichtbar)
         const ekgCatalog = [
             { name: "Normalbefund (Sinus)", file: "ekg_sinus.png" },
             { name: "RSB (Rechtsschenkelblock)", file: "ekg_rbbb.png" },
@@ -476,6 +470,22 @@
             { name: "Ventrikuläre Tachykardie (VT)", file: "ekg_vt.png" },
             { name: "Supraventrikuläre Tachykardie (SVT)", file: "ekg_svt.png" }
         ];
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch (err) {
+                console.log("Wake Lock Fehler:", err);
+            }
+        }
+
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
 
         function renderEkgList(filterText = "") {
             const listContainer = document.getElementById("ekg-scroll-list");
@@ -549,6 +559,7 @@
         }
 
         function connectWebSocket() {
+            if (ws) ws.close();
             ws = new WebSocket("wss://ekg-simulator.onrender.com");
 
             ws.onopen = () => { 
@@ -560,13 +571,21 @@
                 pingInterval = setInterval(() => {
                     if (ws && ws.readyState === WebSocket.OPEN) {
                         ws.send(JSON.stringify({ type: "ping" }));
+                        clearTimeout(pongTimeout);
+                        pongTimeout = setTimeout(() => {
+                            console.log("Ping Timeout! Reconnecting...");
+                            ws.close();
+                        }, 5000);
                     }
-                }, 15000);
+                }, 10000);
             };
 
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
-                if (data.type === "pong") return;
+                if (data.type === "pong") {
+                    clearTimeout(pongTimeout);
+                    return;
+                }
 
                 const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
                 
@@ -636,7 +655,12 @@
             ws.onclose = () => {
                 setNetStatus(false);
                 clearInterval(pingInterval);
-                setTimeout(connectWebSocket, 3000);
+                clearTimeout(pongTimeout);
+                setTimeout(connectWebSocket, 2000);
+            };
+
+            ws.onerror = () => {
+                ws.close();
             };
         }
 
@@ -644,6 +668,9 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             renderEkgList();
+            
+            // Wake Lock beim ersten Klick
+            document.body.addEventListener('click', requestWakeLock, { once: true });
 
             document.getElementById('btn-open-12lead').addEventListener('click', openEkgModal);
             document.getElementById('btn-modal-close').addEventListener('click', closeEkgModal);
