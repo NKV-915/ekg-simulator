@@ -131,7 +131,7 @@
         .top-alert { display: none; padding: 12px; font-weight: bold; border-radius: 8px; text-align: center; margin-bottom: 5px; }
         #nibd-alert { background: var(--warning); color: #000; animation: pulse 1s infinite alternate; }
 
-        #ekg-overlay, #measure-val-overlay, #shock-overlay, #scenario-overlay {
+        #ekg-overlay, #measure-val-overlay, #shock-overlay, #scenario-overlay, #measures-overlay, #effect-modal-overlay {
             position: fixed; 
             top: 0; left: 0; 
             width: 100vw; height: 100vh; 
@@ -141,7 +141,7 @@
             align-items: center; 
             z-index: 9500;
         }
-        #ekg-screen, #measure-val-screen, #shock-screen, #scenario-screen {
+        #ekg-screen, #measure-val-screen, #shock-screen, #scenario-screen, #measures-screen, #effect-modal-screen {
             width: 520px; 
             max-width: 95vw;
             max-height: 90vh;
@@ -157,7 +157,7 @@
             text-align: center;
         }
 
-        #ekg-scroll-list, #scenario-scroll-list {
+        #ekg-scroll-list, #scenario-scroll-list, #measures-scroll-list {
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -167,7 +167,7 @@
             padding-right: 4px;
         }
 
-        .btn-ekg-item, .btn-scenario-item {
+        .btn-ekg-item, .btn-scenario-item, .btn-measure-item {
             background: #1e1e24;
             color: #ffffff;
             border: 1px solid #333344;
@@ -181,10 +181,25 @@
             justify-content: space-between;
             align-items: center;
         }
-        .btn-ekg-item:hover, .btn-ekg-item:active, .btn-scenario-item:hover, .btn-scenario-item:active {
+        .btn-ekg-item:hover, .btn-ekg-item:active, 
+        .btn-scenario-item:hover, .btn-scenario-item:active,
+        .btn-measure-item:hover, .btn-measure-item:active {
             background: #7000ff;
             border-color: #a855f7;
             color: #ffffff;
+        }
+
+        .category-header {
+            font-size: 12px;
+            font-weight: bold;
+            color: #ffcc00;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: left;
+            margin-top: 10px;
+            margin-bottom: 4px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 2px;
         }
 
         .status-header {
@@ -252,6 +267,43 @@
         </div>
     </div>
 
+    <!-- MASSNAHMEN-HAUPT-MODAL -->
+    <div id="measures-overlay">
+        <div id="measures-screen" style="border-color: #007bff;">
+            <h3 style="color: #007bff; margin: 0 0 6px 0; font-size: 22px;">⚡ Maßnahmen &amp; Therapie</h3>
+            <p style="font-size: 13px; color: #aaa; margin: 0 0 10px 0;">Wähle eine gesetzte Maßnahme aus:</p>
+            
+            <div id="measures-scroll-list"></div>
+            
+            <button onclick="closeMeasuresModal()" style="background: #444; width: 100%; padding: 12px; border-radius: 8px;">Schließen</button>
+        </div>
+    </div>
+
+    <!-- MASSNAHMEN-EFFEKT-MODAL (GUT / MITTEL / SCHLECHT) -->
+    <div id="effect-modal-overlay">
+        <div id="effect-modal-screen" style="width: 440px; border-color: #ffaa00;">
+            <h3 id="effect-modal-title" style="color: #ffaa00; margin: 0 0 6px 0; font-size: 20px;">Effekt wählen</h3>
+            <p id="effect-modal-desc" style="font-size: 13px; color: #ccc; margin: 0 0 16px 0;">Wie schlägt die Maßnahme beim Patienten an?</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                <button id="btn-effect-good" style="background: #28a745; padding: 14px; font-size: 16px; text-align: left; border-radius: 8px;">
+                    <div style="font-weight: bold;">🟢 Guter Effekt</div>
+                    <div id="effect-good-text" style="font-size: 12px; opacity: 0.9; margin-top: 2px;">Vollständiges Ansprechen / Normalisierung</div>
+                </button>
+                <button id="btn-effect-medium" style="background: #ffaa00; color: #000; padding: 14px; font-size: 16px; text-align: left; border-radius: 8px;">
+                    <div style="font-weight: bold;">🟡 Mittlerer Effekt</div>
+                    <div id="effect-medium-text" style="font-size: 12px; opacity: 0.9; margin-top: 2px;">Mäßige Besserung / Teilansprechen</div>
+                </button>
+                <button id="btn-effect-bad" style="background: #dc3545; padding: 14px; font-size: 16px; text-align: left; border-radius: 8px;">
+                    <div style="font-weight: bold;">🔴 Schlechter / Kein Effekt</div>
+                    <div id="effect-bad-text" style="font-size: 12px; opacity: 0.9; margin-top: 2px;">Keine Besserung oder Verschlechterung</div>
+                </button>
+            </div>
+            
+            <button onclick="closeEffectModal()" style="background: #444; width: 100%; padding: 10px; border-radius: 8px;">Abbrechen</button>
+        </div>
+    </div>
+
     <!-- 12-Kanal EKG Modal mit Suchfunktion -->
     <div id="ekg-overlay">
         <div id="ekg-screen">
@@ -301,6 +353,7 @@
             <div style="display: flex; align-items: center; gap: 8px;">
                 <span>RAUM: <strong id="room-name-display" style="color: var(--warning);">---</strong></span>
                 <button id="btn-open-scenarios" style="background: #28a745; font-size: 11px; padding: 4px 8px; border-radius: 6px;">📋 Szenarien</button>
+                <button id="btn-open-measures" style="background: #007bff; font-size: 11px; padding: 4px 8px; border-radius: 6px;">⚡ Maßnahmen</button>
             </div>
             <span style="display: flex; align-items: center;">
                 <span id="net-dot" class="status-dot status-offline"></span>
@@ -459,7 +512,6 @@
         let pongTimeout = null;
         let wakeLock = null;
 
-        // Standardmäßig alle Sensoren getrennt
         let sensors = { ecg: false, spo2: false, nibd: false, co2: false, defi: false };
         let currentSpO2Quality = 'good';
         let currentRhythm = 'nsr';
@@ -472,118 +524,166 @@
 
         let currentMeasureTitle = 'BLUTZUCKER';
         let currentMeasureColor = '#ffc0cb';
+        let activeSelectedMeasure = null;
 
         const rhythmIds = ['nsr', 'stemi', 'vt', 'svt', 'afib', 'vfib', 'torsades', 'avb3', 'asystole'];
 
-        // 12 Szenarien rein mit Vitalwerten (keine Sensoren hinterlegt)
+        // 12 NOTFALL-SZENARIEN (Voreinstellungen)
         const trainingScenarios = [
+            { id: 'ACS', code: '10D05', name: 'Thoraxschmerz / ACS', badge: 'DELTA', badgeColor: '#dc3545', hr: 85, spo2: 96, sys: 150, dia: 95, co2: 38, af: 18, bz: 130, temp: 36.8, rhythm: 'stemi' },
+            { id: 'APOPLEX', code: '28C01', name: 'Apoplex / CVI (Schlaganfall)', badge: 'CHARLIE', badgeColor: '#fd7e14', hr: 92, spo2: 97, sys: 195, dia: 110, co2: 36, af: 14, bz: 115, temp: 37.1, rhythm: 'afib' },
+            { id: 'ATEMNOT', code: '06D02', name: 'Schwere Dyspnoe / COPD', badge: 'DELTA', badgeColor: '#007bff', hr: 118, spo2: 84, sys: 160, dia: 95, co2: 56, af: 28, bz: 120, temp: 37.4, rhythm: 'nsr' },
+            { id: 'KRAMPF', code: '12D02', name: 'Status Epilepticus', badge: 'DELTA', badgeColor: '#6f42c1', hr: 125, spo2: 89, sys: 155, dia: 90, co2: 48, af: 22, bz: 95, temp: 38.2, rhythm: 'nsr' },
+            { id: 'TRAUMA', code: '29D02', name: 'Verkehrsunfall / Schock', badge: 'DELTA', badgeColor: '#ffaa00', hr: 132, spo2: 92, sys: 85, dia: 50, co2: 28, af: 26, bz: 140, temp: 35.6, rhythm: 'nsr' },
+            { id: 'STURZ', code: '17D03', name: 'Sturz aus Höhe (>4m)', badge: 'DELTA', badgeColor: '#ffaa00', hr: 105, spo2: 95, sys: 110, dia: 70, co2: 35, af: 20, bz: 110, temp: 36.5, rhythm: 'nsr' },
+            { id: 'ANAPHYLAXIE', code: '02E01', name: 'Anaphylaxie Grad III', badge: 'ECHO', badgeColor: '#e83e8c', hr: 138, spo2: 88, sys: 75, dia: 40, co2: 30, af: 30, bz: 105, temp: 36.9, rhythm: 'svt' },
+            { id: 'CPR', code: '09E01', name: 'Kreislaufstillstand / CPR', badge: 'ECHO', badgeColor: '#dc3545', hr: 180, spo2: 0, sys: 0, dia: 0, co2: 14, af: 0, bz: 100, temp: 35.8, rhythm: 'vfib' },
+            { id: 'HYPO', code: '13C01', name: 'Hypoglykämie (BZ 32 mg/dl)', badge: 'CHARLIE', badgeColor: '#fd7e14', hr: 98, spo2: 98, sys: 135, dia: 85, co2: 38, af: 14, bz: 32, temp: 36.2, rhythm: 'nsr' },
+            { id: 'ABDOMEN', code: '01D01', name: 'Akutes Abdomen / Kolik', badge: 'DELTA', badgeColor: '#dc3545', hr: 110, spo2: 97, sys: 145, dia: 90, co2: 37, af: 20, bz: 118, temp: 38.8, rhythm: 'nsr' },
+            { id: 'INTOX', code: '23C01', name: 'Intoxikation / Mischintox', badge: 'CHARLIE', badgeColor: '#fd7e14', hr: 46, spo2: 82, sys: 95, dia: 60, co2: 58, af: 6, bz: 85, temp: 35.2, rhythm: 'nsr' },
+            { id: 'PSYCH', code: '25B03', name: 'Panik / Hyperventilation', badge: 'BRAVO', badgeColor: '#007bff', hr: 122, spo2: 100, sys: 150, dia: 90, co2: 22, af: 34, bz: 95, temp: 36.7, rhythm: 'nsr' }
+        ];
+
+        // MASSNAHMEN-KATALOG (ABCDE + MEDIKAMENTE ALPHABETISCH)
+        const measuresCatalog = [
+            // A - Airway
             {
-                id: 'ACS',
-                code: '10D05',
-                name: 'Thoraxschmerz / ACS',
-                badge: 'DELTA',
-                badgeColor: '#dc3545',
-                hr: 85, spo2: 96, sys: 150, dia: 95, co2: 38, af: 18, bz: 130, temp: 36.8,
-                rhythm: 'stemi'
+                type: 'abcde', section: 'A - Airway', name: 'Atemweg sichern (Guedel / Larynxtubus)',
+                good: { desc: 'Atemweg frei: SpO2 +10%, AF -6, etCO2 38', dSpO2: 10, dAF: -6, setCO2: 38 },
+                medium: { desc: 'Teilweise frei: SpO2 +3%, AF -2', dSpO2: 3, dAF: -2 },
+                bad: { desc: 'Fehllage / Spasmus: SpO2 -6%, AF +4', dSpO2: -6, dAF: 4 }
             },
             {
-                id: 'APOPLEX',
-                code: '28C01',
-                name: 'Apoplex / CVI (Schlaganfall)',
-                badge: 'CHARLIE',
-                badgeColor: '#fd7e14',
-                hr: 92, spo2: 97, sys: 195, dia: 110, co2: 36, af: 14, bz: 115, temp: 37.1,
-                rhythm: 'afib'
+                type: 'abcde', section: 'A - Airway', name: 'Absaugen (Sekret / Erbrochenes)',
+                good: { desc: 'Sekret entfernt: SpO2 +5%, AF -3', dSpO2: 5, dAF: -3 },
+                medium: { desc: 'Teilweise entfernt: SpO2 +2%', dSpO2: 2 },
+                bad: { desc: 'Vagusreiz: Akute Bradykardie HF -20', dHF: -20 }
+            },
+            // B - Breathing
+            {
+                type: 'abcde', section: 'B - Breathing', name: 'Sauerstoffgabe (O2-Maske / Brille)',
+                good: { desc: 'Optimal: SpO2 +12%, AF -6, HF -10', dSpO2: 12, dAF: -6, dHF: -10 },
+                medium: { desc: 'Mäßig: SpO2 +4%, AF -2', dSpO2: 4, dAF: -2 },
+                bad: { desc: 'CO2-Narkose (COPD): AF -8, etCO2 +15', dAF: -8, detCO2: 15 }
             },
             {
-                id: 'ATEMNOT',
-                code: '06D02',
-                name: 'Schwere Dyspnoe / COPD',
-                badge: 'DELTA',
-                badgeColor: '#007bff',
-                hr: 118, spo2: 84, sys: 160, dia: 95, co2: 56, af: 28, bz: 120, temp: 37.4,
-                rhythm: 'nsr'
+                type: 'abcde', section: 'B - Breathing', name: 'Beatmung (Beutel-Maske / CPAP)',
+                good: { desc: 'Suffizient: SpO2 98%, etCO2 38, AF 12', setSpO2: 98, setCO2: 38, setAF: 12 },
+                medium: { desc: 'Leckage: SpO2 91%, etCO2 45, AF 12', setSpO2: 91, setCO2: 45, setAF: 12 },
+                bad: { desc: 'Beatmungsdruck hoch: RR fällt Sys -20', dSys: -20, dDia: -10 }
             },
             {
-                id: 'KRAMPF',
-                code: '12D02',
-                name: 'Status Epilepticus',
-                badge: 'DELTA',
-                badgeColor: '#6f42c1',
-                hr: 125, spo2: 89, sys: 155, dia: 90, co2: 48, af: 22, bz: 95, temp: 38.2,
-                rhythm: 'nsr'
+                type: 'abcde', section: 'B - Breathing', name: 'Oberkörperhochlagerung',
+                good: { desc: 'Atemerleichterung: SpO2 +4%, AF -4, Sys -10', dSpO2: 4, dAF: -4, dSys: -10 },
+                medium: { desc: 'Leichte Besserung: SpO2 +2%', dSpO2: 2 },
+                bad: { desc: 'Bei Schock: Blutdruckabfall Sys -20', dSys: -20, dDia: -10 }
+            },
+            // C - Circulation
+            {
+                type: 'abcde', section: 'C - Circulation', name: 'Kritische Blutstillung (Tourniquet / Druckverband)',
+                good: { desc: 'Blutung gestoppt: HF -15, Sys +10', dHF: -15, dSys: 10 },
+                medium: { desc: 'Blutung sickert: HF -5', dHF: -5 },
+                bad: { desc: 'Blutung persistiert: Sys -15, HF +15', dSys: -15, dHF: 15 }
             },
             {
-                id: 'TRAUMA',
-                code: '29D02',
-                name: 'Verkehrsunfall / Schock',
-                badge: 'DELTA',
-                badgeColor: '#ffaa00',
-                hr: 132, spo2: 92, sys: 85, dia: 50, co2: 28, af: 26, bz: 140, temp: 35.6,
-                rhythm: 'nsr'
+                type: 'abcde', section: 'C - Circulation', name: 'Flachlagerung',
+                good: { desc: 'Verbesserter Rückfluss: Sys +10, HF -6', dSys: 10, dDia: 5, dHF: -6 },
+                medium: { desc: 'Kreislauf stabil: Sys +4', dSys: 4 },
+                bad: { desc: 'Lungenödem/Überlastung: SpO2 -8%, AF +8', dSpO2: -8, dAF: 8, dHF: 15 }
             },
             {
-                id: 'STURZ',
-                code: '17D03',
-                name: 'Sturz aus Höhe (>4m)',
-                badge: 'DELTA',
-                badgeColor: '#ffaa00',
-                hr: 105, spo2: 95, sys: 110, dia: 70, co2: 35, af: 20, bz: 110, temp: 36.5,
-                rhythm: 'nsr'
+                type: 'abcde', section: 'C - Circulation', name: 'Vagales Manöver (Valsalva)',
+                good: { desc: 'Konversion: Sinusrhythmus HF 75, RR 120/80', setRhythm: 'nsr', setHF: 75, setSys: 120, setDia: 80 },
+                medium: { desc: 'Kurzer HF-Abfall (-20), bleibt SVT', dHF: -20 },
+                bad: { desc: 'Wirkungslos: SVT persistiert', dHF: 0 }
+            },
+            // D - Disability
+            {
+                type: 'abcde', section: 'D - Disability', name: 'Stabile Seitenlage',
+                good: { desc: 'Atemweg frei & gesichert: SpO2 +5%, AF -3', dSpO2: 5, dAF: -3 },
+                medium: { desc: 'Teilweise gesichert: SpO2 +2%', dSpO2: 2 },
+                bad: { desc: 'Kopf flektiert: Apnoe / SpO2 -8%', dSpO2: -8, dAF: -4 }
+            },
+            // E - Exposure
+            {
+                type: 'abcde', section: 'E - Exposure', name: 'Wärmeerhalt (Decke / Heizgebläse)',
+                good: { desc: 'Temperaturanstieg: Temp +0.8 °C, HF -8', dTemp: 0.8, dHF: -8 },
+                medium: { desc: 'Temp stabilisiert: Temp +0.2 °C', dTemp: 0.2 },
+                bad: { desc: 'Weitere Auskühlung: Temp -0.5 °C', dTemp: -0.5 }
             },
             {
-                id: 'ANAPHYLAXIE',
-                code: '02E01',
-                name: 'Anaphylaxie Grad III',
-                badge: 'ECHO',
-                badgeColor: '#e83e8c',
-                hr: 138, spo2: 88, sys: 75, dia: 40, co2: 30, af: 30, bz: 105, temp: 36.9,
-                rhythm: 'svt'
+                type: 'abcde', section: 'E - Exposure', name: 'Kühlung (Wärmeübertragung / Fieber)',
+                good: { desc: 'Temperatursenkung: Temp -1.0 °C, HF -15', dTemp: -1.0, dHF: -15 },
+                medium: { desc: 'Leichte Kühlung: Temp -0.3 °C', dTemp: -0.3 },
+                bad: { desc: 'Kältezittern: HF +15, Temp unverändert', dHF: 15 }
+            },
+
+            // MEDIKAMENTE (Alphabetisch A - Z)
+            {
+                type: 'med', section: 'Medikamente (A–Z)', name: 'Adrenalin (Anaphylaxie - i.m.)',
+                good: { desc: 'Kreislauf & Atemwege stabil: Sys +30, SpO2 +8%, AF -8', dSys: 30, dDia: 15, dSpO2: 8, dAF: -8 },
+                medium: { desc: 'Mäßiger Effekt: Sys +10, SpO2 +3%', dSys: 10, dSpO2: 3 },
+                bad: { desc: 'Reflextachykardie / Überdosierung: HF +35', dHF: 35 }
             },
             {
-                id: 'CPR',
-                code: '09E01',
-                name: 'Kreislaufstillstand / CPR',
-                badge: 'ECHO',
-                badgeColor: '#dc3545',
-                hr: 180, spo2: 0, sys: 0, dia: 0, co2: 14, af: 0, bz: 100, temp: 35.8,
-                rhythm: 'vfib'
+                type: 'med', section: 'Medikamente (A–Z)', name: 'Glukose (Hypoglykämie - oral/i.v.)',
+                good: { desc: 'Normoglykämie: BZ 110 mg/dl, HF -15', setBZ: 110, dHF: -15 },
+                medium: { desc: 'Teilweiser Anstieg: BZ 65 mg/dl', setBZ: 65, dHF: -5 },
+                bad: { desc: 'Paravasat/keine Wirkung: BZ unverändert', dHF: 0 }
             },
             {
-                id: 'HYPO',
-                code: '13C01',
-                name: 'Hypoglykämie (BZ 32 mg/dl)',
-                badge: 'CHARLIE',
-                badgeColor: '#fd7e14',
-                hr: 98, spo2: 98, sys: 135, dia: 85, co2: 38, af: 14, bz: 32, temp: 36.2,
-                rhythm: 'nsr'
+                type: 'med', section: 'Medikamente (A–Z)', name: 'Inhalation (Beta-2-Mimetikum)',
+                good: { desc: 'Spasmolyse: SpO2 +8%, AF -8, etCO2 38', dSpO2: 8, dAF: -8, setCO2: 38 },
+                medium: { desc: 'Leichte Bronchodilatation: SpO2 +3%, AF -3', dSpO2: 3, dAF: -3 },
+                bad: { desc: 'Tachykardie ohne Besserung: HF +20', dHF: 20 }
             },
             {
-                id: 'ABDOMEN',
-                code: '01D01',
-                name: 'Akutes Abdomen / Kolik',
-                badge: 'DELTA',
-                badgeColor: '#dc3545',
-                hr: 110, spo2: 97, sys: 145, dia: 90, co2: 37, af: 20, bz: 118, temp: 38.8,
-                rhythm: 'nsr'
+                type: 'med', section: 'Medikamente (A–Z)', name: 'Ketanest (Schmerztherapie - s-Ketamin)',
+                good: { desc: 'Analgesie: HF -15, Sys -15, AF -4', dHF: -15, dSys: -15, dDia: -10, dAF: -4 },
+                medium: { desc: 'Mäßige Analgesie: HF -5, Sys -5', dHF: -5, dSys: -5 },
+                bad: { desc: 'Sympathikus-Rebound: Sys +25, HF +20', dSys: 25, dHF: 20 }
             },
             {
-                id: 'INTOX',
-                code: '23C01',
-                name: 'Intoxikation / Mischintox',
-                badge: 'CHARLIE',
-                badgeColor: '#fd7e14',
-                hr: 46, spo2: 82, sys: 95, dia: 60, co2: 58, af: 6, bz: 85, temp: 35.2,
-                rhythm: 'nsr'
+                type: 'med', section: 'Medikamente (A–Z)', name: 'Metamizol (Schmerz & Fiebersenkung)',
+                good: { desc: 'Fieber & Schmerz gesenkt: Temp -1.2 °C, HF -12', dTemp: -1.2, dHF: -12 },
+                medium: { desc: 'Leichte Senkung: Temp -0.4 °C, HF -4', dTemp: -0.4, dHF: -4 },
+                bad: { desc: 'RR-Abfall (Hypotonie): Sys -25, Dia -15', dSys: -25, dDia: -15 }
             },
             {
-                id: 'PSYCH',
-                code: '25B03',
-                name: 'Panik / Hyperventilation',
-                badge: 'BRAVO',
-                badgeColor: '#007bff',
-                hr: 122, spo2: 100, sys: 150, dia: 90, co2: 22, af: 34, bz: 95, temp: 36.7,
-                rhythm: 'nsr'
+                type: 'med', section: 'Medikamente (A–Z)', name: 'Methoxyfluran (Penthrox - Analgesie)',
+                good: { desc: 'Gute Schmerzlinderung: HF -15, AF -6, Sys -10', dHF: -15, dAF: -6, dSys: -10 },
+                medium: { desc: 'Leichte Schmerzlinderung: HF -5, AF -2', dHF: -5, dAF: -2 },
+                bad: { desc: 'Unzureichende Inhalation: Unverändert', dHF: 0 }
+            },
+            {
+                type: 'med', section: 'Medikamente (A–Z)', name: 'Midazolam (Anxiolyse / Krampfdurchbrechung)',
+                good: { desc: 'Krampf gestoppt: Sinus HF 85, SpO2 +6%', setRhythm: 'nsr', setHF: 85, dSpO2: 6 },
+                medium: { desc: 'Sediert, HF -10', dHF: -10 },
+                bad: { desc: 'Atemdepression: AF 5, SpO2 -12%, etCO2 +15', setAF: 5, dSpO2: -12, detCO2: 15 }
+            },
+            {
+                type: 'med', section: 'Medikamente (A–Z)', name: 'Naloxon (Opiatantagonist)',
+                good: { desc: 'Atemantrieb hergestellt: AF 14, SpO2 96%, etCO2 40', setAF: 14, setSpO2: 96, setCO2: 40, dHF: 10 },
+                medium: { desc: 'Verzögerter Atemantrieb: AF 9, SpO2 90%', setAF: 9, setSpO2: 90 },
+                bad: { desc: 'Akutes Entzugssyndrom: HF 140, Sys 190', setHF: 140, setSys: 190, setDia: 110 }
+            },
+            {
+                type: 'med', section: 'Medikamente (A–Z)', name: 'Tranexamsäure (TXA - Antifibrinolytikum)',
+                good: { desc: 'Gerinnung stabilisiert: Sys +10, HF -5', dSys: 10, dHF: -5 },
+                medium: { desc: 'Stabilisierung: Keine Akutänderung', dSys: 0 },
+                bad: { desc: 'Hypotonie bei Schnellinjektion: Sys -15', dSys: -15, dDia: -10 }
+            },
+            {
+                type: 'med', section: 'Medikamente (A–Z)', name: 'Urapidil (Blutdrucksenker)',
+                good: { desc: 'Kontrollierte Senkung: Sys -30, Dia -15, HF stabil', dSys: -30, dDia: -15 },
+                medium: { desc: 'Mäßige Senkung: Sys -12, Dia -6', dSys: -12, dDia: -6 },
+                bad: { desc: 'Überschießender Abfall: Sys -55, Dia -30, HF +25', dSys: -55, dDia: -30, dHF: 25 }
+            },
+            {
+                type: 'med', section: 'Medikamente (A–Z)', name: 'Volumengabe (kristalloide Infusion)',
+                good: { desc: 'Kreislauf gefüllt: Sys +25, Dia +12, HF -20', dSys: 25, dDia: 12, dHF: -20 },
+                medium: { desc: 'Leichter Anstieg: Sys +10, Dia +5, HF -5', dSys: 10, dDia: 5, dHF: -5 },
+                bad: { desc: 'Volumenüberladung: SpO2 -10%, AF +8', dSpO2: -10, dAF: 8 }
             }
         ];
 
@@ -662,6 +762,100 @@
             if(sensorType === 'nibd') label = "MANSCHETTE";
             if(sensorType === 'defi') label = "DEFI-ELEKTRODEN";
             btn.innerText = sensors[sensorType] ? label + ": ANGESCHLOSSEN" : label + ": GETRENNT";
+        }
+
+        // MASSNAHMEN RENDERN
+        function renderMeasuresList() {
+            const list = document.getElementById("measures-scroll-list");
+            list.innerHTML = "";
+            let currentSec = "";
+
+            measuresCatalog.forEach(m => {
+                if (m.section !== currentSec) {
+                    currentSec = m.section;
+                    const secHeader = document.createElement("div");
+                    secHeader.className = "category-header";
+                    secHeader.innerText = currentSec;
+                    list.appendChild(secHeader);
+                }
+
+                const btn = document.createElement("button");
+                btn.className = "btn-measure-item";
+                btn.innerHTML = `
+                    <span style="font-size: 14px; font-weight: bold;">${m.name}</span>
+                    <span style="color: #007bff; font-weight: bold; font-size: 13px;">Wirkung ➔</span>
+                `;
+                btn.onclick = () => openEffectModal(m);
+                list.appendChild(btn);
+            });
+        }
+
+        function openMeasuresModal() {
+            renderMeasuresList();
+            document.getElementById("measures-overlay").style.display = "flex";
+        }
+
+        function closeMeasuresModal() {
+            document.getElementById("measures-overlay").style.display = "none";
+        }
+
+        function openEffectModal(measure) {
+            activeSelectedMeasure = measure;
+            document.getElementById("effect-modal-title").innerText = `⚡ ${measure.name}`;
+            document.getElementById("effect-good-text").innerText = measure.good.desc;
+            document.getElementById("effect-medium-text").innerText = measure.medium.desc;
+            document.getElementById("effect-bad-text").innerText = measure.bad.desc;
+            
+            document.getElementById("btn-effect-good").onclick = () => applyMeasureEffect('good');
+            document.getElementById("btn-effect-medium").onclick = () => applyMeasureEffect('medium');
+            document.getElementById("btn-effect-bad").onclick = () => applyMeasureEffect('bad');
+
+            document.getElementById("effect-modal-overlay").style.display = "flex";
+        }
+
+        function closeEffectModal() {
+            document.getElementById("effect-modal-overlay").style.display = "none";
+        }
+
+        function applyMeasureEffect(level) {
+            if (!activeSelectedMeasure) return;
+            const eff = activeSelectedMeasure[level];
+            const levelLabel = level === 'good' ? '🟢 Guter Effekt' : (level === 'medium' ? '🟡 Mittlerer Effekt' : '🔴 Schlechter Effekt');
+
+            // Delta- oder Absolutwerte anwenden
+            if (eff.setHF !== undefined) document.getElementById("hrInput").value = eff.setHF;
+            else if (eff.dHF) changeValue('hrInput', eff.dHF, 0, 300, false);
+
+            if (eff.setSpO2 !== undefined) document.getElementById("spo2Input").value = eff.setSpO2;
+            else if (eff.dSpO2) changeValue('spo2Input', eff.dSpO2, 0, 100, false);
+
+            if (eff.setSys !== undefined) document.getElementById("sysInput").value = eff.setSys;
+            else if (eff.dSys) changeValue('sysInput', eff.dSys, 0, 260, false);
+
+            if (eff.setDia !== undefined) document.getElementById("diaInput").value = eff.setDia;
+            else if (eff.dDia) changeValue('diaInput', eff.dDia, 0, 180, false);
+
+            if (eff.setCO2 !== undefined) document.getElementById("co2Input").value = eff.setCO2;
+            else if (eff.detCO2) changeValue('co2Input', eff.detCO2, 0, 99, false);
+
+            if (eff.setAF !== undefined) document.getElementById("afInput").value = eff.setAF;
+            else if (eff.dAF) changeValue('afInput', eff.dAF, 0, 60, false);
+
+            if (eff.setBZ !== undefined) document.getElementById("bzInput").value = eff.setBZ;
+            else if (eff.dBZ) changeValue('bzInput', eff.dBZ, 0, 999, false);
+
+            if (eff.setTemp !== undefined) document.getElementById("tempInput").value = eff.setTemp.toFixed(1);
+            else if (eff.dTemp) changeFloatValue('tempInput', eff.dTemp, 20.0, 45.0, false);
+
+            if (eff.setRhythm) setRhythm(eff.setRhythm);
+
+            sendVitals();
+
+            const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
+            addLogEntry(`[${time}] - ⚡ Maßnahme: ${activeSelectedMeasure.name} (${levelLabel})`);
+
+            closeEffectModal();
+            closeMeasuresModal();
         }
 
         const ekgCatalog = [
@@ -767,7 +961,7 @@
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     ws.send(JSON.stringify({ type: "nibd_cancelled" }));
                 }
-                setCtrlNibpMeasuring(false);
+                setCtrlMeasuringNibp(false);
                 addLogEntry(`[${time}] - 🩺 NIBP-Messung vom Controller abgebrochen`);
             } else {
                 if (ws && ws.readyState === WebSocket.OPEN) {
@@ -894,6 +1088,8 @@
             document.getElementById('btn-open-scenarios').addEventListener('click', () => {
                 document.getElementById('scenario-overlay').style.display = 'flex';
             });
+
+            document.getElementById('btn-open-measures').addEventListener('click', openMeasuresModal);
 
             document.getElementById('btn-open-12lead').addEventListener('click', openEkgModal);
             document.getElementById('btn-modal-close').addEventListener('click', closeEkgModal);
@@ -1184,19 +1380,19 @@
             sendVitals();
         }
 
-        function changeValue(inputId, amount, min, max) {
+        function changeValue(inputId, amount, min, max, autoSend = true) {
             const input = document.getElementById(inputId);
             let val = parseInt(input.value) + amount;
             input.value = Math.min(max, Math.max(min, val));
-            sendVitals();
+            if (autoSend) sendVitals();
         }
 
-        function changeFloatValue(inputId, amount, min, max) {
+        function changeFloatValue(inputId, amount, min, max, autoSend = true) {
             const input = document.getElementById(inputId);
             let val = parseFloat(input.value) + amount;
             val = Math.min(max, Math.max(min, val));
             input.value = val.toFixed(1);
-            sendVitals();
+            if (autoSend) sendVitals();
         }
 
         function sendVitals() {
