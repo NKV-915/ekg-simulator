@@ -131,43 +131,43 @@
         .top-alert { display: none; padding: 12px; font-weight: bold; border-radius: 8px; text-align: center; margin-bottom: 5px; }
         #nibd-alert { background: var(--warning); color: #000; animation: pulse 1s infinite alternate; }
 
-        #ekg-overlay, #measure-val-overlay, #shock-overlay {
+        #ekg-overlay, #measure-val-overlay, #shock-overlay, #scenario-overlay {
             position: fixed; 
             top: 0; left: 0; 
             width: 100vw; height: 100vh; 
-            background-color: rgba(0, 0, 0, 0.85); 
+            background-color: rgba(0, 0, 0, 0.88); 
             display: none; 
             justify-content: center; 
             align-items: center; 
             z-index: 9500;
         }
-        #ekg-screen, #measure-val-screen, #shock-screen {
-            width: 440px; 
-            max-width: 92vw;
-            max-height: 88vh;
+        #ekg-screen, #measure-val-screen, #shock-screen, #scenario-screen {
+            width: 520px; 
+            max-width: 95vw;
+            max-height: 90vh;
             background-color: #111; 
             border: 4px solid #7000ff; 
             border-radius: 14px; 
             display: flex; 
             flex-direction: column; 
             overflow: hidden; 
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.9);
             padding: 18px;
             box-sizing: border-box;
             text-align: center;
         }
 
-        #ekg-scroll-list {
+        #ekg-scroll-list, #scenario-scroll-list {
             display: flex;
             flex-direction: column;
             gap: 8px;
             overflow-y: auto;
-            max-height: 52vh;
+            max-height: 60vh;
             margin: 10px 0 15px 0;
             padding-right: 4px;
         }
 
-        .btn-ekg-item {
+        .btn-ekg-item, .btn-scenario-item {
             background: #1e1e24;
             color: #ffffff;
             border: 1px solid #333344;
@@ -181,7 +181,7 @@
             justify-content: space-between;
             align-items: center;
         }
-        .btn-ekg-item:hover, .btn-ekg-item:active {
+        .btn-ekg-item:hover, .btn-ekg-item:active, .btn-scenario-item:hover, .btn-scenario-item:active {
             background: #7000ff;
             border-color: #a855f7;
             color: #ffffff;
@@ -234,6 +234,24 @@
 </head>
 <body>
     
+    <!-- SZENARIO-START-MODAL -->
+    <div id="scenario-overlay" style="display: flex;">
+        <div id="scenario-screen" style="border-color: #28a745;">
+            <h3 style="color: #28a745; margin: 0 0 6px 0; font-size: 22px;">📋 Simulations-Start</h3>
+            <p style="font-size: 13px; color: #aaa; margin: 0 0 12px 0;">Wähle ein Einsatzszenario oder starte frei:</p>
+            
+            <button onclick="startFreeMode()" style="background: linear-gradient(135deg, #007bff, #0056b3); padding: 14px; font-size: 16px; border-radius: 8px; margin-bottom: 12px; width: 100%;">
+                ⚡ FREIER MODUS (Standardwerte)
+            </button>
+
+            <div style="font-size: 11px; font-weight: bold; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; text-align: left;">
+                ODER SZENARIO MIT VITALWERTEN LADEN:
+            </div>
+
+            <div id="scenario-scroll-list"></div>
+        </div>
+    </div>
+
     <!-- 12-Kanal EKG Modal mit Suchfunktion -->
     <div id="ekg-overlay">
         <div id="ekg-screen">
@@ -280,7 +298,10 @@
 
     <div class="dashboard">
         <div class="status-header panel-status">
-            <span>RAUM: <strong id="room-name-display" style="color: var(--warning);">---</strong></span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span>RAUM: <strong id="room-name-display" style="color: var(--warning);">---</strong></span>
+                <button id="btn-open-scenarios" style="background: #28a745; font-size: 11px; padding: 4px 8px; border-radius: 6px;">📋 Szenarien</button>
+            </div>
             <span style="display: flex; align-items: center;">
                 <span id="net-dot" class="status-dot status-offline"></span>
                 <span id="net-text">VERBINDE...</span>
@@ -296,7 +317,6 @@
             </div>
         </div>
 
-        <!-- Einzelne Toggles für Alle Töne & QRS-Ton -->
         <div class="control-panel border-audio panel-audio">
             <h3>Monitor Sounds &amp; Töne</h3>
             <div style="display: flex; gap: 10px;">
@@ -454,7 +474,201 @@
 
         const rhythmIds = ['nsr', 'stemi', 'vt', 'svt', 'afib', 'vfib', 'torsades', 'avb3', 'asystole'];
 
-        // Katalog aller EKGs
+        // 12 VORKONFIGURIERTE SZENARIEN MIT ALLEN WERTEN (HF, RR, SpO2, etCO2, AF, BZ, Temp, Rhythmus)
+        const trainingScenarios = [
+            {
+                id: 'ACS',
+                code: '10D05',
+                name: 'Thoraxschmerz / ACS',
+                badge: 'DELTA',
+                badgeColor: '#dc3545',
+                hr: 85, spo2: 96, sys: 150, dia: 95, co2: 38, af: 18, bz: 130, temp: 36.8,
+                rhythm: 'stemi',
+                sensors: { ecg: true, spo2: true, nibd: true, co2: false, defi: false }
+            },
+            {
+                id: 'APOPLEX',
+                code: '28C01',
+                name: 'Apoplex / CVI (Schlaganfall)',
+                badge: 'CHARLIE',
+                badgeColor: '#fd7e14',
+                hr: 92, spo2: 97, sys: 195, dia: 110, co2: 36, af: 14, bz: 115, temp: 37.1,
+                rhythm: 'afib',
+                sensors: { ecg: true, spo2: true, nibd: true, co2: false, defi: false }
+            },
+            {
+                id: 'ATEMNOT',
+                code: '06D02',
+                name: 'Schwere Dyspnoe / COPD',
+                badge: 'DELTA',
+                badgeColor: '#007bff',
+                hr: 118, spo2: 84, sys: 160, dia: 95, co2: 56, af: 28, bz: 120, temp: 37.4,
+                rhythm: 'nsr',
+                sensors: { ecg: true, spo2: true, nibd: true, co2: true, defi: false }
+            },
+            {
+                id: 'KRAMPF',
+                code: '12D02',
+                name: 'Status Epilepticus',
+                badge: 'DELTA',
+                badgeColor: '#6f42c1',
+                hr: 125, spo2: 89, sys: 155, dia: 90, co2: 48, af: 22, bz: 95, temp: 38.2,
+                rhythm: 'nsr',
+                sensors: { ecg: true, spo2: true, nibd: true, co2: true, defi: false }
+            },
+            {
+                id: 'TRAUMA',
+                code: '29D02',
+                name: 'Verkehrsunfall / Schock',
+                badge: 'DELTA',
+                badgeColor: '#ffaa00',
+                hr: 132, spo2: 92, sys: 85, dia: 50, co2: 28, af: 26, bz: 140, temp: 35.6,
+                rhythm: 'nsr',
+                sensors: { ecg: true, spo2: true, nibd: true, co2: true, defi: false }
+            },
+            {
+                id: 'STURZ',
+                code: '17D03',
+                name: 'Sturz aus Höhe (>4m)',
+                badge: 'DELTA',
+                badgeColor: '#ffaa00',
+                hr: 105, spo2: 95, sys: 110, dia: 70, co2: 35, af: 20, bz: 110, temp: 36.5,
+                rhythm: 'nsr',
+                sensors: { ecg: true, spo2: true, nibd: true, co2: false, defi: false }
+            },
+            {
+                id: 'ANAPHYLAXIE',
+                code: '02E01',
+                name: 'Anaphylaxie Grad III',
+                badge: 'ECHO',
+                badgeColor: '#e83e8c',
+                hr: 138, spo2: 88, sys: 75, dia: 40, co2: 30, af: 30, bz: 105, temp: 36.9,
+                rhythm: 'svt',
+                sensors: { ecg: true, spo2: true, nibd: true, co2: true, defi: false }
+            },
+            {
+                id: 'CPR',
+                code: '09E01',
+                name: 'Kreislaufstillstand / CPR',
+                badge: 'ECHO',
+                badgeColor: '#dc3545',
+                hr: 180, spo2: 0, sys: 0, dia: 0, co2: 14, af: 0, bz: 100, temp: 35.8,
+                rhythm: 'vfib',
+                sensors: { ecg: false, spo2: false, nibd: false, co2: true, defi: true }
+            },
+            {
+                id: 'HYPO',
+                code: '13C01',
+                name: 'Hypoglykämie (BZ 32 mg/dl)',
+                badge: 'CHARLIE',
+                badgeColor: '#fd7e14',
+                hr: 98, spo2: 98, sys: 135, dia: 85, co2: 38, af: 14, bz: 32, temp: 36.2,
+                rhythm: 'nsr',
+                sensors: { ecg: true, spo2: true, nibd: true, co2: false, defi: false }
+            },
+            {
+                id: 'ABDOMEN',
+                code: '01D01',
+                name: 'Akutes Abdomen / Kolik',
+                badge: 'DELTA',
+                badgeColor: '#dc3545',
+                hr: 110, spo2: 97, sys: 145, dia: 90, co2: 37, af: 20, bz: 118, temp: 38.8,
+                rhythm: 'nsr',
+                sensors: { ecg: true, spo2: true, nibd: true, co2: false, defi: false }
+            },
+            {
+                id: 'INTOX',
+                code: '23C01',
+                name: 'Intoxikation / Mischintox',
+                badge: 'CHARLIE',
+                badgeColor: '#fd7e14',
+                hr: 46, spo2: 82, sys: 95, dia: 60, co2: 58, af: 6, bz: 85, temp: 35.2,
+                rhythm: 'nsr',
+                sensors: { ecg: true, spo2: true, nibd: true, co2: true, defi: false }
+            },
+            {
+                id: 'PSYCH',
+                code: '25B03',
+                name: 'Panik / Hyperventilation',
+                badge: 'BRAVO',
+                badgeColor: '#007bff',
+                hr: 122, spo2: 100, sys: 150, dia: 90, co2: 22, af: 34, bz: 95, temp: 36.7,
+                rhythm: 'nsr',
+                sensors: { ecg: true, spo2: true, nibd: true, co2: true, defi: false }
+            }
+        ];
+
+        function renderScenarioList() {
+            const list = document.getElementById("scenario-scroll-list");
+            list.innerHTML = "";
+            trainingScenarios.forEach(sc => {
+                const item = document.createElement("button");
+                item.className = "btn-scenario-item";
+                const bpDisplay = (sc.sys > 0 && sc.dia > 0) ? `${sc.sys}/${sc.dia}` : `--/--`;
+                const spo2Display = sc.spo2 > 0 ? `${sc.spo2}%` : `--`;
+                const co2Display = sc.co2 > 0 ? `${sc.co2} mmHg` : `--`;
+                
+                item.innerHTML = `
+                    <div style="text-align: left; width: 85%;">
+                        <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 3px;">
+                            <span style="background: ${sc.badgeColor}; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px;">${sc.code}</span>
+                            <span style="font-size: 11px; color: #aaa; font-weight: bold;">${sc.badge}</span>
+                        </div>
+                        <div style="font-weight: bold; font-size: 15px; color: #fff;">${sc.name}</div>
+                        <div style="font-size: 12px; color: #47d670; margin-top: 4px; font-family: monospace;">
+                            HF: ${sc.hr}/min | RR: ${bpDisplay} | SpO2: ${spo2Display} | CO2: ${co2Display} | AF: ${sc.af} | BZ: ${sc.bz} mg/dl | ${sc.temp} °C
+                        </div>
+                    </div>
+                    <span style="color: #28a745; font-weight: bold; font-size: 14px;">Laden ➔</span>
+                `;
+                item.onclick = () => loadScenario(sc);
+                list.appendChild(item);
+            });
+        }
+
+        function loadScenario(sc) {
+            document.getElementById("scenario-overlay").style.display = "none";
+
+            document.getElementById("hrInput").value = sc.hr;
+            document.getElementById("spo2Input").value = sc.spo2;
+            document.getElementById("sysInput").value = sc.sys;
+            document.getElementById("diaInput").value = sc.dia;
+            document.getElementById("co2Input").value = sc.co2;
+            document.getElementById("afInput").value = sc.af;
+            document.getElementById("bzInput").value = sc.bz;
+            document.getElementById("tempInput").value = sc.temp;
+
+            sensors = { ...sc.sensors };
+            ['ecg', 'spo2', 'nibd', 'co2', 'defi'].forEach(s => {
+                updateSensorButtonUI(s);
+            });
+
+            setRhythm(sc.rhythm);
+            sendVitals();
+
+            const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
+            addLogEntry(`[${time}] - 📋 Szenario geladen: ${sc.name} (${sc.code})`);
+        }
+
+        function startFreeMode() {
+            document.getElementById("scenario-overlay").style.display = "none";
+            const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
+            addLogEntry(`[${time}] - 🎛️ Freier Simulationsmodus aktiv`);
+        }
+
+        function updateSensorButtonUI(sensorType) {
+            const btn = document.getElementById("btn-" + sensorType);
+            if (!btn) return;
+            btn.className = sensors[sensorType] ? "sensor-btn sensor-on" : "sensor-btn sensor-off";
+            let label = sensorType.toUpperCase();
+            if(sensorType === 'ecg') label = "EKG KABEL";
+            if(sensorType === 'spo2') label = "SpO2 SENSOR";
+            if(sensorType === 'co2') label = "CO2 SENSOR";
+            if(sensorType === 'nibd') label = "MANSCHETTE";
+            if(sensorType === 'defi') label = "DEFI-ELEKTRODEN";
+            btn.innerText = sensors[sensorType] ? label + ": ANGESCHLOSSEN" : label + ": GETRENNT";
+        }
+
         const ekgCatalog = [
             { name: "Normalbefund (Sinus)", file: "ekg_sinus.png" },
             { name: "RSB (Rechtsschenkelblock)", file: "ekg_rbbb.png" },
@@ -677,9 +891,14 @@
         connectWebSocket();
 
         document.addEventListener('DOMContentLoaded', () => {
+            renderScenarioList();
             renderEkgList();
             
             document.body.addEventListener('click', requestWakeLock, { once: true });
+
+            document.getElementById('btn-open-scenarios').addEventListener('click', () => {
+                document.getElementById('scenario-overlay').style.display = 'flex';
+            });
 
             document.getElementById('btn-open-12lead').addEventListener('click', openEkgModal);
             document.getElementById('btn-modal-close').addEventListener('click', closeEkgModal);
@@ -952,17 +1171,7 @@
 
         function toggleSensor(sensorType) {
             sensors[sensorType] = !sensors[sensorType];
-            const btn = document.getElementById("btn-" + sensorType);
-            btn.className = sensors[sensorType] ? "sensor-btn sensor-on" : "sensor-btn sensor-off";
-            
-            let label = sensorType.toUpperCase();
-            if(sensorType === 'ecg') label = "EKG KABEL";
-            if(sensorType === 'spo2') label = "SpO2 SENSOR";
-            if(sensorType === 'co2') label = "CO2 SENSOR";
-            if(sensorType === 'nibd') label = "MANSCHETTE";
-            if(sensorType === 'defi') label = "DEFI-ELEKTRODEN";
-
-            btn.innerText = sensors[sensorType] ? label + ": ANGESCHLOSSEN" : label + ": GETRENNT";
+            updateSensorButtonUI(sensorType);
             sendVitals();
         }
 
