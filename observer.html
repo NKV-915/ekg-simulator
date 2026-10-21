@@ -406,7 +406,7 @@
                     showEkgImage(data.image || "ekg_sinus.png"); 
                 }
                 else if (data.type === "12lead_close") { 
-                    closeEkgImage(true); 
+                    closeEkgImage(); 
                 }
                 else if (data.type === "bz_requested") {
                     showInfoBanner("🩸 BZ-Messung angefordert ...");
@@ -472,7 +472,10 @@
             document.getElementById("value-overlay").style.display = "none";
         }
 
-        function showEkgImage() {
+        function showEkgImage(imageFile) {
+            clearTimeout(window.infoBannerTimeout);
+            document.getElementById("info-area").style.display = "none";
+            document.getElementById("ekg-image").src = imageFile || "ekg_sinus.png";
             document.getElementById("ekg-image-overlay").style.display = "flex";
         }
 
