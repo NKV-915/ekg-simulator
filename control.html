@@ -459,6 +459,7 @@
         let pongTimeout = null;
         let wakeLock = null;
 
+        // Standardmäßig alle Sensoren getrennt
         let sensors = { ecg: false, spo2: false, nibd: false, co2: false, defi: false };
         let currentSpO2Quality = 'good';
         let currentRhythm = 'nsr';
@@ -474,7 +475,7 @@
 
         const rhythmIds = ['nsr', 'stemi', 'vt', 'svt', 'afib', 'vfib', 'torsades', 'avb3', 'asystole'];
 
-        // 12 VORKONFIGURIERTE SZENARIEN MIT ALLEN WERTEN (HF, RR, SpO2, etCO2, AF, BZ, Temp, Rhythmus)
+        // 12 Szenarien rein mit Vitalwerten (keine Sensoren hinterlegt)
         const trainingScenarios = [
             {
                 id: 'ACS',
@@ -483,8 +484,7 @@
                 badge: 'DELTA',
                 badgeColor: '#dc3545',
                 hr: 85, spo2: 96, sys: 150, dia: 95, co2: 38, af: 18, bz: 130, temp: 36.8,
-                rhythm: 'stemi',
-                sensors: { ecg: true, spo2: true, nibd: true, co2: false, defi: false }
+                rhythm: 'stemi'
             },
             {
                 id: 'APOPLEX',
@@ -493,8 +493,7 @@
                 badge: 'CHARLIE',
                 badgeColor: '#fd7e14',
                 hr: 92, spo2: 97, sys: 195, dia: 110, co2: 36, af: 14, bz: 115, temp: 37.1,
-                rhythm: 'afib',
-                sensors: { ecg: true, spo2: true, nibd: true, co2: false, defi: false }
+                rhythm: 'afib'
             },
             {
                 id: 'ATEMNOT',
@@ -503,8 +502,7 @@
                 badge: 'DELTA',
                 badgeColor: '#007bff',
                 hr: 118, spo2: 84, sys: 160, dia: 95, co2: 56, af: 28, bz: 120, temp: 37.4,
-                rhythm: 'nsr',
-                sensors: { ecg: true, spo2: true, nibd: true, co2: true, defi: false }
+                rhythm: 'nsr'
             },
             {
                 id: 'KRAMPF',
@@ -513,8 +511,7 @@
                 badge: 'DELTA',
                 badgeColor: '#6f42c1',
                 hr: 125, spo2: 89, sys: 155, dia: 90, co2: 48, af: 22, bz: 95, temp: 38.2,
-                rhythm: 'nsr',
-                sensors: { ecg: true, spo2: true, nibd: true, co2: true, defi: false }
+                rhythm: 'nsr'
             },
             {
                 id: 'TRAUMA',
@@ -523,8 +520,7 @@
                 badge: 'DELTA',
                 badgeColor: '#ffaa00',
                 hr: 132, spo2: 92, sys: 85, dia: 50, co2: 28, af: 26, bz: 140, temp: 35.6,
-                rhythm: 'nsr',
-                sensors: { ecg: true, spo2: true, nibd: true, co2: true, defi: false }
+                rhythm: 'nsr'
             },
             {
                 id: 'STURZ',
@@ -533,8 +529,7 @@
                 badge: 'DELTA',
                 badgeColor: '#ffaa00',
                 hr: 105, spo2: 95, sys: 110, dia: 70, co2: 35, af: 20, bz: 110, temp: 36.5,
-                rhythm: 'nsr',
-                sensors: { ecg: true, spo2: true, nibd: true, co2: false, defi: false }
+                rhythm: 'nsr'
             },
             {
                 id: 'ANAPHYLAXIE',
@@ -543,8 +538,7 @@
                 badge: 'ECHO',
                 badgeColor: '#e83e8c',
                 hr: 138, spo2: 88, sys: 75, dia: 40, co2: 30, af: 30, bz: 105, temp: 36.9,
-                rhythm: 'svt',
-                sensors: { ecg: true, spo2: true, nibd: true, co2: true, defi: false }
+                rhythm: 'svt'
             },
             {
                 id: 'CPR',
@@ -553,8 +547,7 @@
                 badge: 'ECHO',
                 badgeColor: '#dc3545',
                 hr: 180, spo2: 0, sys: 0, dia: 0, co2: 14, af: 0, bz: 100, temp: 35.8,
-                rhythm: 'vfib',
-                sensors: { ecg: false, spo2: false, nibd: false, co2: true, defi: true }
+                rhythm: 'vfib'
             },
             {
                 id: 'HYPO',
@@ -563,8 +556,7 @@
                 badge: 'CHARLIE',
                 badgeColor: '#fd7e14',
                 hr: 98, spo2: 98, sys: 135, dia: 85, co2: 38, af: 14, bz: 32, temp: 36.2,
-                rhythm: 'nsr',
-                sensors: { ecg: true, spo2: true, nibd: true, co2: false, defi: false }
+                rhythm: 'nsr'
             },
             {
                 id: 'ABDOMEN',
@@ -573,8 +565,7 @@
                 badge: 'DELTA',
                 badgeColor: '#dc3545',
                 hr: 110, spo2: 97, sys: 145, dia: 90, co2: 37, af: 20, bz: 118, temp: 38.8,
-                rhythm: 'nsr',
-                sensors: { ecg: true, spo2: true, nibd: true, co2: false, defi: false }
+                rhythm: 'nsr'
             },
             {
                 id: 'INTOX',
@@ -583,8 +574,7 @@
                 badge: 'CHARLIE',
                 badgeColor: '#fd7e14',
                 hr: 46, spo2: 82, sys: 95, dia: 60, co2: 58, af: 6, bz: 85, temp: 35.2,
-                rhythm: 'nsr',
-                sensors: { ecg: true, spo2: true, nibd: true, co2: true, defi: false }
+                rhythm: 'nsr'
             },
             {
                 id: 'PSYCH',
@@ -593,8 +583,7 @@
                 badge: 'BRAVO',
                 badgeColor: '#007bff',
                 hr: 122, spo2: 100, sys: 150, dia: 90, co2: 22, af: 34, bz: 95, temp: 36.7,
-                rhythm: 'nsr',
-                sensors: { ecg: true, spo2: true, nibd: true, co2: true, defi: false }
+                rhythm: 'nsr'
             }
         ];
 
@@ -638,7 +627,13 @@
             document.getElementById("bzInput").value = sc.bz;
             document.getElementById("tempInput").value = sc.temp;
 
-            sensors = { ...sc.sensors };
+            // Sensoren strikt auf FALSE (Rot / GETRENNT) belassen
+            sensors.ecg = false;
+            sensors.spo2 = false;
+            sensors.nibd = false;
+            sensors.co2 = false;
+            sensors.defi = false;
+
             ['ecg', 'spo2', 'nibd', 'co2', 'defi'].forEach(s => {
                 updateSensorButtonUI(s);
             });
@@ -647,7 +642,7 @@
             sendVitals();
 
             const time = new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute:'2-digit', second:'2-digit', hour12: false});
-            addLogEntry(`[${time}] - 📋 Szenario geladen: ${sc.name} (${sc.code})`);
+            addLogEntry(`[${time}] - 📋 Szenario geladen: ${sc.name} (${sc.code}) - Kabel getrennt`);
         }
 
         function startFreeMode() {
@@ -967,6 +962,11 @@
             document.getElementById('diaInput').addEventListener('change', sendVitals);
 
             document.getElementById('btn-clear-log').addEventListener('click', clearLog);
+
+            // Initialisiere Sensor-Buttons auf Rot
+            ['ecg', 'spo2', 'nibd', 'co2', 'defi'].forEach(s => {
+                updateSensorButtonUI(s);
+            });
         });
 
         function toggleAllSounds() {
