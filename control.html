@@ -512,6 +512,7 @@
         let pongTimeout = null;
         let wakeLock = null;
 
+        // Sensoren standardmäßig getrennt
         let sensors = { ecg: false, spo2: false, nibd: false, co2: false, defi: false };
         let currentSpO2Quality = 'good';
         let currentRhythm = 'nsr';
@@ -528,11 +529,12 @@
 
         const rhythmIds = ['nsr', 'stemi', 'vt', 'svt', 'afib', 'vfib', 'torsades', 'avb3', 'asystole'];
 
-        // 12 NOTFALL-SZENARIEN (Voreinstellungen)
+        // 13 NOTFALL-SZENARIEN (inklusive Brandverletzter)
         const trainingScenarios = [
             { id: 'ACS', code: '10D05', name: 'Thoraxschmerz / ACS', badge: 'DELTA', badgeColor: '#dc3545', hr: 85, spo2: 96, sys: 150, dia: 95, co2: 38, af: 18, bz: 130, temp: 36.8, rhythm: 'stemi' },
             { id: 'APOPLEX', code: '28C01', name: 'Apoplex / CVI (Schlaganfall)', badge: 'CHARLIE', badgeColor: '#fd7e14', hr: 92, spo2: 97, sys: 195, dia: 110, co2: 36, af: 14, bz: 115, temp: 37.1, rhythm: 'afib' },
             { id: 'ATEMNOT', code: '06D02', name: 'Schwere Dyspnoe / COPD', badge: 'DELTA', badgeColor: '#007bff', hr: 118, spo2: 84, sys: 160, dia: 95, co2: 56, af: 28, bz: 120, temp: 37.4, rhythm: 'nsr' },
+            { id: 'BRAND', code: '07D01', name: 'Trügerisch stabiler Brandverletzter', badge: 'DELTA', badgeColor: '#ff5500', hr: 82, spo2: 98, sys: 135, dia: 80, co2: 38, af: 15, bz: 115, temp: 36.8, rhythm: 'nsr' },
             { id: 'KRAMPF', code: '12D02', name: 'Status Epilepticus', badge: 'DELTA', badgeColor: '#6f42c1', hr: 125, spo2: 89, sys: 155, dia: 90, co2: 48, af: 22, bz: 95, temp: 38.2, rhythm: 'nsr' },
             { id: 'TRAUMA', code: '29D02', name: 'Verkehrsunfall / Schock', badge: 'DELTA', badgeColor: '#ffaa00', hr: 132, spo2: 92, sys: 85, dia: 50, co2: 28, af: 26, bz: 140, temp: 35.6, rhythm: 'nsr' },
             { id: 'STURZ', code: '17D03', name: 'Sturz aus Höhe (>4m)', badge: 'DELTA', badgeColor: '#ffaa00', hr: 105, spo2: 95, sys: 110, dia: 70, co2: 35, af: 20, bz: 110, temp: 36.5, rhythm: 'nsr' },
@@ -715,6 +717,7 @@
             });
         }
 
+        // Lädt die Werte vor, lässt alle Sensorkabel bewusst auf "GETRENNT" (Rot)
         function loadScenario(sc) {
             document.getElementById("scenario-overlay").style.display = "none";
 
@@ -961,7 +964,7 @@
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     ws.send(JSON.stringify({ type: "nibd_cancelled" }));
                 }
-                setCtrlMeasuringNibp(false);
+                setCtrlNibpMeasuring(false);
                 addLogEntry(`[${time}] - 🩺 NIBP-Messung vom Controller abgebrochen`);
             } else {
                 if (ws && ws.readyState === WebSocket.OPEN) {
