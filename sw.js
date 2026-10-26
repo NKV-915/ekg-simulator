@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ekg-sim-v55';
+const CACHE_NAME = 'ekg-sim-v56';
 const ASSETS = [
   './', 
   './index.html', 
@@ -23,10 +23,10 @@ const ASSETS = [
   './ekg_sinus_tachy.png',
   './ekg_sinus_brady.png',
   './ekg_vhf.png',
-  './ekg_av_lll.png',
-  './ekg_av_ll_mobitz.png',
-  './ekg_av_ll_wenckebach.png',
-  './ekg_av_l.png',
+  './ekg_av_III.png',
+  './ekg_av_II_mobitz.png',
+  './ekg_av_II_wenckebach.png',
+  './ekg_av_I.png',
   './ekg_vt.png',
   './ekg_svt.png',
   './alarm.mp3',
