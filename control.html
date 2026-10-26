@@ -529,7 +529,7 @@
 
         const rhythmIds = ['nsr', 'stemi', 'vt', 'svt', 'afib', 'vfib', 'torsades', 'avb3', 'asystole'];
 
-        // 13 NOTFALL-SZENARIEN (inklusive Brandverletzter)
+        // 13 NOTFALL-SZENARIEN (inklusive Brandverletzter)[cite: 4]
         const trainingScenarios = [
             { id: 'ACS', code: '10D05', name: 'Thoraxschmerz / ACS', badge: 'DELTA', badgeColor: '#dc3545', hr: 85, spo2: 96, sys: 150, dia: 95, co2: 38, af: 18, bz: 130, temp: 36.8, rhythm: 'stemi' },
             { id: 'APOPLEX', code: '28C01', name: 'Apoplex / CVI (Schlaganfall)', badge: 'CHARLIE', badgeColor: '#fd7e14', hr: 92, spo2: 97, sys: 195, dia: 110, co2: 36, af: 14, bz: 115, temp: 37.1, rhythm: 'afib' },
@@ -861,6 +861,7 @@
             closeMeasuresModal();
         }
 
+        // KORREKTE DATEINAMEN FÜR AV-BLÖCKE MIT GROSSEN RÖMISCHEN ZIFFERN (I, II, III)
         const ekgCatalog = [
             { name: "Normalbefund (Sinus)", file: "ekg_sinus.png" },
             { name: "RSB (Rechtsschenkelblock)", file: "ekg_rbbb.png" },
@@ -879,10 +880,10 @@
             { name: "Sinustachykardie", file: "ekg_sinus_tachy.png" },
             { name: "Sinusbradykardie", file: "ekg_sinus_brady.png" },
             { name: "Vorhofflimmern (VHF)", file: "ekg_vhf.png" },
-            { name: "AV-Block I°", file: "ekg_av_l.png" },
-            { name: "AV-Block II° Wenckebach", file: "ekg_av_ll_wenckebach.png" },
-            { name: "AV-Block II° Mobitz", file: "ekg_av_ll_mobitz.png" },
-            { name: "AV-Block III°", file: "ekg_av_lll.png" },
+            { name: "AV-Block I°", file: "ekg_av_I.png" },
+            { name: "AV-Block II° Wenckebach", file: "ekg_av_II_wenckebach.png" },
+            { name: "AV-Block II° Mobitz", file: "ekg_av_II_mobitz.png" },
+            { name: "AV-Block III°", file: "ekg_av_III.png" },
             { name: "Ventrikuläre Tachykardie (VT)", file: "ekg_vt.png" },
             { name: "Supraventrikuläre Tachykardie (SVT)", file: "ekg_svt.png" }
         ];
@@ -964,7 +965,7 @@
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     ws.send(JSON.stringify({ type: "nibd_cancelled" }));
                 }
-                setCtrlNibpMeasuring(false);
+                setCtrlMeasuringNibp(false);
                 addLogEntry(`[${time}] - 🩺 NIBP-Messung vom Controller abgebrochen`);
             } else {
                 if (ws && ws.readyState === WebSocket.OPEN) {
