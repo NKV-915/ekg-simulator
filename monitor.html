@@ -695,25 +695,14 @@
             
             document.body.addEventListener('click', requestWakeLock, { once: true });
 
+            // Saubere AudioContext-Initialisierung ohne MP3-Vorab-Play
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
 
             timerRunning = true;
-
-            Object.keys(sounds).forEach(key => {
-                const a = sounds[key];
-                a.muted = true;
-                const p = a.play();
-                if (p !== undefined) {
-                    p.then(() => {
-                        a.pause();
-                        a.currentTime = 0;
-                        a.muted = false;
-                    }).catch(e => {
-                        a.muted = false;
-                    });
-                }
-            });
 
             setTimeout(function() { 
                 if (ws && ws.readyState === WebSocket.OPEN) { 
@@ -881,8 +870,10 @@
 
         function updateHistoryDisplay() {
             const listDiv = document.getElementById("historyList");
-            if (nibdHistory.length > 5) { nibdHistory = nibdHistory.slice(0, 5); }
-            if (nibdHistory.length === 0) { listDiv.innerHTML = "<div style='color:#555; font-size:15px; padding-top:6px;'>Keine Messungen</div>"; } else { listDiv.innerHTML = nibdHistory.map(function(entry) { return '<div style="display:flex; justify-content:space-between; color:#47d670; font-size: 19px; font-weight: bold; padding: 4px 0; border-bottom: 1px solid #1a1a1a;">' + entry + '</div>'; }).join(""); }
+            if (nibdHistory.length > 5) nibdHistory = nibdHistory.slice(0, 5);
+            if (nibdHistory.length === 0) { listDiv.innerHTML = "<div style='color:#555; font-size:15px; padding-top:6px;'>Keine Messungen</div>"; } else { 
+                listDiv.innerHTML = nibdHistory.map(entry => '<div style="display:flex; justify-content:space-between; color:#47d670; font-size: 19px; font-weight: bold; padding: 4px 0; border-bottom: 1px solid #1a1a1a;">' + entry + '</div>').join(""); 
+            }
         }
 
         function triggerLocalNibdStart() {
