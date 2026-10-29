@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ekg-sim-v56';
+const CACHE_NAME = 'ekg-sim-v59';
 const ASSETS = [
   './', 
   './index.html', 
@@ -34,7 +34,10 @@ const ASSETS = [
   './blutdruck.mp3',
   './shock_charge.mp3',
   './shock_ready.mp3',
-  './shock_admitted.mp3'
+  './shock_admitted.mp3',
+  './analyse.mp3',
+  './schock_ja.mp3',
+  './schock_nein.mp3'
 ];
 
 self.addEventListener('install', (e) => {
