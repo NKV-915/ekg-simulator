@@ -1251,6 +1251,7 @@
             // 1. Sound bei Start der Analyse abspielen
             playAudioFile("analyse.mp3");
 
+            // 7 Sekunden Analysephase
             setTimeout(function() {
                 btnAnalyse.classList.remove("analyse-measuring");
                 const overlay = document.getElementById("defib-overlay"); 
@@ -1312,7 +1313,7 @@
 
                     setTimeout(function() { resetAED(); startCprTimer(); }, 4000);
                 }
-            }, 4000);
+            }, 7000);
         }
 
         function deliverShock(fromNetwork = false) {

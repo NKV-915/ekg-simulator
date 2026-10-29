@@ -492,23 +492,45 @@
         }
 
         function startAnalysisSequence() {
-            const overlay = document.getElementById("defib-overlay"); const announceState = document.getElementById("announcement-state"); const announceText = document.getElementById("announcement-text"); const loadState = document.getElementById("loading-state"); const rdyState = document.getElementById("ready-state"); const fill = document.getElementById("progress-fill");
-            overlay.style.display = "flex"; announceState.style.display = "flex"; loadState.style.display = "none"; rdyState.style.display = "none";
-            
-            if (currentRhythm === 'vfib' || currentRhythm === 'vt' || currentRhythm === 'torsades') {
-                announceText.innerText = "Schock empfohlen"; announceText.style.color = "#dc3545"; 
-                setTimeout(function() {
-                    announceState.style.display = "none"; loadState.style.display = "flex"; fill.style.width = "0%";
-                    let elapsed = 0; const duration = 3000;
-                    const chargeInterval = setInterval(function() {
-                        elapsed += 50; fill.style.width = ((elapsed / duration) * 100) + "%";
-                        if (elapsed >= duration) { clearInterval(chargeInterval); loadState.style.display = "none"; rdyState.style.display = "flex"; }
-                    }, 50);
-                }, 2000);
-            } else {
-                announceText.innerText = "Kein Schock empfohlen"; announceText.style.color = "#28a745"; 
-                setTimeout(function() { overlay.style.display = "none"; }, 4000);
-            }
+            const overlay = document.getElementById("defib-overlay"); 
+            const announceState = document.getElementById("announcement-state"); 
+            const announceText = document.getElementById("announcement-text"); 
+            const loadState = document.getElementById("loading-state"); 
+            const rdyState = document.getElementById("ready-state"); 
+            const fill = document.getElementById("progress-fill");
+
+            // 7 Sekunden Analysephase synchron zum Monitor
+            overlay.style.display = "flex"; 
+            announceState.style.display = "flex"; 
+            loadState.style.display = "none"; 
+            rdyState.style.display = "none";
+            announceText.innerText = "EVALUIERE...";
+            announceText.style.color = "#ffcc00";
+
+            setTimeout(function() {
+                if (currentRhythm === 'vfib' || currentRhythm === 'vt' || currentRhythm === 'torsades') {
+                    announceText.innerText = "Schock empfohlen"; 
+                    announceText.style.color = "#dc3545"; 
+                    setTimeout(function() {
+                        announceState.style.display = "none"; 
+                        loadState.style.display = "flex"; 
+                        fill.style.width = "0%";
+                        let elapsed = 0; const duration = 3000;
+                        const chargeInterval = setInterval(function() {
+                            elapsed += 50; fill.style.width = ((elapsed / duration) * 100) + "%";
+                            if (elapsed >= duration) { 
+                                clearInterval(chargeInterval); 
+                                loadState.style.display = "none"; 
+                                rdyState.style.display = "flex"; 
+                            }
+                        }, 50);
+                    }, 2500);
+                } else {
+                    announceText.innerText = "Kein Schock empfohlen"; 
+                    announceText.style.color = "#28a745"; 
+                    setTimeout(function() { overlay.style.display = "none"; }, 4000);
+                }
+            }, 7000);
         }
 
         function deliverShockSequence() {
